@@ -24,14 +24,17 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 
 ### Sprint Documentation
 - [Sprint 01 - Foundation](./10-sprints/sprint-01-foundation.md) ✅
+- [Sprint 02 - Manuscript Editor](./10-sprints/sprint-02-manuscript-editor.md) ✅
 
 ### API Reference
 - [Authentication API](./04-api-reference/authentication.md)
 - [Novels API](./04-api-reference/novels.md)
 - [Profile API](./04-api-reference/profile.md)
+- [Manuscript Editor API](./04-api-reference/manuscript-editor.md)
 
 ### Testing
 - [Foundation Testing Guide](./06-testing/foundation-testing.md)
+- [Manuscript Editor Testing Guide](./06-testing/manuscript-editor-testing.md)
 
 ### User Journeys
 - [Authentication Flow](./07-user-journeys/authentication/user-auth-flow.md)
@@ -47,6 +50,7 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 | Novel Management | ✅ Complete | [Link](./10-sprints/sprint-01-foundation.md) | [Link](./04-api-reference/novels.md) | [Link](./06-testing/foundation-testing.md) |
 | Profile Settings | ✅ Complete | [Link](./10-sprints/sprint-01-foundation.md) | [Link](./04-api-reference/profile.md) | [Link](./06-testing/foundation-testing.md) |
 | Onboarding | ✅ Complete | [Link](./10-sprints/sprint-01-foundation.md) | N/A | [Link](./06-testing/foundation-testing.md) |
+| Manuscript Editor | ✅ Complete | [Link](./10-sprints/sprint-02-manuscript-editor.md) | [Link](./04-api-reference/manuscript-editor.md) | [Link](./06-testing/manuscript-editor-testing.md) |
 
 ---
 

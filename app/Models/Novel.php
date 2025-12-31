@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Novel extends Model
 {
@@ -52,5 +54,31 @@ class Novel extends Model
     public function penName(): BelongsTo
     {
         return $this->belongsTo(PenName::class);
+    }
+
+    /**
+     * @return HasMany<Chapter, $this>
+     */
+    public function chapters(): HasMany
+    {
+        return $this->hasMany(Chapter::class)->orderBy('position');
+    }
+
+    /**
+     * @return HasManyThrough<Scene, Chapter, $this>
+     */
+    public function scenes(): HasManyThrough
+    {
+        return $this->hasManyThrough(Scene::class, Chapter::class);
+    }
+
+    /**
+     * Recalculate and update word count from all scenes.
+     */
+    public function recalculateWordCount(): void
+    {
+        $this->word_count = $this->scenes()->sum('word_count');
+        $this->chapter_count = $this->chapters()->count();
+        $this->save();
     }
 }
