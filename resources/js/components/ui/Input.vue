@@ -10,6 +10,7 @@ interface Props {
     disabled?: boolean;
     required?: boolean;
     id?: string;
+    variant?: 'default' | 'subtle';
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -17,6 +18,7 @@ const props = withDefaults(defineProps<Props>(), {
     type: 'text',
     disabled: false,
     required: false,
+    variant: 'default',
 });
 
 const emit = defineEmits<{
@@ -26,19 +28,27 @@ const emit = defineEmits<{
 const inputId = computed(() => props.id || `input-${Math.random().toString(36).substring(7)}`);
 
 const inputClasses = computed(() => {
-    const base = 'block w-full rounded-lg border px-3 py-2 text-sm transition-colors placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50';
-    const normal = 'border-zinc-300 bg-white focus:border-violet-500 focus:ring-violet-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:focus:border-violet-500';
-    const hasError = 'border-red-500 focus:border-red-500 focus:ring-red-500/20';
+    const base =
+        'block w-full rounded-lg border px-3.5 py-2.5 text-sm text-zinc-900 transition-all placeholder:text-zinc-400 focus:outline-none disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-500 dark:text-white dark:disabled:bg-zinc-800';
 
-    return `${base} ${props.error ? hasError : normal}`;
+    const variants = {
+        default: props.error
+            ? 'border-red-300 bg-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 dark:border-red-600 dark:bg-zinc-900'
+            : 'border-zinc-200 bg-white focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:border-violet-500',
+        subtle: props.error
+            ? 'border-red-200 bg-zinc-50 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 dark:border-red-800 dark:bg-zinc-800/50'
+            : 'border-zinc-100 bg-zinc-50 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 focus:bg-white dark:border-zinc-800 dark:bg-zinc-800/50 dark:focus:bg-zinc-900',
+    };
+
+    return `${base} ${variants[props.variant]}`;
 });
 </script>
 
 <template>
-    <div class="space-y-1.5">
+    <div class="space-y-2">
         <label v-if="label" :for="inputId" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
             {{ label }}
-            <span v-if="required" class="text-red-500">*</span>
+            <span v-if="required" class="ml-0.5 text-red-500">*</span>
         </label>
         <input
             :id="inputId"
@@ -50,6 +60,6 @@ const inputClasses = computed(() => {
             :class="inputClasses"
             @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
         />
-        <p v-if="error" class="text-sm text-red-500">{{ error }}</p>
+        <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
     </div>
 </template>

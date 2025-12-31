@@ -108,17 +108,19 @@ const deleteAccount = () => {
                 :initial="{ opacity: 0, y: 20 }"
                 :animate="{ opacity: 1, y: 0 }"
                 :transition="{ type: 'spring', stiffness: 300, damping: 30, delay: 0.05 }"
-                class="mb-6"
+                class="mb-8"
             >
-                <Card>
-                    <h2 class="mb-1 text-lg font-semibold text-zinc-900 dark:text-white">Profile Information</h2>
-                    <p class="mb-6 text-sm text-zinc-600 dark:text-zinc-400">Update your account's profile information and email address.</p>
+                <Card variant="default">
+                    <div class="mb-6">
+                        <h2 class="text-base font-bold text-zinc-900 dark:text-white">Profile Information</h2>
+                        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Update your account's profile information and email address.</p>
+                    </div>
 
-                    <form @submit.prevent="updateProfile" class="space-y-4">
+                    <form @submit.prevent="updateProfile" class="space-y-5">
                         <Input v-model="profileForm.name" label="Name" :error="profileForm.errors.name" required />
                         <Input v-model="profileForm.email" type="email" label="Email" :error="profileForm.errors.email" required />
 
-                        <div class="flex justify-end">
+                        <div class="flex justify-end pt-2">
                             <Button type="submit" :loading="profileForm.processing" :disabled="profileForm.processing">
                                 Save Changes
                             </Button>
@@ -132,13 +134,15 @@ const deleteAccount = () => {
                 :initial="{ opacity: 0, y: 20 }"
                 :animate="{ opacity: 1, y: 0 }"
                 :transition="{ type: 'spring', stiffness: 300, damping: 30, delay: 0.1 }"
-                class="mb-6"
+                class="mb-8"
             >
-                <Card>
-                    <h2 class="mb-1 text-lg font-semibold text-zinc-900 dark:text-white">Update Password</h2>
-                    <p class="mb-6 text-sm text-zinc-600 dark:text-zinc-400">Ensure your account is using a secure password.</p>
+                <Card variant="default">
+                    <div class="mb-6">
+                        <h2 class="text-base font-bold text-zinc-900 dark:text-white">Update Password</h2>
+                        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Ensure your account is using a secure password.</p>
+                    </div>
 
-                    <form @submit.prevent="updatePassword" class="space-y-4">
+                    <form @submit.prevent="updatePassword" class="space-y-5">
                         <Input
                             v-model="passwordForm.current_password"
                             type="password"
@@ -161,7 +165,7 @@ const deleteAccount = () => {
                             required
                         />
 
-                        <div class="flex justify-end">
+                        <div class="flex justify-end pt-2">
                             <Button type="submit" :loading="passwordForm.processing" :disabled="passwordForm.processing">
                                 Update Password
                             </Button>
@@ -176,11 +180,13 @@ const deleteAccount = () => {
                 :animate="{ opacity: 1, y: 0 }"
                 :transition="{ type: 'spring', stiffness: 300, damping: 30, delay: 0.15 }"
             >
-                <Card>
-                    <h2 class="mb-1 text-lg font-semibold text-red-600 dark:text-red-400">Delete Account</h2>
-                    <p class="mb-6 text-sm text-zinc-600 dark:text-zinc-400">
-                        Once your account is deleted, all of its resources and data will be permanently deleted.
-                    </p>
+                <Card variant="default">
+                    <div class="mb-4">
+                        <h2 class="text-base font-bold text-red-600 dark:text-red-400">Delete Account</h2>
+                        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                            Once your account is deleted, all of its resources and data will be permanently deleted.
+                        </p>
+                    </div>
 
                     <Button variant="danger" @click="showDeleteModal = true">Delete Account</Button>
                 </Card>
