@@ -4,6 +4,8 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -44,5 +46,39 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * @return HasMany<Novel, $this>
+     */
+    public function novels(): HasMany
+    {
+        return $this->hasMany(Novel::class);
+    }
+
+    /**
+     * @return HasMany<PenName, $this>
+     */
+    public function penNames(): HasMany
+    {
+        return $this->hasMany(PenName::class);
+    }
+
+    /**
+     * @return HasOne<UserOnboardingState, $this>
+     */
+    public function onboardingState(): HasOne
+    {
+        return $this->hasOne(UserOnboardingState::class);
+    }
+
+    public function defaultPenName(): ?PenName
+    {
+        return $this->penNames()->where('is_default', true)->first();
+    }
+
+    public function getOrCreateOnboardingState(): UserOnboardingState
+    {
+        return $this->onboardingState ?? $this->onboardingState()->create();
     }
 }
