@@ -29,6 +29,7 @@
         "@tailwindcss/vite": "^4.1.11",
         "@tiptap/extension-character-count": "^3.14.0",
         "@tiptap/extension-placeholder": "^3.14.0",
+        "@tiptap/extension-underline": "^3.14.0",
         "@tiptap/pm": "^3.14.0",
         "@tiptap/starter-kit": "^3.14.0",
         "@tiptap/vue-3": "^3.14.0",

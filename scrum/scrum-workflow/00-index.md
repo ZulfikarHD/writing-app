@@ -70,25 +70,27 @@ Karena aplikasi ini **tidak menggunakan sidebar-based navigation** seperti Novel
 | File | Deskripsi | Status |
 |------|-----------|--------|
 | [00-index.md](./00-index.md) | Overview & Navigation (file ini) | ✅ Complete |
-| [10-sprint-roadmap.md](./10-sprint-roadmap.md) | Sprint calendar & milestones | ✅ Complete |
-| [11-technical-architecture.md](./11-technical-architecture.md) | Tech stack & database schema | ✅ Complete |
-| [12-risk-management.md](./12-risk-management.md) | Project risks & mitigation | ✅ Complete |
-| [13-glossary.md](./13-glossary.md) | Terms & definitions | ✅ Complete |
-| [14-gap-analysis.md](./14-gap-analysis.md) | FRD vs Scrum traceability | ✅ Complete |
+| [12-sprint-roadmap.md](./12-sprint-roadmap.md) | Sprint calendar & milestones | ✅ Complete |
+| [13-technical-architecture.md](./13-technical-architecture.md) | Tech stack & database schema | ✅ Complete |
+| [14-risk-management.md](./14-risk-management.md) | Project risks & mitigation | ✅ Complete |
+| [15-glossary.md](./15-glossary.md) | Terms & definitions | ✅ Complete |
+| [16-gap-analysis.md](./16-gap-analysis.md) | FRD vs Scrum traceability | ✅ Complete |
 
 ### 🎯 Epic Files
 
 | No | Epic | File | Sprint | Story Points | Prioritas |
 |----|------|------|--------|--------------|-----------|
-| 1 | Manuscript Editor | [01-manuscript-editor.md](./01-manuscript-editor.md) | 1-3 | 68 | 🔴 Tinggi |
-| 2 | Story Planning | [02-story-planning.md](./02-story-planning.md) | 2-4 | 53 | 🔴 Tinggi |
-| 3 | Codex (World Database) | [03-codex.md](./03-codex.md) | 3-6 | 77 | 🔴 Tinggi |
-| 4 | Snippets | [04-snippets.md](./04-snippets.md) | 4-5 | 13 | 🟡 Sedang |
-| 5 | AI/Chat Interface | [05-ai-chat.md](./05-ai-chat.md) | 4-6 | 47 | 🔴 Tinggi |
-| 6 | Prompt Management | [06-prompt-management.md](./06-prompt-management.md) | 5-7 | 58 | 🟡 Sedang |
-| 7 | AI Connections | [07-ai-connections.md](./07-ai-connections.md) | 3-4 | 48 | 🔴 Tinggi |
-| 8 | Import/Export | [08-import-export.md](./08-import-export.md) | 6-8 | 43 | 🟡 Sedang |
-| 9 | Organization & Misc | [09-organization.md](./09-organization.md) | 7-9 | 103 | 🟢 Rendah |
+| 0 | Foundation & Core Setup | [01-foundation.md](./01-foundation.md) | 1, 7 | 34 | 🔴 Tinggi |
+| 1 | Manuscript Editor | [02-manuscript-editor.md](./02-manuscript-editor.md) | 1-3, 5-7, 9 | 68 | 🔴 Tinggi |
+| 2 | Story Planning | [03-story-planning.md](./03-story-planning.md) | 2-4, 7 | 53 | 🔴 Tinggi |
+| 3 | Codex (World Database) | [04-codex.md](./04-codex.md) | 3-6, 8 | 77 | 🔴 Tinggi |
+| 4 | Snippets | [05-snippets.md](./05-snippets.md) | 5 | 13 | 🟡 Sedang |
+| 5 | AI/Chat Interface | [06-ai-chat.md](./06-ai-chat.md) | 4-6 | 47 | 🔴 Tinggi |
+| 6 | Prompt Management | [07-prompt-management.md](./07-prompt-management.md) | 5-7, 9 | 58 | 🟡 Sedang |
+| 7 | AI Connections | [08-ai-connections.md](./08-ai-connections.md) | 3-4, 7, 9 | 48 | 🔴 Tinggi |
+| 8 | Import/Export | [09-import-export.md](./09-import-export.md) | 6-8 | 43 | 🟡 Sedang |
+| 9 | Collaboration & Teams | [10-collaboration.md](./10-collaboration.md) | 8-9 | 21 | 🔴 Tinggi |
+| 10 | System & Productivity | [11-system-productivity.md](./11-system-productivity.md) | 8-9, Backlog | 54 | 🟡 Sedang |
 
 ---
 
@@ -96,16 +98,17 @@ Karena aplikasi ini **tidak menggunakan sidebar-based navigation** seperti Novel
 
 | Metric | Value |
 |--------|-------|
-| **Total Epics** | 9 |
-| **Total User Stories** | 111 |
-| **Total Story Points** | **510** |
+| **Total Epics** | 11 |
+| **Total User Stories** | ~115 |
+| **Total Story Points** | **516** |
 | **Sprint Duration** | 2 minggu |
-| **Total Sprints** | 9-10 |
-| **Estimated Duration** | ~5 bulan |
+| **Total Sprints** | 9 + Backlog |
+| **Estimated Duration** | ~4.5 bulan |
 
 ### Story Points per Epic:
 | Epic | Points |
 |------|--------|
+| 0. Foundation & Core Setup | 34 |
 | 1. Manuscript Editor | 68 |
 | 2. Story Planning | 53 |
 | 3. Codex | 77 |
@@ -114,37 +117,47 @@ Karena aplikasi ini **tidak menggunakan sidebar-based navigation** seperti Novel
 | 6. Prompt Management | 58 |
 | 7. AI Connections | 48 |
 | 8. Import/Export | 43 |
-| 9. Organization | 103 |
-| **TOTAL** | **510** |
+| 9. Collaboration & Teams | 21 |
+| 10. System & Productivity | 54 |
+| **TOTAL** | **516** |
 
 ---
 
 ## 🗓️ Sprint Timeline Overview
 
 ```
-Week  1-2  ████████ Sprint 1: Foundation & Core Editor
-Week  3-4  ████████ Sprint 2: Editor Complete & Planning Start
-Week  5-6  ████████ Sprint 3: AI Connections & Codex Foundation
-Week  7-8  ████████ Sprint 4: Codex Complete & Chat Start
-Week  9-10 ████████ Sprint 5: AI Features & Prompts
-Week 11-12 ████████ Sprint 6: Import/Export & Prompt Advanced
-Week 13-14 ████████ Sprint 7: Export Complete & Organization
-Week 15-16 ████████ Sprint 8: Collaboration & Statistics
-Week 17-18 ████████ Sprint 9: Final Polish & Launch Prep
+Week  1-2  ████████ Sprint 1: Foundation & Core Editor (36 pts)
+Week  3-4  ████████ Sprint 2: Editor Features & Planning Start (34 pts)
+Week  5-6  ████████ Sprint 3: AI Connections & Codex Foundation (52 pts)
+Week  7-8  ████████ Sprint 4: Codex Complete & Chat Start (67 pts)
+Week  9-10 ████████ Sprint 5: AI Features, Prompts & Snippets (57 pts)
+Week 11-12 ████████ Sprint 6: Import/Export & Advanced Prompts (63 pts)
+Week 13-14 ████████ Sprint 7: Export, Planning Analytics & Onboarding (75 pts)
+Week 15-16 ████████ Sprint 8: Collaboration, Archive & System (52 pts)
+Week 17-18 ████████ Sprint 9: Teams, Polish & Final Features (55 pts)
 ```
 
 ### 🎯 Release Milestones
 
 | Milestone | Sprint | Features |
 |-----------|--------|----------|
-| **MVP** | End of Sprint 4 | Editor, AI Connections, Basic Codex, Basic Chat |
-| **Beta** | End of Sprint 6 | + Slash Commands, Import, Prompts, Personas |
-| **RC** | End of Sprint 8 | + Export, Revision History, Collaboration |
-| **GA** | End of Sprint 9 | + Polish, Help, Teams, All Features |
+| **MVP** | End of Sprint 4 | Foundation, Editor, AI Connections, Codex, Chat, Planning Views (~181 pts) |
+| **Beta** | End of Sprint 6 | + Slash Commands, Import, Prompts with Personas, Snippets, Mentions (~324 pts) |
+| **RC** | End of Sprint 8 | + Export, Onboarding, Collaboration, Revision History, System Features (~467 pts) |
+| **GA** | End of Sprint 9 | + Teams, Polish, Help, All Features Complete (~516 pts) |
 
 ---
 
 ## 📋 Epic Summary
+
+### Epic 0: Foundation & Core Setup (34 pts)
+Entry point aplikasi:
+- User authentication & account management
+- Dashboard & project list
+- Novel creation & setup with templates
+- Pen names management
+- Novel covers
+- **Getting Started / Onboarding Experience** (guided tutorial for new users)
 
 ### Epic 1: Manuscript Editor (68 pts)
 Core writing interface dengan:
@@ -177,7 +190,7 @@ World & character database:
 - Relations (family, organizations)
 - Mentions tracking & highlighting
 - AI context controls
-- Series support
+- Series support (backlog)
 - Progression history
 - Categories & Quick Create
 - Detail progressions
@@ -229,25 +242,29 @@ Data management:
 - Archive management
 - Revision history
 
-### Epic 9: Organization (103 pts)
+### Epic 9: Collaboration & Teams (21 pts)
+Multi-user features:
+- Invite collaborators (Viewer/Editor roles)
+- Shared project management
+- Activity log for edits
+- Teams for writing groups
+- Batch sharing to team members
+
+### Epic 10: System & Productivity (54 pts)
 Supporting features:
-- Dashboard & project list
-- Novel creation & setup with templates
-- Theme customization
-- Global search
+- Theme & appearance customization
+- Global search (Ctrl+K)
 - Backup & restore
-- User account
 - Auto-recovery & data safety
-- Novel covers
 - Word statistics dashboard
 - Settings export/import
-- Collaboration & Coauthoring
-- Teams feature
-- Pinning
-- App layout customization
-- Localization (i18n)
-- Context help & tooltips
-- **Getting Started / Onboarding Experience** (guided tutorial for new users)
+- Collapsible UI panels
+- Pinning feature
+- API keys settings
+- Help & documentation
+- Localization (i18n) - backlog
+- Context help & tooltips - backlog
+- App layout customization - backlog
 
 ---
 
@@ -373,7 +390,7 @@ Berdasarkan Gap Analysis:
 | Scope Creep | 🟠 High | Strict prioritization, MVP focus |
 | Collaboration Complexity | 🟠 High | Phase rollout, start with basic features |
 
-Lihat detail di [12-risk-management.md](./12-risk-management.md)
+Lihat detail di [14-risk-management.md](./14-risk-management.md)
 
 ---
 
@@ -389,25 +406,28 @@ Lihat detail di [12-risk-management.md](./12-risk-management.md)
 ## 📁 File Navigation Quick Links
 
 ### Epic Files
-1. [📝 Manuscript Editor](./01-manuscript-editor.md)
-2. [🗺️ Story Planning](./02-story-planning.md)
-3. [📖 Codex](./03-codex.md)
-4. [📝 Snippets](./04-snippets.md)
-5. [💬 AI/Chat](./05-ai-chat.md)
-6. [🎯 Prompt Management](./06-prompt-management.md)
-7. [🔌 AI Connections](./07-ai-connections.md)
-8. [📤 Import/Export](./08-import-export.md)
-9. [⚙️ Organization](./09-organization.md)
+0. [🏠 Foundation & Core Setup](./01-foundation.md)
+1. [📝 Manuscript Editor](./02-manuscript-editor.md)
+2. [🗺️ Story Planning](./03-story-planning.md)
+3. [📖 Codex](./04-codex.md)
+4. [📝 Snippets](./05-snippets.md)
+5. [💬 AI/Chat](./06-ai-chat.md)
+6. [🎯 Prompt Management](./07-prompt-management.md)
+7. [🔌 AI Connections](./08-ai-connections.md)
+8. [📤 Import/Export](./09-import-export.md)
+9. [👥 Collaboration & Teams](./10-collaboration.md)
+10. [⚙️ System & Productivity](./11-system-productivity.md)
 
 ### Supporting Documents
-- [🗓️ Sprint Roadmap](./10-sprint-roadmap.md)
-- [🏗️ Technical Architecture](./11-technical-architecture.md)
-- [⚠️ Risk Management](./12-risk-management.md)
-- [📚 Glossary](./13-glossary.md)
-- [📊 Gap Analysis](./14-gap-analysis.md)
+- [🗓️ Sprint Roadmap](./12-sprint-roadmap.md)
+- [🏗️ Technical Architecture](./13-technical-architecture.md)
+- [⚠️ Risk Management](./14-risk-management.md)
+- [📚 Glossary](./15-glossary.md)
+- [📊 Gap Analysis](./16-gap-analysis.md)
 
 ---
 
 *Dokumen ini di-generate berdasarkan "Functional Requirements for an AI-Assisted Novel Writing App.pdf" dengan cross-reference ke NovelCrafter documentation.*
 
-*Last Updated: 31 Desember 2024*
+*Last Updated: 31 Desember 2024*  
+*Sprint Roadmap Updated: Includes all 11 Epics with 516 total story points*

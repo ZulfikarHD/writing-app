@@ -14,7 +14,13 @@ const expandedChapters = ref<Set<number>>(new Set(props.chapters.map(c => c.id))
 const isCreatingChapter = ref(false);
 const newChapterTitle = ref('');
 
-const toggleChapter = (id: number) => { expandedChapters.value.has(id) ? expandedChapters.value.delete(id) : expandedChapters.value.add(id); };
+const toggleChapter = (id: number) => {
+    if (expandedChapters.value.has(id)) {
+        expandedChapters.value.delete(id);
+    } else {
+        expandedChapters.value.add(id);
+    }
+};
 
 const createChapter = async () => {
     if (!newChapterTitle.value.trim()) return;
