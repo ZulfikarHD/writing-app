@@ -301,6 +301,30 @@ const sceneDragOptions = computed(() => ({
             </button>
         </div>
 
+        <!-- Quick Links -->
+        <div class="border-t border-zinc-200 px-2 py-2 dark:border-zinc-700">
+            <div class="flex gap-1">
+                <Link
+                    :href="`/novels/${novel.id}/plan`"
+                    class="flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-zinc-600 transition-all hover:bg-zinc-200 active:scale-95 dark:text-zinc-400 dark:hover:bg-zinc-700"
+                >
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
+                    Plan
+                </Link>
+                <Link
+                    :href="`/novels/${novel.id}/codex`"
+                    class="flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-zinc-600 transition-all hover:bg-zinc-200 active:scale-95 dark:text-zinc-400 dark:hover:bg-zinc-700"
+                >
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    Codex
+                </Link>
+            </div>
+        </div>
+
         <!-- Footer -->
         <div class="border-t border-zinc-200 px-4 py-3 dark:border-zinc-700">
             <div class="text-xs text-zinc-500 dark:text-zinc-400">

@@ -4,43 +4,43 @@ overview: Comprehensive implementation strategy for AI Connections epic - establ
 todos:
   - id: db-migrations
     content: Create database migrations for ai_connections, ai_model_collections, ai_usage_logs tables
-    status: pending
+    status: completed
   - id: ai-models
     content: "Create Eloquent models: AIConnection (with encryption), AIModelCollection, AIUsageLog"
-    status: pending
+    status: completed
   - id: ai-service-interface
     content: Create AIProviderInterface contract and AIServiceFactory
-    status: pending
+    status: completed
   - id: openai-provider
     content: Implement OpenAIProvider service (connection, test, fetch models)
-    status: pending
+    status: completed
   - id: anthropic-provider
     content: Implement AnthropicProvider service
-    status: pending
+    status: completed
   - id: ai-controller
     content: Create AIConnectionController with CRUD + test + models endpoints
-    status: pending
+    status: completed
   - id: form-request
     content: Create StoreAIConnectionRequest and UpdateAIConnectionRequest validation
-    status: pending
+    status: completed
   - id: settings-routes
     content: Add settings routes and SettingsController
-    status: pending
+    status: completed
   - id: settings-page
     content: Create Settings/Index.vue and Settings/AIConnections.vue pages
-    status: pending
+    status: completed
   - id: connection-components
     content: Create AIConnectionCard, AIConnectionForm, ConnectionStatus components
-    status: pending
+    status: completed
   - id: nav-update
     content: Update AuthenticatedLayout user menu with AI Settings link
-    status: pending
+    status: completed
   - id: model-selector
     content: Create ModelSelector.vue component
-    status: pending
+    status: completed
   - id: feature-tests
     content: Write feature tests for AI connection endpoints
-    status: pending
+    status: completed
 ---
 
 # EPIC-01: AI Connections Development Strategy

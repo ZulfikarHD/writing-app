@@ -69,6 +69,16 @@ class Scene extends Model
     }
 
     /**
+     * Get codex mentions for this scene.
+     *
+     * @return HasMany<CodexMention, $this>
+     */
+    public function codexMentions(): HasMany
+    {
+        return $this->hasMany(CodexMention::class);
+    }
+
+    /**
      * Calculate word count from content JSON.
      */
     public function calculateWordCount(): int

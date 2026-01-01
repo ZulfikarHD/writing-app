@@ -1,4 +1,5 @@
 export { useAutoSave } from './useAutoSave';
+export { useCodexHighlight } from './useCodexHighlight';
 export { useConfirm, confirmAction } from './useConfirm';
 export type { ConfirmOptions } from './useConfirm';
 export { useEditorSettings } from './useEditorSettings';

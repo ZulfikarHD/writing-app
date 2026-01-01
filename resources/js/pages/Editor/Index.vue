@@ -6,8 +6,10 @@ import EditorToolbar from '@/components/editor/EditorToolbar.vue';
 import EditorSidebar from '@/components/editor/EditorSidebar.vue';
 import EditorSettingsPanel from '@/components/editor/EditorSettingsPanel.vue';
 import SceneMetadataPanel from '@/components/editor/SceneMetadataPanel.vue';
+import { QuickCreateModal } from '@/components/codex';
 import { useAutoSave } from '@/composables/useAutoSave';
 import { useEditorSettings } from '@/composables/useEditorSettings';
+import { useCodexHighlight } from '@/composables/useCodexHighlight';
 
 interface Label {
     id: number;
@@ -61,11 +63,19 @@ const editorRef = ref<InstanceType<typeof TipTapEditor> | null>(null);
 const sidebarOpen = ref(true);
 const settingsPanelOpen = ref(false);
 const metadataPanelOpen = ref(false);
+const quickCreateOpen = ref(false);
+const quickCreateSelectedText = ref('');
 const content = ref(props.activeScene?.content || null);
 const wordCount = ref(props.activeScene?.word_count || 0);
 const currentScene = ref<Scene | null>(props.activeScene);
 
 const { settings, editorStyles } = useEditorSettings();
+
+// Codex highlighting - loads entries for mention highlighting
+const { entries: codexEntries, refresh: refreshCodexEntries } = useCodexHighlight({
+    novelId: props.novel.id,
+    enabled: true,
+});
 
 const { saveStatus, triggerSave, forceSave } = useAutoSave({
     sceneId: props.activeScene?.id || 0,
@@ -101,6 +111,34 @@ const handleKeyDown = (e: KeyboardEvent) => {
         e.preventDefault();
         metadataPanelOpen.value = !metadataPanelOpen.value;
     }
+    // Open quick create codex with Ctrl+Shift+C
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'C') {
+        e.preventDefault();
+        openQuickCreate();
+    }
+};
+
+const openQuickCreate = () => {
+    // Get selected text from editor
+    const editor = editorRef.value?.editor;
+    if (editor) {
+        const { from, to } = editor.state.selection;
+        const selectedText = editor.state.doc.textBetween(from, to, ' ');
+        quickCreateSelectedText.value = selectedText;
+    } else {
+        quickCreateSelectedText.value = '';
+    }
+    quickCreateOpen.value = true;
+};
+
+const closeQuickCreate = () => {
+    quickCreateOpen.value = false;
+    quickCreateSelectedText.value = '';
+};
+
+const handleCodexCreated = () => {
+    // Refresh codex entries to update highlighting
+    refreshCodexEntries();
 };
 
 onMounted(() => window.addEventListener('keydown', handleKeyDown));
@@ -230,7 +268,7 @@ const editorWidthClass = computed(() => {
 
             <main class="flex-1 overflow-y-auto">
                 <div :class="['mx-auto transition-all duration-300', editorWidthClass]">
-                    <TipTapEditor ref="editorRef" v-model="content" placeholder="Start writing your story..." @update="handleEditorUpdate" />
+                    <TipTapEditor ref="editorRef" v-model="content" placeholder="Start writing your story..." :codex-entries="codexEntries" @update="handleEditorUpdate" />
                 </div>
             </main>
         </div>
@@ -246,6 +284,15 @@ const editorWidthClass = computed(() => {
             :available-labels="labels"
             @close="closeMetadata"
             @updated="handleMetadataUpdated"
+        />
+
+        <!-- Quick Create Codex Modal -->
+        <QuickCreateModal
+            :show="quickCreateOpen"
+            :novel-id="novel.id"
+            :selected-text="quickCreateSelectedText"
+            @close="closeQuickCreate"
+            @created="handleCodexCreated"
         />
     </div>
 </template>

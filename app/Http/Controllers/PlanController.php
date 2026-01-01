@@ -20,7 +20,7 @@ class PlanController extends Controller
         $novel->load([
             'acts' => fn ($q) => $q->orderBy('position'),
             'chapters' => fn ($q) => $q->orderBy('position')->with([
-                'scenes' => fn ($q) => $q->active()->orderBy('position')->with('labels'),
+                'scenes' => fn ($q) => $q->active()->orderBy('position')->with(['labels', 'codexMentions']),
                 'act',
             ]),
             'labels' => fn ($q) => $q->orderBy('position'),
@@ -48,6 +48,8 @@ class PlanController extends Controller
                     'name' => $label->name,
                     'color' => $label->color,
                 ]),
+                'codex_mentions_count' => $scene->codexMentions->sum('mention_count'),
+                'codex_entries_count' => $scene->codexMentions->count(),
             ]),
         ]);
 

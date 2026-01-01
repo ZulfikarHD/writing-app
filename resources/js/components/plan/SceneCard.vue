@@ -18,6 +18,8 @@ interface Scene {
     pov_character_id: number | null;
     subtitle: string | null;
     labels: Label[];
+    codex_mentions_count?: number;
+    codex_entries_count?: number;
 }
 
 const props = defineProps<{
@@ -108,6 +110,22 @@ const handleContextMenu = (e: MouseEvent) => {
             <span v-if="scene.labels.length > 3" class="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400">
                 +{{ scene.labels.length - 3 }}
             </span>
+        </div>
+
+        <!-- Codex Mentions Badge -->
+        <div
+            v-if="scene.codex_mentions_count && scene.codex_mentions_count > 0"
+            class="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/40 dark:text-violet-300"
+            :title="`${scene.codex_mentions_count} codex mentions from ${scene.codex_entries_count} entries`"
+        >
+            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                />
+            </svg>
+            {{ scene.codex_mentions_count }}
         </div>
     </div>
 </template>

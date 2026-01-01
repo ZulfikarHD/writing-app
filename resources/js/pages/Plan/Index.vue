@@ -27,6 +27,8 @@ interface Scene {
     pov_character_id: number | null;
     subtitle: string | null;
     labels: Label[];
+    codex_mentions_count?: number;
+    codex_entries_count?: number;
 }
 
 interface Chapter {
@@ -334,6 +336,12 @@ const closeContextMenu = () => {
                     <span class="rounded-lg bg-violet-100 px-3 py-2 text-sm font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
                         Plan
                     </span>
+                    <Link
+                        :href="`/novels/${novel.id}/codex`"
+                        class="rounded-lg px-3 py-2 text-sm font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                    >
+                        Codex
+                    </Link>
                 </div>
             </div>
         </header>

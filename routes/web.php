@@ -5,6 +5,12 @@ use App\Http\Controllers\AIConnectionController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\ChapterController;
+use App\Http\Controllers\CodexAliasController;
+use App\Http\Controllers\CodexCategoryController;
+use App\Http\Controllers\CodexController;
+use App\Http\Controllers\CodexDetailController;
+use App\Http\Controllers\CodexProgressionController;
+use App\Http\Controllers\CodexRelationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EditorController;
 use App\Http\Controllers\NovelController;
@@ -13,6 +19,8 @@ use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SceneController;
 use App\Http\Controllers\SceneLabelController;
+use App\Http\Controllers\SeriesCodexController;
+use App\Http\Controllers\SeriesController;
 use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -41,6 +49,36 @@ Route::middleware('auth')->group(function () {
     Route::post('novels', [NovelController::class, 'store'])->name('novels.store');
     Route::delete('novels/{novel}', [NovelController::class, 'destroy'])->name('novels.destroy');
 
+    // Series routes (Pages)
+    Route::get('series', [SeriesController::class, 'index'])->name('series.index');
+    Route::get('series/create', [SeriesController::class, 'create'])->name('series.create');
+    Route::get('series/{series}', [SeriesController::class, 'show'])->name('series.show');
+    Route::get('series/{series}/edit', [SeriesController::class, 'edit'])->name('series.edit');
+
+    // Series API routes
+    Route::get('api/series', [SeriesController::class, 'apiIndex'])->name('series.api.index');
+    Route::post('api/series', [SeriesController::class, 'store'])->name('series.store');
+    Route::patch('api/series/{series}', [SeriesController::class, 'update'])->name('series.update');
+    Route::delete('api/series/{series}', [SeriesController::class, 'destroy'])->name('series.destroy');
+    Route::post('api/series/{series}/novels', [SeriesController::class, 'addNovel'])->name('series.add-novel');
+    Route::delete('api/series/{series}/novels/{novel}', [SeriesController::class, 'removeNovel'])->name('series.remove-novel');
+    Route::post('api/series/{series}/novels/reorder', [SeriesController::class, 'reorderNovels'])->name('series.reorder-novels');
+
+    // Series Codex routes (Pages)
+    Route::get('series/{series}/codex', [SeriesCodexController::class, 'index'])->name('series.codex.index');
+    Route::get('series-codex/{entry}', [SeriesCodexController::class, 'show'])->name('series.codex.show');
+
+    // Series Codex API routes
+    Route::get('api/series/{series}/codex', [SeriesCodexController::class, 'apiIndex'])->name('series.codex.api.index');
+    Route::post('api/series/{series}/codex', [SeriesCodexController::class, 'store'])->name('series.codex.store');
+    Route::patch('api/series-codex/{entry}', [SeriesCodexController::class, 'update'])->name('series.codex.update');
+    Route::delete('api/series-codex/{entry}', [SeriesCodexController::class, 'destroy'])->name('series.codex.destroy');
+    Route::post('api/series-codex/{entry}/aliases', [SeriesCodexController::class, 'addAlias'])->name('series.codex.aliases.store');
+    Route::delete('api/series-codex/{entry}/aliases/{aliasId}', [SeriesCodexController::class, 'removeAlias'])->name('series.codex.aliases.destroy');
+    Route::post('api/series-codex/{entry}/details', [SeriesCodexController::class, 'addDetail'])->name('series.codex.details.store');
+    Route::patch('api/series-codex/{entry}/details/{detailId}', [SeriesCodexController::class, 'updateDetail'])->name('series.codex.details.update');
+    Route::delete('api/series-codex/{entry}/details/{detailId}', [SeriesCodexController::class, 'removeDetail'])->name('series.codex.details.destroy');
+
     // Editor routes
     Route::get('novels/{novel}/write', [EditorController::class, 'show'])->name('editor.show');
     Route::get('novels/{novel}/write/{scene}', [EditorController::class, 'show'])->name('editor.scene');
@@ -48,6 +86,61 @@ Route::middleware('auth')->group(function () {
     // Plan routes
     Route::get('novels/{novel}/plan', [PlanController::class, 'show'])->name('plan.show');
     Route::get('api/novels/{novel}/scenes/search', [PlanController::class, 'search'])->name('scenes.search');
+
+    // Codex routes (Pages)
+    Route::get('novels/{novel}/codex', [CodexController::class, 'index'])->name('codex.index');
+    Route::get('novels/{novel}/codex/create', [CodexController::class, 'create'])->name('codex.create');
+    Route::get('codex/{entry}', [CodexController::class, 'show'])->name('codex.show');
+    Route::get('codex/{entry}/edit', [CodexController::class, 'edit'])->name('codex.edit');
+
+    // Codex API routes
+    Route::get('api/novels/{novel}/codex', [CodexController::class, 'apiIndex'])->name('codex.api.index');
+    Route::get('api/novels/{novel}/codex/editor', [CodexController::class, 'apiEntriesForEditor'])->name('codex.api.editor');
+    Route::get('api/novels/{novel}/codex/export/json', [CodexController::class, 'exportJson'])->name('codex.export.json');
+    Route::get('api/novels/{novel}/codex/export/csv', [CodexController::class, 'exportCsv'])->name('codex.export.csv');
+    Route::post('api/novels/{novel}/codex/import/preview', [CodexController::class, 'previewImport'])->name('codex.import.preview');
+    Route::post('api/novels/{novel}/codex/import', [CodexController::class, 'importJson'])->name('codex.import');
+    Route::post('api/novels/{novel}/codex/scan-mentions', [CodexController::class, 'scanMentions'])->name('codex.api.scan-mentions');
+    Route::post('api/novels/{novel}/codex/quick-create', [CodexController::class, 'quickCreate'])->name('codex.quick-create');
+    Route::post('api/novels/{novel}/codex', [CodexController::class, 'store'])->name('codex.store');
+    Route::patch('api/codex/{entry}', [CodexController::class, 'update'])->name('codex.update');
+    Route::post('api/codex/{entry}/archive', [CodexController::class, 'archive'])->name('codex.archive');
+    Route::post('api/codex/{entry}/restore', [CodexController::class, 'restore'])->name('codex.restore');
+    Route::post('api/codex/{entry}/rescan-mentions', [CodexController::class, 'rescanMentions'])->name('codex.rescan-mentions');
+    Route::delete('api/codex/{entry}', [CodexController::class, 'destroy'])->name('codex.destroy');
+
+    // Codex Alias API routes
+    Route::get('api/codex/{entry}/aliases', [CodexAliasController::class, 'index'])->name('codex.aliases.index');
+    Route::post('api/codex/{entry}/aliases', [CodexAliasController::class, 'store'])->name('codex.aliases.store');
+    Route::patch('api/codex/aliases/{alias}', [CodexAliasController::class, 'update'])->name('codex.aliases.update');
+    Route::delete('api/codex/aliases/{alias}', [CodexAliasController::class, 'destroy'])->name('codex.aliases.destroy');
+
+    // Codex Detail API routes
+    Route::get('api/codex/{entry}/details', [CodexDetailController::class, 'index'])->name('codex.details.index');
+    Route::post('api/codex/{entry}/details', [CodexDetailController::class, 'store'])->name('codex.details.store');
+    Route::patch('api/codex/details/{detail}', [CodexDetailController::class, 'update'])->name('codex.details.update');
+    Route::delete('api/codex/details/{detail}', [CodexDetailController::class, 'destroy'])->name('codex.details.destroy');
+    Route::post('api/codex/{entry}/details/reorder', [CodexDetailController::class, 'reorder'])->name('codex.details.reorder');
+
+    // Codex Relation API routes
+    Route::get('api/codex/{entry}/relations', [CodexRelationController::class, 'index'])->name('codex.relations.index');
+    Route::post('api/codex/{entry}/relations', [CodexRelationController::class, 'store'])->name('codex.relations.store');
+    Route::patch('api/codex/relations/{relation}', [CodexRelationController::class, 'update'])->name('codex.relations.update');
+    Route::delete('api/codex/relations/{relation}', [CodexRelationController::class, 'destroy'])->name('codex.relations.destroy');
+    Route::get('api/codex/relation-types', [CodexRelationController::class, 'types'])->name('codex.relations.types');
+
+    // Codex Progression API routes
+    Route::get('api/codex/{entry}/progressions', [CodexProgressionController::class, 'index'])->name('codex.progressions.index');
+    Route::post('api/codex/{entry}/progressions', [CodexProgressionController::class, 'store'])->name('codex.progressions.store');
+    Route::patch('api/codex/progressions/{progression}', [CodexProgressionController::class, 'update'])->name('codex.progressions.update');
+    Route::delete('api/codex/progressions/{progression}', [CodexProgressionController::class, 'destroy'])->name('codex.progressions.destroy');
+
+    // Codex Category API routes
+    Route::get('api/novels/{novel}/codex/categories', [CodexCategoryController::class, 'index'])->name('codex.categories.index');
+    Route::post('api/novels/{novel}/codex/categories', [CodexCategoryController::class, 'store'])->name('codex.categories.store');
+    Route::patch('api/codex/categories/{category}', [CodexCategoryController::class, 'update'])->name('codex.categories.update');
+    Route::delete('api/codex/categories/{category}', [CodexCategoryController::class, 'destroy'])->name('codex.categories.destroy');
+    Route::post('api/codex/{entry}/categories', [CodexCategoryController::class, 'assignToEntry'])->name('codex.categories.assign');
 
     // Chapter API routes
     Route::get('api/novels/{novel}/chapters', [ChapterController::class, 'index'])->name('chapters.index');

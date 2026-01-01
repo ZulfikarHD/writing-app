@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateSceneContentRequest;
+use App\Jobs\ScanSceneMentionsJob;
 use App\Models\Chapter;
 use App\Models\Scene;
 use Illuminate\Http\JsonResponse;
@@ -97,6 +98,9 @@ class SceneController extends Controller
 
         // Update novel's last edited timestamp
         $scene->chapter->novel->update(['last_edited_at' => now()]);
+
+        // Dispatch mention scan job with a delay to batch rapid saves
+        ScanSceneMentionsJob::dispatch($scene->id)->delay(now()->addSeconds(5));
 
         return response()->json([
             'success' => true,

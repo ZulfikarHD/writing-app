@@ -15,6 +15,8 @@ class Novel extends Model
 
     protected $fillable = [
         'user_id',
+        'series_id',
+        'series_order',
         'pen_name_id',
         'title',
         'description',
@@ -49,11 +51,29 @@ class Novel extends Model
     }
 
     /**
+     * @return BelongsTo<Series, $this>
+     */
+    public function series(): BelongsTo
+    {
+        return $this->belongsTo(Series::class);
+    }
+
+    /**
      * @return BelongsTo<PenName, $this>
      */
     public function penName(): BelongsTo
     {
         return $this->belongsTo(PenName::class);
+    }
+
+    /**
+     * Series codex overrides for this novel.
+     *
+     * @return HasMany<NovelSeriesCodexOverride, $this>
+     */
+    public function seriesCodexOverrides(): HasMany
+    {
+        return $this->hasMany(NovelSeriesCodexOverride::class);
     }
 
     /**
@@ -86,6 +106,22 @@ class Novel extends Model
     public function scenes(): HasManyThrough
     {
         return $this->hasManyThrough(Scene::class, Chapter::class);
+    }
+
+    /**
+     * @return HasMany<CodexEntry, $this>
+     */
+    public function codexEntries(): HasMany
+    {
+        return $this->hasMany(CodexEntry::class)->orderBy('sort_order');
+    }
+
+    /**
+     * @return HasMany<CodexCategory, $this>
+     */
+    public function codexCategories(): HasMany
+    {
+        return $this->hasMany(CodexCategory::class)->orderBy('sort_order');
     }
 
     /**

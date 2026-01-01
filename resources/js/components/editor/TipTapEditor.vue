@@ -5,6 +5,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import CharacterCount from '@tiptap/extension-character-count';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
+import { CodexHighlight, type CodexEntry } from '@/extensions/CodexHighlight';
 import { watch, computed, onBeforeUnmount } from 'vue';
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
     placeholder?: string;
     editable?: boolean;
     autofocus?: boolean;
+    codexEntries?: CodexEntry[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -19,6 +21,7 @@ const props = withDefaults(defineProps<Props>(), {
     placeholder: 'Start writing your story...',
     editable: true,
     autofocus: true,
+    codexEntries: () => [],
 });
 
 const emit = defineEmits<{
@@ -47,6 +50,9 @@ const editor = useEditor({
             emptyEditorClass: 'is-editor-empty',
         }),
         CharacterCount,
+        CodexHighlight.configure({
+            entries: props.codexEntries,
+        }),
     ],
     editorProps: {
         attributes: {
@@ -83,6 +89,28 @@ watch(
     (newValue) => {
         editor.value?.setEditable(newValue);
     }
+);
+
+// Watch for codex entries changes and update the extension
+watch(
+    () => props.codexEntries,
+    (newEntries) => {
+        if (editor.value) {
+            // Re-configure the CodexHighlight extension with new entries
+            // This will trigger a re-render of decorations
+            const codexHighlightExtension = editor.value.extensionManager.extensions.find(
+                (ext) => ext.name === 'codexHighlight'
+            );
+            if (codexHighlightExtension) {
+                codexHighlightExtension.options.entries = newEntries;
+                // Force editor to re-render decorations
+                const { state } = editor.value;
+                const tr = state.tr;
+                editor.value.view.dispatch(tr);
+            }
+        }
+    },
+    { deep: true }
 );
 
 const wordCount = computed(() => {
@@ -272,5 +300,19 @@ defineExpose({
 
 .tiptap li p {
     margin-bottom: 0.25em;
+}
+
+/* Codex mention highlighting */
+.codex-mention {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.codex-mention:hover {
+    background-color: rgba(139, 92, 246, 0.15);
+}
+
+.dark .codex-mention:hover {
+    background-color: rgba(139, 92, 246, 0.25);
 }
 </style>

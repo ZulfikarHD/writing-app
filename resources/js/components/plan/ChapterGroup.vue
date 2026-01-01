@@ -20,6 +20,8 @@ interface Scene {
     pov_character_id: number | null;
     subtitle: string | null;
     labels: Label[];
+    codex_mentions_count?: number;
+    codex_entries_count?: number;
 }
 
 interface Chapter {
