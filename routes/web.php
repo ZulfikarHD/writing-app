@@ -9,6 +9,8 @@ use App\Http\Controllers\CodexAliasController;
 use App\Http\Controllers\CodexCategoryController;
 use App\Http\Controllers\CodexController;
 use App\Http\Controllers\CodexDetailController;
+use App\Http\Controllers\CodexExternalLinkController;
+use App\Http\Controllers\CodexImageController;
 use App\Http\Controllers\CodexProgressionController;
 use App\Http\Controllers\CodexRelationController;
 use App\Http\Controllers\DashboardController;
@@ -103,11 +105,16 @@ Route::middleware('auth')->group(function () {
     Route::post('api/novels/{novel}/codex/scan-mentions', [CodexController::class, 'scanMentions'])->name('codex.api.scan-mentions');
     Route::post('api/novels/{novel}/codex/quick-create', [CodexController::class, 'quickCreate'])->name('codex.quick-create');
     Route::post('api/novels/{novel}/codex', [CodexController::class, 'store'])->name('codex.store');
+    Route::get('api/codex/{entry}', [CodexController::class, 'apiShow'])->name('codex.api.show');
     Route::patch('api/codex/{entry}', [CodexController::class, 'update'])->name('codex.update');
     Route::post('api/codex/{entry}/archive', [CodexController::class, 'archive'])->name('codex.archive');
     Route::post('api/codex/{entry}/restore', [CodexController::class, 'restore'])->name('codex.restore');
     Route::post('api/codex/{entry}/rescan-mentions', [CodexController::class, 'rescanMentions'])->name('codex.rescan-mentions');
     Route::delete('api/codex/{entry}', [CodexController::class, 'destroy'])->name('codex.destroy');
+
+    // Codex Image API routes
+    Route::post('api/codex/{entry}/thumbnail', [CodexImageController::class, 'upload'])->name('codex.thumbnail.upload');
+    Route::delete('api/codex/{entry}/thumbnail', [CodexImageController::class, 'destroy'])->name('codex.thumbnail.destroy');
 
     // Codex Alias API routes
     Route::get('api/codex/{entry}/aliases', [CodexAliasController::class, 'index'])->name('codex.aliases.index');
@@ -141,6 +148,13 @@ Route::middleware('auth')->group(function () {
     Route::patch('api/codex/categories/{category}', [CodexCategoryController::class, 'update'])->name('codex.categories.update');
     Route::delete('api/codex/categories/{category}', [CodexCategoryController::class, 'destroy'])->name('codex.categories.destroy');
     Route::post('api/codex/{entry}/categories', [CodexCategoryController::class, 'assignToEntry'])->name('codex.categories.assign');
+
+    // Codex External Link API routes (Sprint 13: F-12.2.2)
+    Route::get('api/codex/{entry}/external-links', [CodexExternalLinkController::class, 'index'])->name('codex.external-links.index');
+    Route::post('api/codex/{entry}/external-links', [CodexExternalLinkController::class, 'store'])->name('codex.external-links.store');
+    Route::patch('api/codex/external-links/{link}', [CodexExternalLinkController::class, 'update'])->name('codex.external-links.update');
+    Route::delete('api/codex/external-links/{link}', [CodexExternalLinkController::class, 'destroy'])->name('codex.external-links.destroy');
+    Route::post('api/codex/{entry}/external-links/reorder', [CodexExternalLinkController::class, 'reorder'])->name('codex.external-links.reorder');
 
     // Chapter API routes
     Route::get('api/novels/{novel}/chapters', [ChapterController::class, 'index'])->name('chapters.index');

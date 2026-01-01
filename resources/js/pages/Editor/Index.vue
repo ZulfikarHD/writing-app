@@ -6,10 +6,13 @@ import EditorToolbar from '@/components/editor/EditorToolbar.vue';
 import EditorSidebar from '@/components/editor/EditorSidebar.vue';
 import EditorSettingsPanel from '@/components/editor/EditorSettingsPanel.vue';
 import SceneMetadataPanel from '@/components/editor/SceneMetadataPanel.vue';
+import MentionTooltip from '@/components/editor/MentionTooltip.vue';
+import CodexSidebarPanel from '@/components/editor/CodexSidebarPanel.vue';
 import { QuickCreateModal } from '@/components/codex';
 import { useAutoSave } from '@/composables/useAutoSave';
 import { useEditorSettings } from '@/composables/useEditorSettings';
 import { useCodexHighlight } from '@/composables/useCodexHighlight';
+import { useMentionTooltip } from '@/composables/useMentionTooltip';
 
 interface Label {
     id: number;
@@ -60,9 +63,12 @@ const props = defineProps<{
 }>();
 
 const editorRef = ref<InstanceType<typeof TipTapEditor> | null>(null);
+const editorContainerRef = ref<HTMLElement | null>(null);
 const sidebarOpen = ref(true);
 const settingsPanelOpen = ref(false);
 const metadataPanelOpen = ref(false);
+const codexPanelOpen = ref(false);
+const selectedCodexEntryId = ref<number | null>(null);
 const quickCreateOpen = ref(false);
 const quickCreateSelectedText = ref('');
 const content = ref(props.activeScene?.content || null);
@@ -75,6 +81,18 @@ const { settings, editorStyles } = useEditorSettings();
 const { entries: codexEntries, refresh: refreshCodexEntries } = useCodexHighlight({
     novelId: props.novel.id,
     enabled: true,
+});
+
+// Mention tooltip for hover preview
+const {
+    hoveredEntry: tooltipEntry,
+    targetRect: tooltipTargetRect,
+    closeTooltip,
+    setupEventListeners: setupTooltipListeners,
+    clearCache: clearTooltipCache,
+} = useMentionTooltip({
+    novelId: props.novel.id,
+    debounceMs: 200,
 });
 
 const { saveStatus, triggerSave, forceSave } = useAutoSave({
@@ -139,10 +157,62 @@ const closeQuickCreate = () => {
 const handleCodexCreated = () => {
     // Refresh codex entries to update highlighting
     refreshCodexEntries();
+    // Clear tooltip cache so new entries show correctly
+    clearTooltipCache();
 };
 
-onMounted(() => window.addEventListener('keydown', handleKeyDown));
-onBeforeUnmount(() => window.removeEventListener('keydown', handleKeyDown));
+// Handle click on codex mentions
+const handleMentionClick = (entryId: number) => {
+    closeTooltip();
+    selectedCodexEntryId.value = entryId;
+    codexPanelOpen.value = true;
+};
+
+// Handle click from tooltip
+const handleTooltipClick = (entryId: number) => {
+    handleMentionClick(entryId);
+};
+
+// Close codex panel
+const closeCodexPanel = () => {
+    codexPanelOpen.value = false;
+    selectedCodexEntryId.value = null;
+};
+
+// Handle editor content click for mention navigation
+const handleEditorContentClick = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.classList.contains('codex-mention')) {
+        const entryId = target.dataset.entryId;
+        if (entryId) {
+            handleMentionClick(parseInt(entryId, 10));
+        }
+    }
+};
+
+// Cleanup function for tooltip listeners
+let cleanupTooltipListeners: (() => void) | null = null;
+
+onMounted(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    
+    // Setup tooltip hover listeners on editor content
+    if (editorContainerRef.value) {
+        cleanupTooltipListeners = setupTooltipListeners(editorContainerRef);
+        // Add click listener for mention navigation
+        editorContainerRef.value.addEventListener('click', handleEditorContentClick);
+    }
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('keydown', handleKeyDown);
+    if (cleanupTooltipListeners) {
+        cleanupTooltipListeners();
+    }
+    if (editorContainerRef.value) {
+        editorContainerRef.value.removeEventListener('click', handleEditorContentClick);
+    }
+});
 
 const toggleSidebar = () => {
     sidebarOpen.value = !sidebarOpen.value;
@@ -266,12 +336,38 @@ const editorWidthClass = computed(() => {
                 @open-info="openMetadata"
             />
 
-            <main class="flex-1 overflow-y-auto">
+            <main ref="editorContainerRef" class="flex-1 overflow-y-auto">
                 <div :class="['mx-auto transition-all duration-300', editorWidthClass]">
                     <TipTapEditor ref="editorRef" v-model="content" placeholder="Start writing your story..." :codex-entries="codexEntries" @update="handleEditorUpdate" />
                 </div>
             </main>
         </div>
+
+        <!-- Codex Sidebar Panel -->
+        <Transition
+            enter-active-class="transition duration-200 ease-out"
+            enter-from-class="translate-x-full"
+            enter-to-class="translate-x-0"
+            leave-active-class="transition duration-150 ease-in"
+            leave-from-class="translate-x-0"
+            leave-to-class="translate-x-full"
+        >
+            <aside
+                v-if="codexPanelOpen"
+                class="w-80 shrink-0 border-l border-zinc-200 dark:border-zinc-700"
+            >
+                <CodexSidebarPanel :novel-id="novel.id" @close="closeCodexPanel" />
+            </aside>
+        </Transition>
+
+        <!-- Mention Tooltip -->
+        <MentionTooltip
+            :entry="tooltipEntry"
+            :target-rect="tooltipTargetRect"
+            :container-ref="editorContainerRef"
+            @click="handleTooltipClick"
+            @close="closeTooltip"
+        />
 
         <!-- Settings Panel -->
         <EditorSettingsPanel :open="settingsPanelOpen" @close="closeSettings" />

@@ -41,10 +41,12 @@ class CodexEntry extends Model
         'type',
         'name',
         'description',
+        'research_notes',
         'thumbnail_path',
         'ai_context_mode',
         'sort_order',
         'is_archived',
+        'is_tracking_enabled',
     ];
 
     /**
@@ -55,6 +57,7 @@ class CodexEntry extends Model
         return [
             'sort_order' => 'integer',
             'is_archived' => 'boolean',
+            'is_tracking_enabled' => 'boolean',
         ];
     }
 
@@ -124,6 +127,14 @@ class CodexEntry extends Model
     public function mentions(): HasMany
     {
         return $this->hasMany(CodexMention::class);
+    }
+
+    /**
+     * @return HasMany<CodexExternalLink, $this>
+     */
+    public function externalLinks(): HasMany
+    {
+        return $this->hasMany(CodexExternalLink::class)->orderBy('sort_order');
     }
 
     /**

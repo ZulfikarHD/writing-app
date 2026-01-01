@@ -188,6 +188,7 @@ class CodexController extends Controller
             'progressions.detail',
             'categories',
             'mentions.scene.chapter',
+            'externalLinks', // Sprint 13: F-12.2.2
         ]);
 
         // Get all scenes for the scene picker in ProgressionManager
@@ -215,9 +216,11 @@ class CodexController extends Controller
                 'type' => $entry->type,
                 'name' => $entry->name,
                 'description' => $entry->description,
+                'research_notes' => $entry->research_notes, // Sprint 13: US-12.3
                 'thumbnail_path' => $entry->thumbnail_path,
                 'ai_context_mode' => $entry->ai_context_mode,
                 'is_archived' => $entry->is_archived,
+                'is_tracking_enabled' => $entry->is_tracking_enabled, // Sprint 13: US-12.2
                 'created_at' => $entry->created_at->toISOString(),
                 'updated_at' => $entry->updated_at->toISOString(),
                 'aliases' => $entry->aliases->map(fn ($alias) => [
@@ -287,6 +290,14 @@ class CodexController extends Controller
                             'title' => $mention->scene->chapter->title,
                         ] : null,
                     ],
+                ]),
+                // Sprint 13: F-12.2.2 - External links for research
+                'external_links' => $entry->externalLinks->map(fn ($link) => [
+                    'id' => $link->id,
+                    'title' => $link->title,
+                    'url' => $link->url,
+                    'notes' => $link->notes,
+                    'sort_order' => $link->sort_order,
                 ]),
             ],
             'types' => CodexEntry::getTypes(),
@@ -381,6 +392,44 @@ class CodexController extends Controller
         $entry->delete();
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * API endpoint to get a single entry's details.
+     * Used by polling to detect mention changes.
+     */
+    public function apiShow(Request $request, CodexEntry $entry): JsonResponse
+    {
+        if ($entry->novel->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        // Load mentions for polling to detect changes
+        $entry->load('mentions.scene.chapter');
+
+        return response()->json([
+            'entry' => [
+                'id' => $entry->id,
+                'type' => $entry->type,
+                'name' => $entry->name,
+                'description' => $entry->description,
+                'thumbnail_path' => $entry->thumbnail_path,
+                'ai_context_mode' => $entry->ai_context_mode,
+            ],
+            // Include mentions for live polling updates
+            'mentions' => $entry->mentions->map(fn ($mention) => [
+                'id' => $mention->id,
+                'mention_count' => $mention->mention_count,
+                'scene' => [
+                    'id' => $mention->scene->id,
+                    'title' => $mention->scene->title,
+                    'chapter' => $mention->scene->chapter ? [
+                        'id' => $mention->scene->chapter->id,
+                        'title' => $mention->scene->chapter->title,
+                    ] : null,
+                ],
+            ]),
+        ]);
     }
 
     /**

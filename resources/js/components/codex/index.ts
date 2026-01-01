@@ -12,4 +12,7 @@ export { default as MentionHeatmap } from './MentionHeatmap.vue';
 export { default as ProgressionManager } from './ProgressionManager.vue';
 export { default as ProgressionTimeline } from './ProgressionTimeline.vue';
 export { default as QuickCreateModal } from './QuickCreateModal.vue';
+export { default as RelationGraph } from './RelationGraph.vue';
 export { default as RelationManager } from './RelationManager.vue';
+export { default as ResearchTab } from './ResearchTab.vue';
+export { default as TrackingToggle } from './TrackingToggle.vue';

@@ -3,10 +3,10 @@ import Button from '@/components/ui/Button.vue';
 import Card from '@/components/ui/Card.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import Toast from '@/components/ui/Toast.vue';
-import { AliasManager, CategoryManager, DetailManager, MentionHeatmap, ProgressionManager, RelationManager } from '@/components/codex';
+import { AliasManager, CategoryManager, DetailManager, MentionHeatmap, ProgressionManager, RelationGraph, RelationManager, ResearchTab, TrackingToggle } from '@/components/codex';
 import { Head, Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 
 interface Alias {
     id: number;
@@ -63,14 +63,24 @@ interface Mention {
     scene: Scene;
 }
 
+interface ExternalLink {
+    id: number;
+    title: string;
+    url: string;
+    notes: string | null;
+    sort_order: number;
+}
+
 interface CodexEntry {
     id: number;
     type: string;
     name: string;
     description: string | null;
+    research_notes: string | null;
     thumbnail_path: string | null;
     ai_context_mode: string;
     is_archived: boolean;
+    is_tracking_enabled: boolean;
     created_at: string;
     updated_at: string;
     aliases: Alias[];
@@ -80,6 +90,7 @@ interface CodexEntry {
     progressions: Progression[];
     categories: Category[];
     mentions: Mention[];
+    external_links: ExternalLink[];
 }
 
 interface SceneOption {
@@ -128,6 +139,9 @@ const toast = ref({
     title: '',
     message: '',
 });
+
+// Tab state for Description/Research tabs (Sprint 13)
+const activeTab = ref<'description' | 'research'>('description');
 
 const showToast = (variant: 'info' | 'success' | 'warning' | 'danger', title: string, message: string) => {
     toast.value = { show: true, variant, title, message };
@@ -204,6 +218,71 @@ const handleRescanMentions = async () => {
 };
 
 const totalMentions = computed(() => props.entry.mentions.reduce((sum, m) => sum + m.mention_count, 0));
+
+// Navigate to related entry
+const handleSelectRelatedEntry = (entryId: number) => {
+    router.visit(`/codex/${entryId}`);
+};
+
+// Auto-refresh mentions polling (Sprint 13: US-12.1)
+// Automatically updates mentions when scenes are saved in the editor
+const POLL_INTERVAL = 5000; // 5 seconds - fast enough to feel "live"
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+let lastMentionHash = ''; // Track changes to avoid unnecessary updates
+
+const getMentionHash = (mentions: Mention[]) => {
+    return mentions.map(m => `${m.scene.id}:${m.mention_count}`).sort().join(',');
+};
+
+const pollMentions = async () => {
+    // Don't poll if tab is hidden (save resources)
+    if (document.hidden) return;
+
+    try {
+        const response = await axios.get(`/api/codex/${props.entry.id}`);
+        const newMentions = response.data.mentions || [];
+        const newHash = getMentionHash(newMentions);
+
+        // Only reload if mentions actually changed
+        if (newHash !== lastMentionHash) {
+            lastMentionHash = newHash;
+            router.reload({ only: ['entry'] });
+        }
+    } catch {
+        // Silently fail - don't disrupt the user
+    }
+};
+
+const startPolling = () => {
+    lastMentionHash = getMentionHash(props.entry.mentions);
+    pollTimer = setInterval(pollMentions, POLL_INTERVAL);
+};
+
+const stopPolling = () => {
+    if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+    }
+};
+
+// Handle visibility change - pause polling when tab is hidden
+const handleVisibilityChange = () => {
+    if (document.hidden) {
+        stopPolling();
+    } else {
+        startPolling();
+    }
+};
+
+onMounted(() => {
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+});
+
+onUnmounted(() => {
+    stopPolling();
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+});
 </script>
 
 <template>
@@ -301,13 +380,57 @@ const totalMentions = computed(() => props.entry.mentions.reduce((sum, m) => sum
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 <!-- Main Column -->
                 <div class="space-y-6 lg:col-span-2">
-                    <!-- Description -->
+                    <!-- Description & Research Tabs (Sprint 13) -->
                     <Card>
-                        <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Description</h2>
-                        <div v-if="entry.description" class="prose prose-zinc dark:prose-invert max-w-none">
-                            <p class="whitespace-pre-wrap text-zinc-600 dark:text-zinc-300">{{ entry.description }}</p>
+                        <!-- Tab Header -->
+                        <div class="mb-4 flex items-center gap-1 border-b border-zinc-200 dark:border-zinc-700">
+                            <button
+                                type="button"
+                                class="relative px-4 py-2 text-sm font-medium transition-colors"
+                                :class="activeTab === 'description'
+                                    ? 'text-violet-600 dark:text-violet-400'
+                                    : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'"
+                                @click="activeTab = 'description'"
+                            >
+                                Description
+                                <span v-if="activeTab === 'description'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-600 dark:bg-violet-400" />
+                            </button>
+                            <button
+                                type="button"
+                                class="relative flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors"
+                                :class="activeTab === 'research'
+                                    ? 'text-violet-600 dark:text-violet-400'
+                                    : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'"
+                                @click="activeTab = 'research'"
+                            >
+                                Research
+                                <span class="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                                    Private
+                                </span>
+                                <span v-if="activeTab === 'research'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-600 dark:bg-violet-400" />
+                            </button>
                         </div>
-                        <p v-else class="text-sm text-zinc-400 italic dark:text-zinc-500">No description provided</p>
+
+                        <!-- Description Tab Content -->
+                        <div v-show="activeTab === 'description'">
+                            <div v-if="entry.description" class="prose prose-zinc dark:prose-invert max-w-none">
+                                <p class="whitespace-pre-wrap text-zinc-600 dark:text-zinc-300">{{ entry.description }}</p>
+                            </div>
+                            <p v-else class="text-sm text-zinc-400 italic dark:text-zinc-500">No description provided</p>
+                            <p class="mt-4 text-xs text-zinc-500 dark:text-zinc-400">
+                                <span class="font-medium">Note:</span> This description is sent to AI for context. Write in 3rd person for best results.
+                            </p>
+                        </div>
+
+                        <!-- Research Tab Content (Sprint 13: US-12.3) -->
+                        <div v-show="activeTab === 'research'">
+                            <ResearchTab
+                                :entry-id="entry.id"
+                                :research-notes="entry.research_notes"
+                                :external-links="entry.external_links"
+                                @updated="handleDataUpdated"
+                            />
+                        </div>
                     </Card>
 
                     <!-- Details -->
@@ -324,6 +447,17 @@ const totalMentions = computed(() => props.entry.mentions.reduce((sum, m) => sum
                     <!-- Relations -->
                     <Card>
                         <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Relations</h2>
+                        
+                        <!-- Relation Graph Visualization -->
+                        <div class="mb-6">
+                            <RelationGraph
+                                :entry="{ id: entry.id, name: entry.name, type: entry.type }"
+                                :outgoing-relations="entry.outgoing_relations"
+                                :incoming-relations="entry.incoming_relations"
+                                @select-entry="handleSelectRelatedEntry"
+                            />
+                        </div>
+
                         <RelationManager
                             :entry-id="entry.id"
                             :novel-id="novel.id"
@@ -359,14 +493,36 @@ const totalMentions = computed(() => props.entry.mentions.reduce((sum, m) => sum
                         />
                     </Card>
 
+                    <!-- Tracking Toggle (Sprint 13: US-12.2) -->
+                    <TrackingToggle
+                        :entry-id="entry.id"
+                        :is-tracking-enabled="entry.is_tracking_enabled"
+                        @updated="handleDataUpdated"
+                    />
+
                     <!-- Mentions -->
                     <Card>
-                        <div class="mb-4 flex items-center justify-between">
-                            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Mentions</h2>
+                        <div class="mb-3 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Mentions</h2>
+                                <span
+                                    v-if="entry.is_tracking_enabled"
+                                    class="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                                    title="Auto-updates every 10 seconds when you're editing scenes"
+                                >
+                                    <!-- Pulsing dot indicator for live updates -->
+                                    <span class="relative flex h-2 w-2">
+                                        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                                    </span>
+                                    Live
+                                </span>
+                            </div>
                             <button
                                 type="button"
                                 :disabled="rescanning"
                                 class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-50 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                                title="Trigger a full rescan now"
                                 @click="handleRescanMentions"
                             >
                                 <svg

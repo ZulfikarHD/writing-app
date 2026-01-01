@@ -64,6 +64,7 @@ class MentionTracker
 
     /**
      * Get all codex entries for a novel with their aliases preloaded.
+     * Only includes entries with tracking enabled (US-12.2).
      *
      * @return Collection<int, CodexEntry>
      */
@@ -72,6 +73,7 @@ class MentionTracker
         return CodexEntry::query()
             ->where('novel_id', $novel->id)
             ->where('is_archived', false)
+            ->where('is_tracking_enabled', true) // US-12.2: Respect tracking toggle
             ->with('aliases')
             ->get();
     }

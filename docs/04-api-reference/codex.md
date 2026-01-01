@@ -79,8 +79,10 @@ Request Body:
 |-------|------|----------|------------|
 | name | string | Yes | max:255 |
 | type | string | Yes | in:character,location,item,lore,organization,subplot |
-| description | string | No | max:65535 |
+| description | string | No | max:65535 (sent to AI) |
+| research_notes | string | No | max:65535 (NOT sent to AI - Sprint 13) |
 | ai_context_mode | string | No | in:always,detected,manual,never (default: detected) |
+| is_tracking_enabled | boolean | No | default: true (Sprint 13) |
 
 Response: `201 Created`
 ```json
@@ -860,6 +862,145 @@ Response: `201 Created`
 
 ---
 
+### Research Notes & External Links (Sprint 13)
+
+#### Get External Links
+
+**`GET /api/codex/{entry}/external-links`**
+
+Mengambil semua external links untuk research purposes.
+
+Response: `200 OK`
+```json
+{
+  "links": [
+    {
+      "id": 1,
+      "title": "Character Inspiration",
+      "url": "https://example.com/reference",
+      "notes": "Visual reference for character design",
+      "sort_order": 0
+    }
+  ]
+}
+```
+
+---
+
+#### Add External Link
+
+**`POST /api/codex/{entry}/external-links`**
+
+Request Body:
+```json
+{
+  "title": "Character Inspiration",
+  "url": "https://example.com/reference",
+  "notes": "Visual reference for character design"
+}
+```
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| title | string | Yes | max:255 |
+| url | string (URL) | Yes | valid URL, max:2048 |
+| notes | string | No | max:65535 |
+
+Response: `201 Created`
+```json
+{
+  "link": {
+    "id": 1,
+    "title": "Character Inspiration",
+    "url": "https://example.com/reference",
+    "notes": "Visual reference for character design",
+    "sort_order": 0
+  }
+}
+```
+
+---
+
+#### Update External Link
+
+**`PATCH /api/codex/external-links/{link}`**
+
+Request Body: Same as Add External Link
+
+Response: `200 OK` dengan updated link object
+
+---
+
+#### Delete External Link
+
+**`DELETE /api/codex/external-links/{link}`**
+
+Response: `204 No Content`
+
+---
+
+#### Reorder External Links
+
+**`POST /api/codex/{entry}/external-links/reorder`**
+
+Request Body:
+```json
+{
+  "link_ids": [3, 1, 2]
+}
+```
+
+Response: `200 OK`
+
+---
+
+### Tracking Toggle (Sprint 13)
+
+Entry field `is_tracking_enabled` mengontrol apakah entry di-scan untuk mentions.
+
+**Update via PATCH endpoint:**
+
+```json
+{
+  "is_tracking_enabled": false
+}
+```
+
+Ketika `false`, entry tidak akan:
+- Di-scan untuk mentions baru saat scene di-save
+- Muncul dalam editor highlighting
+- Tapi masih bisa digunakan untuk AI context manual
+
+---
+
+### Auto-Scan Behavior (Sprint 13)
+
+**Automatic Mention Scanning:**
+- Berjalan **synchronously** saat scene content di-save
+- **Tidak perlu queue worker** - scan instant
+- Respects `is_tracking_enabled` field
+
+**Polling untuk Real-Time Updates:**
+- Codex Show page polls API setiap 5 detik
+- Deteksi perubahan mentions otomatis
+- UI update tanpa perlu refresh manual
+
+**Manual Rescan:**
+
+**`POST /api/codex/{entry}/rescan-mentions`**
+
+Force rescan mentions untuk entry ini di semua scenes dalam novel.
+
+Response: `200 OK`
+```json
+{
+  "success": true,
+  "message": "Mention scanning queued"
+}
+```
+
+---
+
 ## Error Codes
 
 | Code | HTTP Status | Description |
@@ -880,6 +1021,14 @@ Response: `201 Created`
 ---
 
 ## Version History
+
+### v1.2.0 (2026-01-01) - Sprint 13
+- ✨ Added Research Notes field (`research_notes`) - private notes NOT sent to AI
+- ✨ Added External Links management for research purposes
+- ✨ Added Tracking Toggle (`is_tracking_enabled`) - per-entry mention control
+- 🚀 Auto-scan mentions synchronously (no queue worker needed)
+- 📡 Live polling for real-time mention updates (5s interval)
+- 🔧 Enhanced `apiShow` endpoint to include mentions data
 
 ### v1.1.0 (2026-01-01)
 - Added thumbnail upload/delete endpoints

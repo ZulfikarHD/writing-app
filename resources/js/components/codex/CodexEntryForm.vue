@@ -3,7 +3,8 @@ import Button from '@/components/ui/Button.vue';
 import Card from '@/components/ui/Card.vue';
 import Input from '@/components/ui/Input.vue';
 import Textarea from '@/components/ui/Textarea.vue';
-import { ref, watch } from 'vue';
+import axios from 'axios';
+import { computed, ref, watch } from 'vue';
 
 interface FormData {
     type: string;
@@ -12,9 +13,14 @@ interface FormData {
     ai_context_mode: string;
 }
 
+interface InitialData extends Partial<FormData> {
+    thumbnail_path?: string | null;
+}
+
 const props = withDefaults(
     defineProps<{
-        initialData?: Partial<FormData>;
+        initialData?: InitialData;
+        entryId?: number | null;
         types: string[];
         contextModes: string[];
         submitLabel?: string;
@@ -25,13 +31,121 @@ const props = withDefaults(
         submitLabel: 'Save',
         loading: false,
         errors: () => ({}),
+        entryId: null,
     },
 );
 
 const emit = defineEmits<{
     (e: 'submit', data: FormData): void;
     (e: 'cancel'): void;
+    (e: 'thumbnailUpdated', path: string | null): void;
 }>();
+
+// Thumbnail state
+const thumbnailPreview = ref<string | null>(null);
+const thumbnailFile = ref<File | null>(null);
+const thumbnailUploading = ref(false);
+const thumbnailError = ref<string | null>(null);
+const fileInputRef = ref<HTMLInputElement | null>(null);
+
+// Compute current thumbnail URL
+const currentThumbnailUrl = computed(() => {
+    if (thumbnailPreview.value) return thumbnailPreview.value;
+    if (props.initialData?.thumbnail_path) {
+        return `/storage/${props.initialData.thumbnail_path}`;
+    }
+    return null;
+});
+
+// Handle file selection
+const handleFileSelect = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+    
+    if (!file) return;
+    
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+        thumbnailError.value = 'Please select a valid image (JPEG, PNG, GIF, or WebP)';
+        return;
+    }
+    
+    // Validate file size (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+        thumbnailError.value = 'Image must be less than 2MB';
+        return;
+    }
+    
+    thumbnailError.value = null;
+    thumbnailFile.value = file;
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        thumbnailPreview.value = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+    
+    // If we have an entry ID, upload immediately
+    if (props.entryId) {
+        uploadThumbnail();
+    }
+};
+
+// Upload thumbnail to server
+const uploadThumbnail = async () => {
+    if (!thumbnailFile.value || !props.entryId) return;
+    
+    thumbnailUploading.value = true;
+    thumbnailError.value = null;
+    
+    try {
+        const formData = new FormData();
+        formData.append('thumbnail', thumbnailFile.value);
+        
+        const response = await axios.post(`/api/codex/${props.entryId}/thumbnail`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        
+        emit('thumbnailUpdated', response.data.thumbnail_path);
+        thumbnailFile.value = null;
+    } catch (err: unknown) {
+        const axiosError = err as { response?: { data?: { message?: string } } };
+        thumbnailError.value = axiosError.response?.data?.message || 'Failed to upload thumbnail';
+        thumbnailPreview.value = null;
+    } finally {
+        thumbnailUploading.value = false;
+    }
+};
+
+// Remove thumbnail
+const removeThumbnail = async () => {
+    if (props.entryId && props.initialData?.thumbnail_path) {
+        thumbnailUploading.value = true;
+        try {
+            await axios.delete(`/api/codex/${props.entryId}/thumbnail`);
+            emit('thumbnailUpdated', null);
+        } catch {
+            thumbnailError.value = 'Failed to remove thumbnail';
+        } finally {
+            thumbnailUploading.value = false;
+        }
+    }
+    
+    thumbnailPreview.value = null;
+    thumbnailFile.value = null;
+    if (fileInputRef.value) {
+        fileInputRef.value.value = '';
+    }
+};
+
+// Trigger file input click
+const triggerFileInput = () => {
+    fileInputRef.value?.click();
+};
 
 const typeConfig: Record<string, { label: string; icon: string; description: string }> = {
     character: { label: 'Character', icon: '👤', description: 'People, creatures, or beings' },
@@ -117,13 +231,99 @@ const isValid = () => {
             <div class="space-y-4">
                 <Input v-model="formData.name" label="Name" placeholder="Enter entry name" required :error="errors.name" />
 
-                <Textarea
-                    v-model="formData.description"
-                    label="Description"
-                    placeholder="Describe this entry..."
-                    rows="5"
-                    :error="errors.description"
-                />
+                <!-- Thumbnail Upload -->
+                <div>
+                    <label class="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Thumbnail</label>
+                    <div class="flex items-start gap-4">
+                        <!-- Thumbnail Preview -->
+                        <div
+                            class="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border-2 border-dashed transition-colors"
+                            :class="
+                                currentThumbnailUrl
+                                    ? 'border-transparent'
+                                    : 'border-zinc-300 dark:border-zinc-600 hover:border-violet-400 dark:hover:border-violet-500'
+                            "
+                        >
+                            <img
+                                v-if="currentThumbnailUrl"
+                                :src="currentThumbnailUrl"
+                                alt="Thumbnail preview"
+                                class="h-full w-full object-cover"
+                            />
+                            <div
+                                v-else
+                                class="flex h-full w-full cursor-pointer items-center justify-center bg-zinc-50 dark:bg-zinc-800"
+                                @click="triggerFileInput"
+                            >
+                                <svg class="h-6 w-6 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                                </svg>
+                            </div>
+                            <!-- Loading overlay -->
+                            <div
+                                v-if="thumbnailUploading"
+                                class="absolute inset-0 flex items-center justify-center bg-black/50"
+                            >
+                                <div class="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                            </div>
+                        </div>
+
+                        <!-- Upload controls -->
+                        <div class="flex-1">
+                            <input
+                                ref="fileInputRef"
+                                type="file"
+                                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                                class="hidden"
+                                @change="handleFileSelect"
+                            />
+                            <div class="flex flex-wrap gap-2">
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="sm"
+                                    :disabled="thumbnailUploading"
+                                    @click="triggerFileInput"
+                                >
+                                    {{ currentThumbnailUrl ? 'Change' : 'Upload' }}
+                                </Button>
+                                <Button
+                                    v-if="currentThumbnailUrl"
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    :disabled="thumbnailUploading"
+                                    @click="removeThumbnail"
+                                >
+                                    Remove
+                                </Button>
+                            </div>
+                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                                JPEG, PNG, GIF, or WebP. Max 2MB.
+                            </p>
+                            <p v-if="thumbnailError" class="mt-1 text-xs text-red-500">
+                                {{ thumbnailError }}
+                            </p>
+                            <p v-if="thumbnailFile && !entryId" class="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                                Thumbnail will be uploaded after saving.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <Textarea
+                        v-model="formData.description"
+                        label="Description"
+                        placeholder="Describe this entry..."
+                        rows="5"
+                        :error="errors.description"
+                    />
+                    <!-- Description Guidelines -->
+                    <p class="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                        <span class="font-medium">Tip:</span> Write in 3rd person. Include key traits, motivations, and relationships. This text is sent to AI for context.
+                    </p>
+                </div>
             </div>
         </Card>
 

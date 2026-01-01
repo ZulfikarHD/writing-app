@@ -224,6 +224,27 @@ ls resources/js/pages/Series/
 
 ---
 
+### 15. Sprint 13: Research & Tracking Tests
+
+| Test ID | Scenario | Steps | Expected Result |
+|---------|----------|-------|-----------------|
+| S13-M01 | Toggle tracking | Entry show page → Click tracking toggle | Visual indicator changes, saves instantly |
+| S13-M02 | Auto-scan behavior | Write scene with character name → Save | Mentions update within 5-10 seconds (check Codex page) |
+| S13-M03 | Disabled tracking | Disable tracking → Write scene with that entry | No new mention created |
+| S13-M04 | Research tab | Entry show page → Click "Research" tab | Tab switches, shows research notes area |
+| S13-M05 | Research notes auto-save | Type in research notes → Wait 500ms | "Saving..." indicator, then "Saved" |
+| S13-M06 | Research word count | Type in research notes | Word count updates live |
+| S13-M07 | Add external link | Research tab → Fill link form → Submit | Link added to list |
+| S13-M08 | Edit external link | Click edit on link → Modify → Save | Link updated |
+| S13-M09 | Delete external link | Click delete on link → Confirm | Link removed |
+| S13-M10 | Reorder external links | Drag link to new position | Order saved, persists on refresh |
+| S13-M11 | Invalid URL validation | Add link with invalid URL → Submit | Validation error shown |
+| S13-M12 | Live mention polling | Open Codex entry → Write in scene (other tab) → Wait | Mentions update without manual refresh (10s max) |
+| S13-M13 | Private badge | Check Research tab | "Private" badge visible, tooltip explains not sent to AI |
+| S13-M14 | Mobile responsive | Open Research tab on mobile | Layout adapts, all functions work |
+
+---
+
 ## Manual QA Checklist
 
 ### Desktop Browser Testing
@@ -264,6 +285,20 @@ ls resources/js/pages/Series/
 - [x] Graph interactions work (drag, zoom, click)
 - [x] Description guidelines show in form
 
+### v1.2.0 Sprint 13 Testing
+
+- [x] Tracking toggle updates instantly
+- [x] Auto-scan runs synchronously (no queue worker needed)
+- [x] Live polling updates mentions (5s interval)
+- [x] Research tab switches correctly
+- [x] Research notes auto-save with debounce
+- [x] External links CRUD operations work
+- [x] External link URL validation
+- [x] Reorder external links persists
+- [x] "Private" badge shows on Research tab
+- [x] Mobile responsive for new components
+- [x] All 41 automated tests pass
+
 ---
 
 ## Automated Test Commands
@@ -284,10 +319,12 @@ php artisan test --filter=Codex --coverage
 
 ### Test Coverage
 
-**Latest Results (v1.1):**
-- ✅ 32 tests passed (111 assertions) in 1.30s
+**Latest Results (v1.2 - Sprint 13):**
+- ✅ 41 tests passed (143 assertions) in 1.26s
 - Coverage areas:
   - CRUD operations (entries, aliases, details, relations, progressions, categories)
+  - **Sprint 13:** Tracking toggle, research notes, external links
+  - **Sprint 13:** Auto-scan synchronous behavior
   - Authorization checks
   - Validation rules
   - Mention tracking
@@ -295,6 +332,38 @@ php artisan test --filter=Codex --coverage
   - Quick create functionality
   - Archived entry exclusion
   - API endpoints for editor integration
+
+### Sprint 13 Test Cases
+
+| Test ID | Test Method | Scenario | Expected Result | Status |
+|---------|-------------|----------|-----------------|--------|
+| S13-001 | `test_can_toggle_tracking_enabled()` | Toggle tracking on/off | `is_tracking_enabled` updates correctly | ✅ Pass |
+| S13-002 | `test_disabled_tracking_entry_not_scanned_for_mentions()` | Create scene with disabled tracking entry | Mention not created | ✅ Pass |
+| S13-003 | `test_can_update_research_notes()` | Update research notes field | Notes persisted, not sent to AI | ✅ Pass |
+| S13-004 | `test_research_notes_included_in_show_response()` | GET entry via API | Response includes research_notes | ✅ Pass |
+| S13-005 | `test_can_add_external_link()` | POST external link | Link created with correct data | ✅ Pass |
+| S13-006 | `test_can_update_external_link()` | PATCH external link | Link updated | ✅ Pass |
+| S13-007 | `test_can_delete_external_link()` | DELETE external link | Link removed, cascade delete works | ✅ Pass |
+| S13-008 | `test_external_link_requires_valid_url()` | POST with invalid URL | Validation error returned | ✅ Pass |
+| S13-009 | `test_unauthorized_user_cannot_add_external_link()` | Unauthorized user tries to add link | 403 Forbidden | ✅ Pass |
+
+**Automated Test Commands:**
+
+```bash
+# Run all Codex tests
+php artisan test --filter=CodexTest
+
+# Run only Sprint 13 tests
+php artisan test --filter=CodexTest::test_can_toggle_tracking_enabled
+php artisan test --filter=CodexTest::test_disabled_tracking_entry_not_scanned_for_mentions
+php artisan test --filter=CodexTest::test_can_update_research_notes
+php artisan test --filter=CodexTest::test_research_notes_included_in_show_response
+php artisan test --filter=CodexTest::test_can_add_external_link
+php artisan test --filter=CodexTest::test_can_update_external_link
+php artisan test --filter=CodexTest::test_can_delete_external_link
+php artisan test --filter=CodexTest::test_external_link_requires_valid_url
+php artisan test --filter=CodexTest::test_unauthorized_user_cannot_add_external_link
+```
 
 ---
 

@@ -26,7 +26,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Sprint 01 - Foundation & Core Editor](./10-sprints/sprint-01-foundation.md) ✅ Complete
 - [Sprint 02 - Manuscript Editor](./10-sprints/sprint-02-manuscript-editor.md) ✅ Complete
 - [Sprint 03 - AI Connections & UI System](./10-sprints/sprint-03-ai-ui-system.md) ✅ Complete
-- [Sprint 04 - Codex System](./10-sprints/sprint-04-codex-system.md) ✅ Complete ✨ NEW
+- [Sprint 04 - Codex System](./10-sprints/sprint-04-codex-system.md) ✅ Complete
+- [Sprint 13 - Codex V2: Auto-Mentions & Research](./10-sprints/sprint-13-codex-v2-enhancements.md) ✅ Complete ✨ NEW
 
 ### API Reference
 - [Authentication API](./04-api-reference/authentication.md)
@@ -64,6 +65,7 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 | UI Component Library | ✅ Complete | [Sprint 03](./10-sprints/sprint-03-ai-ui-system.md) | N/A | N/A |
 | **Codex System** | ✅ Complete | [Sprint 04](./10-sprints/sprint-04-codex-system.md) | [Link](./04-api-reference/codex.md) | [Link](./06-testing/codex-testing.md) |
 | **Series Management** | ✅ Complete | [Sprint 04](./10-sprints/sprint-04-codex-system.md) | [Link](./04-api-reference/series.md) | [Link](./06-testing/codex-testing.md) |
+| **Codex V2 - Auto-Mentions & Research** | ✅ Complete | [Sprint 13](./10-sprints/sprint-13-codex-v2-enhancements.md) | [Link](./04-api-reference/codex.md) | [Link](./06-testing/codex-testing.md) |
 
 ---
 
@@ -111,6 +113,28 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Codex API Documentation](./04-api-reference/codex.md)
 - [Series API Documentation](./04-api-reference/series.md)
 - [Testing Guide](./06-testing/codex-testing.md)
+
+---
+
+## 🔗 Sprint 13 - Codex V2: Auto-Mentions & Research
+
+### Features Delivered
+
+#### Sprint 13: Auto-Mentions & Research (Novelcrafter Parity)
+- **Auto-Scan Mentions**: Synchronous mention scanning (no queue worker needed!)
+- **Live Polling**: Real-time mention updates every 5 seconds
+- **Tracking Toggle**: Per-entry control untuk mention tracking (`is_tracking_enabled`)
+- **Research Notes**: Private notes field yang TIDAK dikirim ke AI
+- **External Links**: Store reference links untuk research purposes
+- **Context Builder**: Auto-include related entries dalam AI context
+
+### Philosophy: "Auto-Save Everything"
+Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerja seperti editor auto-save** - otomatis, synchronous, real-time, tanpa memerlukan queue worker atau klik manual. Hasilnya adalah UX yang seamless di mana mentions update otomatis saat user menulis di editor.
+
+### Quick Links
+- [Sprint 13 Documentation](./10-sprints/sprint-13-codex-v2-enhancements.md)
+- [Codex API Documentation - Sprint 13 Section](./04-api-reference/codex.md#research-notes--external-links-sprint-13)
+- [Testing Guide - Sprint 13 Tests](./06-testing/codex-testing.md#sprint-13-test-cases)
 
 ---
 

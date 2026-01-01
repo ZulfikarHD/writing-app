@@ -29,10 +29,12 @@ class UpdateCodexEntryRequest extends FormRequest
             'type' => ['sometimes', 'string', Rule::in(CodexEntry::getTypes())],
             'name' => ['sometimes', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'research_notes' => ['nullable', 'string'], // Sprint 13: US-12.3
             'thumbnail_path' => ['nullable', 'string', 'max:500'],
             'ai_context_mode' => ['sometimes', 'string', Rule::in(CodexEntry::getContextModes())],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
             'is_archived' => ['sometimes', 'boolean'],
+            'is_tracking_enabled' => ['sometimes', 'boolean'], // Sprint 13: US-12.2
         ];
     }
 

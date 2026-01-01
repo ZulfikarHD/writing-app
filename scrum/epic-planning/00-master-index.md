@@ -37,11 +37,11 @@ Build a comprehensive AI-assisted novel writing application that empowers writer
 │  │   SYSTEM    │   │   EDITOR    │   │             │   │   EXPORT   │  │
 │  └─────────────┘   └─────────────┘   └─────────────┘   └────────────┘  │
 │                                                                         │
-│  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐                   │
-│  │   EPIC 9    │   │   EPIC 10   │   │   EPIC 11   │                   │
-│  │ORGANIZATION │   │COLLABORATION│   │   SYSTEM    │                   │
-│  │  & SAFETY   │   │             │   │ PRODUCTIVITY│                   │
-│  └─────────────┘   └─────────────┘   └─────────────┘                   │
+│  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐   ┌────────────┐  │
+│  │   EPIC 9    │   │   EPIC 10   │   │   EPIC 11   │   │   EPIC 12  │  │
+│  │ORGANIZATION │   │COLLABORATION│   │   SYSTEM    │   │  CODEX V2  │  │
+│  │  & SAFETY   │   │             │   │ PRODUCTIVITY│   │ ENHANCEMENTS│ │
+│  └─────────────┘   └─────────────┘   └─────────────┘   └────────────┘  │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -63,6 +63,7 @@ Build a comprehensive AI-assisted novel writing application that empowers writer
 | [EPIC-09](./09-EPIC-organization.md) | Organization & Safety | 🟢 Medium | EPIC-03 | 2-3 Sprints |
 | [EPIC-10](./10-EPIC-collaboration.md) | Collaboration | 🟢 Medium | All Core Epics | 2-3 Sprints |
 | [EPIC-11](./11-EPIC-system-features.md) | System & Productivity | 🟢 Medium | Foundation | 2-3 Sprints |
+| [EPIC-12](./12-EPIC-codex-v2-enhancements.md) | Codex v2 Enhancements | 🔴 Critical | EPIC-02 | 3-4 Sprints |
 
 ---
 
@@ -120,14 +121,14 @@ Build a comprehensive AI-assisted novel writing application that empowers writer
      │              └────────▶│Snippets │
      │                        └─────────┘
      │
-     ├──────────────┬──────────────┐
-     │              │              │
-     ▼              ▼              ▼
-┌─────────┐   ┌─────────┐   ┌─────────┐
-│ EPIC 3  │   │ EPIC 8  │   │ EPIC 9  │
-│ Story   │   │Import/  │   │Organiz- │
-│Planning │   │ Export  │   │ation    │
-└─────────┘   └─────────┘   └─────────┘
+     ├──────────────┬──────────────┬──────────────┐
+     │              │              │              │
+     ▼              ▼              ▼              ▼
+┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐
+│ EPIC 3  │   │ EPIC 8  │   │ EPIC 9  │   │ EPIC 12 │
+│ Story   │   │Import/  │   │Organiz- │   │Codex v2 │
+│Planning │   │ Export  │   │ation    │   │Enhance  │
+└─────────┘   └─────────┘   └─────────┘   └─────────┘
                    │
                    ▼
             ┌─────────────┐
@@ -186,7 +187,8 @@ Build a comprehensive AI-assisted novel writing application that empowers writer
 | EPIC-09: Organization | ~45 | 25 | 15 | 5 |
 | EPIC-10: Collaboration | ~50 | 30 | 15 | 5 |
 | EPIC-11: System Features | ~35 | 15 | 15 | 5 |
-| **TOTAL** | **~600** | **330** | **203** | **67** |
+| EPIC-12: Codex v2 Enhancements | ~110 | 70 | 30 | 10 |
+| **TOTAL** | **~710** | **400** | **233** | **77** |
 
 ---
 
@@ -204,6 +206,7 @@ Build a comprehensive AI-assisted novel writing application that empowers writer
 - [EPIC-09: Organization & Safety](./09-EPIC-organization.md)
 - [EPIC-10: Collaboration](./10-EPIC-collaboration.md)
 - [EPIC-11: System & Productivity](./11-EPIC-system-features.md)
+- [EPIC-12: Codex v2 Enhancements](./12-EPIC-codex-v2-enhancements.md)
 
 ### Sprint Plans
 - [Sprint 3-4: AI & Data Infrastructure](./sprints/sprint-03-04-ai-data.md)
