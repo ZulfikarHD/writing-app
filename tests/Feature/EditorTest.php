@@ -268,4 +268,168 @@ class EditorTest extends TestCase
                 ->where('chapters.2.title', 'Chapter 3')
             );
     }
+
+    public function test_user_can_reorder_chapters(): void
+    {
+        $chapter1 = Chapter::factory()->position(0)->create([
+            'novel_id' => $this->novel->id,
+            'title' => 'Chapter 1',
+        ]);
+
+        $chapter2 = Chapter::factory()->position(1)->create([
+            'novel_id' => $this->novel->id,
+            'title' => 'Chapter 2',
+        ]);
+
+        $chapter3 = Chapter::factory()->position(2)->create([
+            'novel_id' => $this->novel->id,
+            'title' => 'Chapter 3',
+        ]);
+
+        // Reorder: put chapter3 first, chapter1 second, chapter2 third
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/novels/'.$this->novel->id.'/chapters/reorder', [
+                'chapters' => [
+                    ['id' => $chapter3->id, 'position' => 0],
+                    ['id' => $chapter1->id, 'position' => 1],
+                    ['id' => $chapter2->id, 'position' => 2],
+                ],
+            ]);
+
+        $response->assertOk()
+            ->assertJson(['success' => true]);
+
+        $this->assertDatabaseHas('chapters', ['id' => $chapter3->id, 'position' => 0]);
+        $this->assertDatabaseHas('chapters', ['id' => $chapter1->id, 'position' => 1]);
+        $this->assertDatabaseHas('chapters', ['id' => $chapter2->id, 'position' => 2]);
+    }
+
+    public function test_user_can_reorder_scenes_within_chapter(): void
+    {
+        $chapter = Chapter::factory()->create(['novel_id' => $this->novel->id]);
+
+        $scene1 = Scene::factory()->position(0)->create([
+            'chapter_id' => $chapter->id,
+            'title' => 'Scene 1',
+        ]);
+
+        $scene2 = Scene::factory()->position(1)->create([
+            'chapter_id' => $chapter->id,
+            'title' => 'Scene 2',
+        ]);
+
+        $scene3 = Scene::factory()->position(2)->create([
+            'chapter_id' => $chapter->id,
+            'title' => 'Scene 3',
+        ]);
+
+        // Reorder: put scene3 first, scene1 second, scene2 third
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/chapters/'.$chapter->id.'/scenes/reorder', [
+                'scenes' => [
+                    ['id' => $scene3->id, 'position' => 0],
+                    ['id' => $scene1->id, 'position' => 1],
+                    ['id' => $scene2->id, 'position' => 2],
+                ],
+            ]);
+
+        $response->assertOk()
+            ->assertJson(['success' => true]);
+
+        $this->assertDatabaseHas('scenes', ['id' => $scene3->id, 'position' => 0]);
+        $this->assertDatabaseHas('scenes', ['id' => $scene1->id, 'position' => 1]);
+        $this->assertDatabaseHas('scenes', ['id' => $scene2->id, 'position' => 2]);
+    }
+
+    public function test_user_cannot_reorder_other_users_chapters(): void
+    {
+        $otherUser = User::factory()->create();
+        $otherNovel = Novel::factory()->create(['user_id' => $otherUser->id]);
+
+        $chapter = Chapter::factory()->create(['novel_id' => $otherNovel->id]);
+
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/novels/'.$otherNovel->id.'/chapters/reorder', [
+                'chapters' => [
+                    ['id' => $chapter->id, 'position' => 0],
+                ],
+            ]);
+
+        $response->assertForbidden();
+    }
+
+    public function test_user_cannot_reorder_other_users_scenes(): void
+    {
+        $otherUser = User::factory()->create();
+        $otherNovel = Novel::factory()->create(['user_id' => $otherUser->id]);
+        $chapter = Chapter::factory()->create(['novel_id' => $otherNovel->id]);
+        $scene = Scene::factory()->create(['chapter_id' => $chapter->id]);
+
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/chapters/'.$chapter->id.'/scenes/reorder', [
+                'scenes' => [
+                    ['id' => $scene->id, 'position' => 0],
+                ],
+            ]);
+
+        $response->assertForbidden();
+    }
+
+    public function test_user_can_create_chapter(): void
+    {
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/novels/'.$this->novel->id.'/chapters', [
+                'title' => 'New Chapter',
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('chapter.title', 'New Chapter');
+
+        $this->assertDatabaseHas('chapters', [
+            'novel_id' => $this->novel->id,
+            'title' => 'New Chapter',
+        ]);
+    }
+
+    public function test_user_can_create_scene(): void
+    {
+        $chapter = Chapter::factory()->create(['novel_id' => $this->novel->id]);
+
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/chapters/'.$chapter->id.'/scenes', [
+                'title' => 'New Scene',
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('scene.title', 'New Scene');
+
+        $this->assertDatabaseHas('scenes', [
+            'chapter_id' => $chapter->id,
+            'title' => 'New Scene',
+        ]);
+    }
+
+    public function test_user_can_update_scene_content(): void
+    {
+        $chapter = Chapter::factory()->create(['novel_id' => $this->novel->id]);
+        $scene = Scene::factory()->create(['chapter_id' => $chapter->id]);
+
+        $newContent = [
+            'type' => 'doc',
+            'content' => [
+                ['type' => 'paragraph', 'content' => [['type' => 'text', 'text' => 'Updated content']]],
+            ],
+        ];
+
+        $response = $this->actingAs($this->user)
+            ->patchJson('/api/scenes/'.$scene->id.'/content', [
+                'content' => $newContent,
+            ]);
+
+        $response->assertOk()
+            ->assertJsonStructure(['success', 'word_count', 'saved_at']);
+
+        $scene->refresh();
+        $this->assertEquals($newContent, $scene->content);
+    }
 }

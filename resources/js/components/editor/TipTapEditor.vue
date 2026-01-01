@@ -4,6 +4,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import CharacterCount from '@tiptap/extension-character-count';
 import Underline from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
 import { watch, computed, onBeforeUnmount } from 'vue';
 
 interface Props {
@@ -38,6 +39,9 @@ const editor = useEditor({
             },
         }),
         Underline,
+        TextAlign.configure({
+            types: ['heading', 'paragraph'],
+        }),
         Placeholder.configure({
             placeholder: props.placeholder,
             emptyEditorClass: 'is-editor-empty',
@@ -89,11 +93,13 @@ const characterCount = computed(() => {
     return editor.value?.storage.characterCount.characters() ?? 0;
 });
 
+// Undo/Redo
 const undo = () => editor.value?.chain().focus().undo().run();
 const redo = () => editor.value?.chain().focus().redo().run();
 const canUndo = computed(() => editor.value?.can().undo() ?? false);
 const canRedo = computed(() => editor.value?.can().redo() ?? false);
 
+// Basic formatting
 const toggleBold = () => editor.value?.chain().focus().toggleBold().run();
 const toggleItalic = () => editor.value?.chain().focus().toggleItalic().run();
 const toggleUnderline = () => editor.value?.chain().focus().toggleUnderline().run();
@@ -104,6 +110,33 @@ const isItalic = computed(() => editor.value?.isActive('italic') ?? false);
 const isUnderline = computed(() => editor.value?.isActive('underline') ?? false);
 const isStrike = computed(() => editor.value?.isActive('strike') ?? false);
 
+// Headings
+const setHeading = (level: 1 | 2 | 3) => editor.value?.chain().focus().toggleHeading({ level }).run();
+const setParagraph = () => editor.value?.chain().focus().setParagraph().run();
+const currentHeadingLevel = computed(() => {
+    if (editor.value?.isActive('heading', { level: 1 })) return 1;
+    if (editor.value?.isActive('heading', { level: 2 })) return 2;
+    if (editor.value?.isActive('heading', { level: 3 })) return 3;
+    return 0;
+});
+
+// Lists
+const toggleBulletList = () => editor.value?.chain().focus().toggleBulletList().run();
+const toggleOrderedList = () => editor.value?.chain().focus().toggleOrderedList().run();
+const isBulletList = computed(() => editor.value?.isActive('bulletList') ?? false);
+const isOrderedList = computed(() => editor.value?.isActive('orderedList') ?? false);
+
+// Text alignment
+const setTextAlign = (align: 'left' | 'center' | 'right' | 'justify') => {
+    editor.value?.chain().focus().setTextAlign(align).run();
+};
+const currentTextAlign = computed(() => {
+    if (editor.value?.isActive({ textAlign: 'center' })) return 'center';
+    if (editor.value?.isActive({ textAlign: 'right' })) return 'right';
+    if (editor.value?.isActive({ textAlign: 'justify' })) return 'justify';
+    return 'left';
+});
+
 onBeforeUnmount(() => {
     editor.value?.destroy();
 });
@@ -112,10 +145,12 @@ defineExpose({
     editor,
     wordCount,
     characterCount,
+    // Undo/Redo
     undo,
     redo,
     canUndo,
     canRedo,
+    // Basic formatting
     toggleBold,
     toggleItalic,
     toggleUnderline,
@@ -124,6 +159,18 @@ defineExpose({
     isItalic,
     isUnderline,
     isStrike,
+    // Headings
+    setHeading,
+    setParagraph,
+    currentHeadingLevel,
+    // Lists
+    toggleBulletList,
+    toggleOrderedList,
+    isBulletList,
+    isOrderedList,
+    // Text alignment
+    setTextAlign,
+    currentTextAlign,
 });
 </script>
 
@@ -159,9 +206,9 @@ defineExpose({
 }
 
 .tiptap {
-    font-family: 'Georgia', serif;
-    font-size: 1.125rem;
-    line-height: 1.8;
+    font-family: var(--editor-font-family, 'Georgia', serif);
+    font-size: var(--editor-font-size, 1.125rem);
+    line-height: var(--editor-line-height, 1.8);
 }
 
 .tiptap p {
@@ -175,5 +222,55 @@ defineExpose({
     font-weight: 600;
     margin-top: 1.5em;
     margin-bottom: 0.5em;
+}
+
+/* Text alignment */
+.tiptap p[style*="text-align: left"],
+.tiptap h1[style*="text-align: left"],
+.tiptap h2[style*="text-align: left"],
+.tiptap h3[style*="text-align: left"] {
+    text-align: left;
+}
+
+.tiptap p[style*="text-align: center"],
+.tiptap h1[style*="text-align: center"],
+.tiptap h2[style*="text-align: center"],
+.tiptap h3[style*="text-align: center"] {
+    text-align: center;
+}
+
+.tiptap p[style*="text-align: right"],
+.tiptap h1[style*="text-align: right"],
+.tiptap h2[style*="text-align: right"],
+.tiptap h3[style*="text-align: right"] {
+    text-align: right;
+}
+
+.tiptap p[style*="text-align: justify"],
+.tiptap h1[style*="text-align: justify"],
+.tiptap h2[style*="text-align: justify"],
+.tiptap h3[style*="text-align: justify"] {
+    text-align: justify;
+}
+
+/* List styles */
+.tiptap ul {
+    list-style-type: disc;
+    padding-left: 1.5em;
+    margin-bottom: 1em;
+}
+
+.tiptap ol {
+    list-style-type: decimal;
+    padding-left: 1.5em;
+    margin-bottom: 1em;
+}
+
+.tiptap li {
+    margin-bottom: 0.25em;
+}
+
+.tiptap li p {
+    margin-bottom: 0.25em;
 }
 </style>
