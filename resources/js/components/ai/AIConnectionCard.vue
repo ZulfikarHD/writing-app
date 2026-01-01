@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import Alert from '@/components/ui/Alert.vue';
+import Alert from '@/components/ui/feedback/Alert.vue';
 import Badge from '@/components/ui/Badge.vue';
-import Button from '@/components/ui/Button.vue';
-import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import Button from '@/components/ui/buttons/Button.vue';
+import ConfirmDialog from '@/components/ui/overlays/ConfirmDialog.vue';
 import { useToast } from '@/composables/useToast';
 import type { AIConnection } from '@/pages/Settings/AIConnections.vue';
 import { router } from '@inertiajs/vue3';
+import { Motion } from 'motion-v';
 import axios from 'axios';
 import { ref } from 'vue';
 
@@ -178,31 +179,30 @@ const toggleActive = async () => {
             </div>
 
             <!-- Test Result -->
-            <Transition
-                enter-active-class="transition ease-out duration-200"
-                enter-from-class="opacity-0 -translate-y-1"
-                enter-to-class="opacity-100 translate-y-0"
-                leave-active-class="transition ease-in duration-150"
-                leave-from-class="opacity-100 translate-y-0"
-                leave-to-class="opacity-0 -translate-y-1"
+            <Motion
+                v-if="testResult"
+                :initial="{ opacity: 0, y: -10 }"
+                :animate="{ opacity: 1, y: 0 }"
+                :exit="{ opacity: 0, y: -10 }"
+                :transition="{ type: 'spring', stiffness: 400, damping: 30 }"
             >
-                <Alert v-if="testResult" :variant="testResult.success ? 'success' : 'danger'" class="mt-4">
+                <Alert :variant="testResult.success ? 'success' : 'danger'" class="mt-4">
                     <div class="flex items-center gap-2">
                         <span>{{ testResult.message }}</span>
                         <span v-if="testResult.model_count" class="text-xs opacity-75"> ({{ testResult.model_count }} models available) </span>
                     </div>
                 </Alert>
-            </Transition>
+            </Motion>
 
             <!-- Actions -->
             <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-                <Button size="sm" variant="ghost" :loading="testing" @click="testConnection">
+                <Button size="sm" variant="ghost" :loading="testing" class="active:scale-[0.97] transition-transform" @click="testConnection">
                     <svg v-if="!testing" class="mr-1 h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     Test
                 </Button>
-                <Button size="sm" variant="ghost" @click="emit('edit')">
+                <Button size="sm" variant="ghost" class="active:scale-[0.97] transition-transform" @click="emit('edit')">
                     <svg class="mr-1 h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                             stroke-linecap="round"
@@ -213,7 +213,7 @@ const toggleActive = async () => {
                     </svg>
                     Edit
                 </Button>
-                <Button v-if="!connection.is_default" size="sm" variant="ghost" @click="toggleDefault">
+                <Button v-if="!connection.is_default" size="sm" variant="ghost" class="active:scale-[0.97] transition-transform" @click="toggleDefault">
                     <svg class="mr-1 h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                             stroke-linecap="round"
@@ -224,14 +224,14 @@ const toggleActive = async () => {
                     </svg>
                     Set Default
                 </Button>
-                <Button size="sm" variant="ghost" @click="toggleActive">
+                <Button size="sm" variant="ghost" class="active:scale-[0.97] transition-transform" @click="toggleActive">
                     {{ connection.is_active ? 'Disable' : 'Enable' }}
                 </Button>
                 <div class="flex-1"></div>
                 <Button
                     size="sm"
                     variant="ghost"
-                    class="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                    class="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 active:scale-[0.97] transition-transform"
                     @click="showDeleteConfirm = true"
                 >
                     <svg class="mr-1 h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

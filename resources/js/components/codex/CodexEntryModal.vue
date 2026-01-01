@@ -3,7 +3,7 @@ import Modal from '@/components/ui/layout/Modal.vue';
 import Button from '@/components/ui/buttons/Button.vue';
 import Toast from '@/components/ui/feedback/Toast.vue';
 import ConfirmDialog from '@/components/ui/overlays/ConfirmDialog.vue';
-import { AliasManager, CategoryManager, DetailManager, ProgressionManager, RelationGraph, RelationManager, ResearchTab, TagManager } from '@/components/codex';
+import { AliasManager, CategoryManager, DetailManager, MentionHeatmap, ProgressionManager, RelationGraph, RelationManager, ResearchTab, TagManager } from '@/components/codex';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { ref, watch, computed } from 'vue';

@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import Button from '@/components/ui/Button.vue';
-import Input from '@/components/ui/Input.vue';
-import Modal from '@/components/ui/Modal.vue';
-import Select from '@/components/ui/Select.vue';
+import Button from '@/components/ui/buttons/Button.vue';
+import Input from '@/components/ui/forms/Input.vue';
+import Modal from '@/components/ui/layout/Modal.vue';
+import Select from '@/components/ui/forms/Select.vue';
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import { ref, computed } from 'vue';

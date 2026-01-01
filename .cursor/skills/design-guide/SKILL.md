@@ -6,7 +6,7 @@ description: This is a new rule
 # Overview
 
 - App Design is clean and compact app 
-- Always think hirarchy for mobile user prespective in user experience when designing the pages
+- Just Focus on Full Dekstop Experience, tough dont forget mobile experience
 - use motion-v
 - always run yarn run build in the end
 - use the components that already created if it not to complex, i have forms,badges.button,model/dialog/alert component.

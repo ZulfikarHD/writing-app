@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AIConnectionCard from '@/components/ai/AIConnectionCard.vue';
 import AIConnectionForm from '@/components/ai/AIConnectionForm.vue';
-import Button from '@/components/ui/Button.vue';
+import Button from '@/components/ui/buttons/Button.vue';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Motion } from 'motion-v';

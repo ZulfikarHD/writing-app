@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import Button from '@/components/ui/Button.vue';
-import Card from '@/components/ui/Card.vue';
-import Input from '@/components/ui/Input.vue';
-import Textarea from '@/components/ui/Textarea.vue';
-import Toast from '@/components/ui/Toast.vue';
+import Button from '@/components/ui/buttons/Button.vue';
+import Card from '@/components/ui/layout/Card.vue';
+import Input from '@/components/ui/forms/Input.vue';
+import Textarea from '@/components/ui/forms/Textarea.vue';
+import Toast from '@/components/ui/feedback/Toast.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { ref } from 'vue';

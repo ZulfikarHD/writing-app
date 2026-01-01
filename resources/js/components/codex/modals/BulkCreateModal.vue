@@ -14,8 +14,8 @@
  *
  * @see https://www.novelcrafter.com/help/docs/codex/the-codex
  */
-import Button from '@/components/ui/Button.vue';
-import Modal from '@/components/ui/Modal.vue';
+import Button from '@/components/ui/buttons/Button.vue';
+import Modal from '@/components/ui/layout/Modal.vue';
 import CodexTypeIcon from '../shared/CodexTypeIcon.vue';
 import axios from 'axios';
 import { ref, computed, watch } from 'vue';

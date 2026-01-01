@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import Alert from '@/components/ui/Alert.vue';
-import Button from '@/components/ui/Button.vue';
-import Card from '@/components/ui/Card.vue';
-import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
-import Input from '@/components/ui/Input.vue';
+import Alert from '@/components/ui/feedback/Alert.vue';
+import Button from '@/components/ui/buttons/Button.vue';
+import Card from '@/components/ui/layout/Card.vue';
+import ConfirmDialog from '@/components/ui/overlays/ConfirmDialog.vue';
+import Input from '@/components/ui/forms/Input.vue';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { Motion } from 'motion-v';

@@ -8,8 +8,8 @@
  * - Detail presets (quick create)
  * - Auto-save on all changes
  */
-import Button from '@/components/ui/Button.vue';
-import Input from '@/components/ui/Input.vue';
+import Button from '@/components/ui/buttons/Button.vue';
+import Input from '@/components/ui/forms/Input.vue';
 import AIVisibilityToggle from '../shared/AIVisibilityToggle.vue';
 import axios from 'axios';
 import { ref, computed } from 'vue';

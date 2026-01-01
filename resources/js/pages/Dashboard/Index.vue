@@ -2,8 +2,8 @@
 import EmptyState from '@/components/dashboard/EmptyState.vue';
 import NovelCard from '@/components/dashboard/NovelCard.vue';
 import StatsCard from '@/components/dashboard/StatsCard.vue';
-import Alert from '@/components/ui/Alert.vue';
-import Select from '@/components/ui/Select.vue';
+import Alert from '@/components/ui/feedback/Alert.vue';
+import Select from '@/components/ui/forms/Select.vue';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import { Head, usePage } from '@inertiajs/vue3';
 import { Motion } from 'motion-v';

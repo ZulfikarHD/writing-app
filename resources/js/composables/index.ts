@@ -7,3 +7,5 @@ export { useEditorSettings } from './useEditorSettings';
 export { useTheme } from './useTheme';
 export { useToast } from './useToast';
 export type { Toast, ToastOptions } from './useToast';
+export { useWorkspaceState } from './useWorkspaceState';
+export type { WorkspaceMode, SidebarTool, WorkspaceState } from './useWorkspaceState';

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import Modal from '@/components/ui/Modal.vue';
-import Button from '@/components/ui/Button.vue';
-import Input from '@/components/ui/Input.vue';
-import Textarea from '@/components/ui/Textarea.vue';
-import Toast from '@/components/ui/Toast.vue';
+import Modal from '@/components/ui/layout/Modal.vue';
+import Button from '@/components/ui/buttons/Button.vue';
+import Input from '@/components/ui/forms/Input.vue';
+import Textarea from '@/components/ui/forms/Textarea.vue';
+import Toast from '@/components/ui/feedback/Toast.vue';
 import axios from 'axios';
 import { ref, watch } from 'vue';
 

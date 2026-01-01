@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import Button from '@/components/ui/Button.vue';
-import Textarea from '@/components/ui/Textarea.vue';
-import Input from '@/components/ui/Input.vue';
+import Button from '@/components/ui/buttons/Button.vue';
+import Textarea from '@/components/ui/forms/Textarea.vue';
+import Input from '@/components/ui/forms/Input.vue';
 import axios from 'axios';
 import { ref, computed, watch } from 'vue';
 
@@ -59,7 +59,7 @@ const handleNotesChange = () => {
     if (notesDebounceTimer.value) {
         clearTimeout(notesDebounceTimer.value);
     }
-    
+
     notesDebounceTimer.value = setTimeout(async () => {
         await saveNotes();
     }, 1000);
@@ -82,7 +82,7 @@ const saveNotes = async () => {
 // Add external link
 const addLink = async () => {
     if (!newLink.value.title.trim() || !newLink.value.url.trim()) return;
-    
+
     addingLink.value = true;
     try {
         const response = await axios.post(`/api/codex/${props.entryId}/external-links`, {
@@ -90,7 +90,7 @@ const addLink = async () => {
             url: newLink.value.url.trim(),
             notes: newLink.value.notes.trim() || null,
         });
-        
+
         links.value.push(response.data.link);
         newLink.value = { title: '', url: '', notes: '' };
         showAddLinkForm.value = false;
@@ -119,14 +119,14 @@ const cancelEditLink = () => {
 
 const saveEditLink = async () => {
     if (!editingLinkId.value) return;
-    
+
     try {
         await axios.patch(`/api/codex/external-links/${editingLinkId.value}`, {
             title: editLinkData.value.title.trim(),
             url: editLinkData.value.url.trim(),
             notes: editLinkData.value.notes.trim() || null,
         });
-        
+
         const index = links.value.findIndex(l => l.id === editingLinkId.value);
         if (index !== -1) {
             links.value[index] = {
@@ -136,7 +136,7 @@ const saveEditLink = async () => {
                 notes: editLinkData.value.notes.trim() || null,
             };
         }
-        
+
         cancelEditLink();
         emit('updated');
     } catch (error) {
@@ -147,7 +147,7 @@ const saveEditLink = async () => {
 // Delete external link
 const deleteLink = async (linkId: number) => {
     if (!confirm('Are you sure you want to delete this link?')) return;
-    
+
     try {
         await axios.delete(`/api/codex/external-links/${linkId}`);
         links.value = links.value.filter(l => l.id !== linkId);

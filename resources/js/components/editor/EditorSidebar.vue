@@ -175,9 +175,9 @@ const sceneDragOptions = computed(() => ({
                 @end="onChapterDragEnd"
             >
                 <template #item="{ element: chapter }">
-                    <div class="mb-2">
+                    <div class="mb-0.5">
                         <!-- Chapter Header -->
-                        <div class="group flex w-full items-center gap-1 rounded-md px-1 py-1 hover:bg-zinc-200 dark:hover:bg-zinc-700">
+                        <div class="group flex w-full items-center gap-1 rounded-md px-1 py-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700">
                             <!-- Drag Handle -->
                             <button
                                 type="button"
@@ -197,11 +197,11 @@ const sceneDragOptions = computed(() => ({
                             <!-- Expand/Collapse -->
                             <button
                                 type="button"
-                                class="flex flex-1 items-center gap-2 rounded-md px-1 py-0.5 text-left text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                                class="flex flex-1 items-center gap-2 rounded-md px-1 py-0.5 text-left text-sm font-semibold text-zinc-800 dark:text-zinc-200"
                                 @click="toggleChapter(chapter.id)"
                             >
                                 <svg
-                                    :class="['h-3 w-3 transition-transform', expandedChapters.has(chapter.id) ? 'rotate-90' : '']"
+                                    :class="['h-3.5 w-3.5 text-zinc-400 transition-transform dark:text-zinc-500', expandedChapters.has(chapter.id) ? 'rotate-90' : '']"
                                     fill="none"
                                     viewBox="0 0 24 24"
                                     stroke="currentColor"
@@ -209,7 +209,12 @@ const sceneDragOptions = computed(() => ({
                                 >
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                                 </svg>
+                                <!-- Chapter icon -->
+                                <svg class="h-4 w-4 shrink-0 text-amber-500 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                </svg>
                                 <span class="flex-1 truncate">{{ chapter.title }}</span>
+                                <span class="text-xs font-normal text-zinc-400 dark:text-zinc-500">{{ chapter.scenes.length }}</span>
                             </button>
 
                             <!-- Add Scene -->
@@ -225,8 +230,8 @@ const sceneDragOptions = computed(() => ({
                             </button>
                         </div>
 
-                        <!-- Scenes List (Draggable) -->
-                        <div v-if="expandedChapters.has(chapter.id)" class="ml-3 mt-1">
+                        <!-- Scenes List with Tree Lines -->
+                        <div v-if="expandedChapters.has(chapter.id)" class="relative ml-4 border-l-2 border-zinc-200 pl-3 dark:border-zinc-700">
                             <draggable
                                 v-model="chapter.scenes"
                                 item-key="id"
@@ -235,26 +240,40 @@ const sceneDragOptions = computed(() => ({
                                 @end="onSceneDragEnd(chapter.id)"
                             >
                                 <template #item="{ element: scene }">
-                                    <button
-                                        type="button"
-                                        :class="[
-                                            'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-all',
-                                            scene.id === activeSceneId
-                                                ? 'bg-violet-100 text-violet-900 dark:bg-violet-900/30 dark:text-violet-200'
-                                                : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-400 dark:hover:bg-zinc-700',
-                                        ]"
-                                        @click="emit('selectScene', scene.id)"
-                                    >
-                                        <span :class="['h-2 w-2 shrink-0 rounded-full', statusColors[scene.status] || 'bg-zinc-400']" />
-                                        <span class="flex-1 truncate">{{ scene.title || 'Untitled' }}</span>
-                                        <span class="text-xs text-zinc-400">{{ scene.word_count }}</span>
-                                    </button>
+                                    <div class="relative">
+                                        <!-- Tree connector line -->
+                                        <div class="absolute -left-3 top-1/2 h-px w-3 bg-zinc-200 dark:bg-zinc-700" />
+                                        <button
+                                            type="button"
+                                            :class="[
+                                                'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-all',
+                                                scene.id === activeSceneId
+                                                    ? 'bg-violet-100 font-medium text-violet-900 ring-1 ring-violet-300 dark:bg-violet-900/30 dark:text-violet-200 dark:ring-violet-700'
+                                                    : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700/50',
+                                            ]"
+                                            @click="emit('selectScene', scene.id)"
+                                        >
+                                            <!-- Scene icon -->
+                                            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            <span :class="['h-2 w-2 shrink-0 rounded-full', statusColors[scene.status] || 'bg-zinc-400']" />
+                                            <span class="flex-1 truncate">{{ scene.title || 'Untitled' }}</span>
+                                            <span class="text-xs text-zinc-400">{{ scene.word_count }}</span>
+                                        </button>
+                                    </div>
                                 </template>
                             </draggable>
 
-                            <!-- Empty state -->
-                            <div v-if="chapter.scenes.length === 0" class="px-2 py-2 text-xs text-zinc-400 dark:text-zinc-500">
-                                No scenes yet
+                            <!-- Empty state with tree connector -->
+                            <div v-if="chapter.scenes.length === 0" class="relative">
+                                <div class="absolute -left-3 top-1/2 h-px w-3 bg-zinc-200 dark:bg-zinc-700" />
+                                <div class="flex items-center gap-2 px-2 py-2 text-xs italic text-zinc-400 dark:text-zinc-500">
+                                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    </svg>
+                                    Click + to add a scene
+                                </div>
                             </div>
                         </div>
                     </div>

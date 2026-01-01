@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import ChapterGroup from '@/components/plan/ChapterGroup.vue';
 import SearchFilter from '@/components/plan/SearchFilter.vue';
-import Button from '@/components/ui/buttons/Button.vue';
 import ConfirmDialog from '@/components/ui/overlays/ConfirmDialog.vue';
 import ContextMenu from '@/components/ui/overlays/ContextMenu.vue';
 import Toast from '@/components/ui/feedback/Toast.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { computed, ref } from 'vue';
 
@@ -57,6 +56,11 @@ const props = defineProps<{
     chapters: Chapter[];
     acts: Act[];
     labels: Label[];
+}>();
+
+const emit = defineEmits<{
+    (e: 'sceneClick', scene: Scene): void;
+    (e: 'chaptersUpdate', chapters: Chapter[]): void;
 }>();
 
 const filterState = ref({
@@ -155,7 +159,6 @@ const handleSearch = async () => {
             },
         });
 
-        // Group filtered scenes by chapter
         const scenesByChapter = new Map<number, Scene[]>();
         response.data.scenes.forEach((scene: Scene & { chapter_title: string }) => {
             if (!scenesByChapter.has(scene.chapter_id)) {
@@ -164,7 +167,6 @@ const handleSearch = async () => {
             scenesByChapter.get(scene.chapter_id)!.push(scene);
         });
 
-        // Filter chapters to only show those with matching scenes
         filteredChapters.value = props.chapters
             .filter((chapter) => scenesByChapter.has(chapter.id))
             .map((chapter) => ({
@@ -180,7 +182,7 @@ const handleSearch = async () => {
 };
 
 const handleSceneClick = (scene: Scene) => {
-    router.visit(`/novels/${props.novel.id}/write/${scene.id}`);
+    emit('sceneClick', scene);
 };
 
 const handleSceneContextMenu = (e: MouseEvent, scene: Scene) => {
@@ -189,14 +191,14 @@ const handleSceneContextMenu = (e: MouseEvent, scene: Scene) => {
         items: [
             {
                 label: 'Open in Editor',
-                action: () => router.visit(`/novels/${props.novel.id}/write/${scene.id}`),
+                action: () => emit('sceneClick', scene),
             },
             {
                 label: 'Duplicate Scene',
                 action: async () => {
                     try {
                         await axios.post(`/api/scenes/${scene.id}/duplicate`);
-                        router.reload();
+                        router.reload({ only: ['chapters'] });
                         showToast('success', 'Scene Duplicated', 'The scene has been duplicated successfully.');
                     } catch {
                         showToast('danger', 'Failed to Duplicate', 'Unable to duplicate the scene. Please try again.');
@@ -209,7 +211,7 @@ const handleSceneContextMenu = (e: MouseEvent, scene: Scene) => {
                 action: async () => {
                     try {
                         await axios.post(`/api/scenes/${scene.id}/archive`);
-                        router.reload();
+                        router.reload({ only: ['chapters'] });
                         showToast('success', 'Scene Archived', 'The scene has been archived.');
                     } catch {
                         showToast('danger', 'Failed to Archive', 'Unable to archive the scene. Please try again.');
@@ -227,7 +229,7 @@ const handleSceneContextMenu = (e: MouseEvent, scene: Scene) => {
                         onConfirm: async () => {
                             try {
                                 await axios.delete(`/api/scenes/${scene.id}`);
-                                router.reload();
+                                router.reload({ only: ['chapters'] });
                                 showToast('success', 'Scene Deleted', 'The scene has been deleted.');
                             } catch {
                                 showToast('danger', 'Failed to Delete', 'Unable to delete the scene. Please try again.');
@@ -249,7 +251,7 @@ const handleChapterContextMenu = (e: MouseEvent, chapter: Chapter) => {
                 action: async () => {
                     try {
                         const response = await axios.post(`/api/chapters/${chapter.id}/scenes`, { title: 'New Scene' });
-                        router.visit(`/novels/${props.novel.id}/write/${response.data.scene.id}`);
+                        emit('sceneClick', response.data.scene);
                     } catch {
                         showToast('danger', 'Failed to Create', 'Unable to create a new scene. Please try again.');
                     }
@@ -267,7 +269,7 @@ const handleChapterContextMenu = (e: MouseEvent, chapter: Chapter) => {
                         onConfirm: async () => {
                             try {
                                 await axios.delete(`/api/chapters/${chapter.id}`);
-                                router.reload();
+                                router.reload({ only: ['chapters'] });
                                 showToast('success', 'Chapter Deleted', 'The chapter and all its scenes have been deleted.');
                             } catch {
                                 showToast('danger', 'Failed to Delete', 'Unable to delete the chapter. Please try again.');
@@ -284,7 +286,7 @@ const handleScenesReorder = async (chapterId: number, scenes: { id: number; posi
     try {
         await axios.post(`/api/chapters/${chapterId}/scenes/reorder`, { scenes });
     } catch {
-        router.reload();
+        router.reload({ only: ['chapters'] });
         showToast('danger', 'Reorder Failed', 'Unable to save the new scene order. Please try again.');
     }
 };
@@ -295,59 +297,20 @@ const closeContextMenu = () => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-zinc-50 dark:bg-zinc-900">
-        <Head :title="`${novel.title} - Plan`" />
-
+    <div class="flex h-full flex-col overflow-hidden">
         <!-- Header -->
-        <header class="sticky top-0 z-30 border-b border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
-            <div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <Link
-                            href="/dashboard"
-                            class="flex items-center gap-2 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-                        >
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-                            </svg>
-                            Back
-                        </Link>
-                        <div class="h-4 w-px bg-zinc-200 dark:bg-zinc-700" />
-                        <h1 class="text-lg font-semibold text-zinc-900 dark:text-white">{{ novel.title }}</h1>
-                    </div>
-
-                    <div class="flex items-center gap-3">
-                        <div class="hidden items-center gap-4 text-sm text-zinc-500 dark:text-zinc-400 sm:flex">
-                            <span>{{ totalSceneCount }} scenes</span>
-                            <span>{{ totalWordCount.toLocaleString() }} words</span>
-                        </div>
-                        <Button :href="`/novels/${novel.id}/write`" as="a">Open Editor</Button>
-                    </div>
-                </div>
-
-                <!-- Tabs -->
-                <div class="mt-4 flex gap-1">
-                    <Link
-                        :href="`/novels/${novel.id}/write`"
-                        class="rounded-lg px-3 py-2 text-sm font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
-                    >
-                        Write
-                    </Link>
-                    <span class="rounded-lg bg-violet-100 px-3 py-2 text-sm font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
-                        Plan
-                    </span>
-                    <Link
-                        :href="`/novels/${novel.id}/codex`"
-                        class="rounded-lg px-3 py-2 text-sm font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
-                    >
-                        Codex
-                    </Link>
+        <div class="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
+            <div class="flex items-center gap-4">
+                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Plan</h2>
+                <div class="hidden items-center gap-4 text-sm text-zinc-500 dark:text-zinc-400 sm:flex">
+                    <span>{{ totalSceneCount }} scenes</span>
+                    <span>{{ totalWordCount.toLocaleString() }} words</span>
                 </div>
             </div>
-        </header>
+        </div>
 
-        <!-- Main Content -->
-        <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-6">
             <!-- Search & Filters -->
             <div class="mb-6">
                 <SearchFilter v-model="filterState" :labels="labels" @search="handleSearch" />
@@ -372,23 +335,30 @@ const closeContextMenu = () => {
                 />
 
                 <!-- Empty State -->
-                <div v-if="filteredChapters.length === 0" class="rounded-lg border-2 border-dashed border-zinc-200 py-12 text-center dark:border-zinc-700">
-                    <svg class="mx-auto h-12 w-12 text-zinc-400 dark:text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <div
+                    v-if="filteredChapters.length === 0"
+                    class="rounded-lg border-2 border-dashed border-zinc-200 py-12 text-center dark:border-zinc-700"
+                >
+                    <svg
+                        class="mx-auto h-12 w-12 text-zinc-400 dark:text-zinc-500"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="1"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
                     </svg>
                     <h3 class="mt-2 text-sm font-medium text-zinc-900 dark:text-white">No scenes found</h3>
                     <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                        {{ filterState.query || filterState.status || filterState.labelIds.length > 0 ? 'Try adjusting your filters' : 'Create your first chapter and scene in the editor' }}
+                        {{ filterState.query || filterState.status || filterState.labelIds.length > 0 ? 'Try adjusting your filters' : 'Create your first chapter and scene' }}
                     </p>
-                    <Button :href="`/novels/${novel.id}/write`" as="a" class="mt-4">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                        </svg>
-                        Start Writing
-                    </Button>
                 </div>
             </div>
-        </main>
+        </div>
 
         <!-- Context Menu -->
         <ContextMenu :items="contextMenu.items" :position="contextMenu.position" @close="closeContextMenu" />

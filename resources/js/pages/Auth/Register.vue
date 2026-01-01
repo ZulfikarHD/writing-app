@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import Button from '@/components/ui/Button.vue';
-import Card from '@/components/ui/Card.vue';
-import Input from '@/components/ui/Input.vue';
+import Button from '@/components/ui/buttons/Button.vue';
+import Card from '@/components/ui/layout/Card.vue';
+import Input from '@/components/ui/forms/Input.vue';
 import GuestLayout from '@/layouts/GuestLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { Motion } from 'motion-v';

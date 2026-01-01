@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import Button from '@/components/ui/Button.vue';
-import Card from '@/components/ui/Card.vue';
-import Input from '@/components/ui/Input.vue';
-import Toast from '@/components/ui/Toast.vue';
+import Button from '@/components/ui/buttons/Button.vue';
+import Card from '@/components/ui/layout/Card.vue';
+import Input from '@/components/ui/forms/Input.vue';
+import Toast from '@/components/ui/feedback/Toast.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import axios from 'axios';
 import { computed, ref, watch } from 'vue';
@@ -196,7 +196,7 @@ const createEntry = async () => {
             <!-- Info Banner -->
             <div class="mb-6 rounded-lg border border-violet-200 bg-violet-50 p-4 dark:border-violet-800 dark:bg-violet-900/20">
                 <p class="text-sm text-violet-700 dark:text-violet-300">
-                    <strong>Series Codex</strong> entries are shared across all novels in this series. Create characters, locations, and other 
+                    <strong>Series Codex</strong> entries are shared across all novels in this series. Create characters, locations, and other
                     worldbuilding elements here to maintain consistency across your entire series.
                 </p>
             </div>

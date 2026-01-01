@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { animate, spring, stagger } from 'motion';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 export interface AIModel {
     id: string;
@@ -118,6 +119,38 @@ const sizeClasses = computed(() => {
 const hasNoConnections = computed(() => {
     return connections.value.length === 0;
 });
+
+// Dropdown animation
+const dropdownRef = ref<HTMLElement | null>(null);
+
+const onDropdownEnter = async (el: Element) => {
+    await nextTick();
+    
+    // Animate dropdown entrance
+    animate(
+        el,
+        { opacity: [0, 1], transform: ['scale(0.95)', 'scale(1)'] },
+        { duration: 0.2, easing: spring({ stiffness: 400, damping: 30 }) }
+    );
+    
+    // Stagger animate model items
+    const items = el.querySelectorAll('.model-item');
+    if (items.length > 0) {
+        animate(
+            items,
+            { opacity: [0, 1], transform: ['translateX(-10px)', 'translateX(0)'] },
+            { duration: 0.3, delay: stagger(0.03), easing: spring({ stiffness: 300, damping: 25 }) }
+        );
+    }
+};
+
+const onDropdownLeave = (el: Element, done: () => void) => {
+    animate(
+        el,
+        { opacity: [1, 0], transform: ['scale(1)', 'scale(0.95)'] },
+        { duration: 0.15, easing: spring({ stiffness: 500, damping: 35 }) }
+    ).finished.then(done);
+};
 </script>
 
 <template>
@@ -126,7 +159,7 @@ const hasNoConnections = computed(() => {
         <a
             v-if="hasNoConnections"
             href="/settings/ai"
-            class="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/30"
+            class="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/30 active:scale-[0.97] transition-transform"
         >
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -140,7 +173,7 @@ const hasNoConnections = computed(() => {
             <button
                 type="button"
                 :class="sizeClasses"
-                class="inline-flex w-full items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-white text-left transition-colors hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-1 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+                class="inline-flex w-full items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-white text-left transition-all hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-1 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 active:scale-[0.97]"
                 @click="isOpen = !isOpen"
             >
                 <div class="flex items-center gap-2 overflow-hidden">
@@ -162,15 +195,13 @@ const hasNoConnections = computed(() => {
 
             <!-- Dropdown -->
             <Transition
-                enter-active-class="transition ease-out duration-100"
-                enter-from-class="transform opacity-0 scale-95"
-                enter-to-class="transform opacity-100 scale-100"
-                leave-active-class="transition ease-in duration-75"
-                leave-from-class="transform opacity-100 scale-100"
-                leave-to-class="transform opacity-0 scale-95"
+                @enter="onDropdownEnter"
+                @leave="onDropdownLeave"
+                :css="false"
             >
                 <div
                     v-if="isOpen"
+                    ref="dropdownRef"
                     class="absolute left-0 z-50 mt-1 max-h-80 w-72 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
                 >
                     <!-- Connection Selector -->
@@ -217,7 +248,7 @@ const hasNoConnections = computed(() => {
                             v-for="model in filteredModels"
                             :key="model.id"
                             type="button"
-                            class="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                            class="model-item flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 active:scale-[0.97] transition-transform"
                             :class="{
                                 'bg-violet-50 dark:bg-violet-900/20': model.id === modelValue,
                             }"

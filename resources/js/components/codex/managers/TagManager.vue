@@ -11,8 +11,8 @@
  * - Quick create new tags inline
  * - Autocomplete from available tags
  */
-import Button from '@/components/ui/Button.vue';
-import Input from '@/components/ui/Input.vue';
+import Button from '@/components/ui/buttons/Button.vue';
+import Input from '@/components/ui/forms/Input.vue';
 import axios from 'axios';
 import { ref, computed, watch } from 'vue';
 

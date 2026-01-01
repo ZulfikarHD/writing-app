@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import Button from '@/components/ui/Button.vue';
-import Input from '@/components/ui/Input.vue';
-import Modal from '@/components/ui/Modal.vue';
+import Button from '@/components/ui/buttons/Button.vue';
+import Input from '@/components/ui/forms/Input.vue';
+import Modal from '@/components/ui/layout/Modal.vue';
 import axios from 'axios';
 import { ref, computed, watch } from 'vue';
 
@@ -195,11 +195,11 @@ const createCategory = async () => {
             linked_detail_definition_id: newLinkedDefinitionId.value,
             linked_detail_value: newLinkedDetailValue.value,
         });
-        
+
         allCategories.value.push(response.data.category);
         selectedIds.value.add(response.data.category.id);
         selectedIds.value = new Set(selectedIds.value);
-        
+
         // Reset form
         newCategoryName.value = '';
         newCategoryColor.value = '#8b5cf6';
@@ -223,7 +223,7 @@ const openEditModal = async (category: Category) => {
     editLinkedDefinitionId.value = category.linked_detail_definition_id || null;
     editLinkedDetailValue.value = category.linked_detail_value || null;
     showEditModal.value = true;
-    
+
     await fetchLinkingOptions();
     if (category.id && category.has_auto_linking) {
         await fetchPreviewEntries(category.id);
@@ -245,13 +245,13 @@ const updateCategory = async () => {
             linked_detail_definition_id: editLinkedDefinitionId.value,
             linked_detail_value: editLinkedDetailValue.value,
         });
-        
+
         // Update local state
         const idx = allCategories.value.findIndex(c => c.id === editingCategory.value?.id);
         if (idx !== -1) {
             allCategories.value[idx] = response.data.category;
         }
-        
+
         showEditModal.value = false;
         editingCategory.value = null;
         emit('updated');
@@ -274,7 +274,7 @@ watch(newLinkedDefinitionId, () => {
 // Flatten categories for display
 const flatCategories = computed(() => {
     const result: (Category & { depth: number })[] = [];
-    
+
     const flatten = (cats: Category[], depth: number) => {
         for (const cat of cats) {
             result.push({ ...cat, depth });
@@ -283,7 +283,7 @@ const flatCategories = computed(() => {
             }
         }
     };
-    
+
     flatten(allCategories.value, 0);
     return result;
 });

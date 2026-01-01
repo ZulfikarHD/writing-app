@@ -17,6 +17,7 @@ use App\Http\Controllers\CodexRelationController;
 use App\Http\Controllers\CodexTagController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EditorController;
+use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\NovelController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlanController;
@@ -83,9 +84,13 @@ Route::middleware('auth')->group(function () {
     Route::patch('api/series-codex/{entry}/details/{detailId}', [SeriesCodexController::class, 'updateDetail'])->name('series.codex.details.update');
     Route::delete('api/series-codex/{entry}/details/{detailId}', [SeriesCodexController::class, 'removeDetail'])->name('series.codex.details.destroy');
 
-    // Editor routes
+    // Editor routes (legacy - kept for backwards compatibility)
     Route::get('novels/{novel}/write', [EditorController::class, 'show'])->name('editor.show');
     Route::get('novels/{novel}/write/{scene}', [EditorController::class, 'show'])->name('editor.scene');
+
+    // Unified Workspace routes (new Novelcrafter-style layout)
+    Route::get('novels/{novel}/workspace', [WorkspaceController::class, 'show'])->name('workspace.show');
+    Route::get('novels/{novel}/workspace/{scene}', [WorkspaceController::class, 'show'])->name('workspace.scene');
 
     // Plan routes
     Route::get('novels/{novel}/plan', [PlanController::class, 'show'])->name('plan.show');

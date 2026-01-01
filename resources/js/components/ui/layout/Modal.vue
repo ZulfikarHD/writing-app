@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Motion } from 'motion-v';
 import { computed, onMounted, onUnmounted, watch } from 'vue';
 
 interface Props {
@@ -98,37 +99,35 @@ onUnmounted(() => {
 
 <template>
     <Teleport to="body">
-        <Transition
-            enter-active-class="transition-opacity duration-200 ease-out"
-            enter-from-class="opacity-0"
-            enter-to-class="opacity-100"
-            leave-active-class="transition-opacity duration-150 ease-in"
-            leave-from-class="opacity-100"
-            leave-to-class="opacity-0"
+        <Motion
+            v-if="isOpen"
+            :initial="{ opacity: 0 }"
+            :animate="{ opacity: 1 }"
+            :exit="{ opacity: 0 }"
+            :transition="{ duration: 0.2 }"
+            class="fixed inset-0 z-50 overflow-y-auto"
+            aria-modal="true"
+            role="dialog"
         >
-            <div
-                v-if="isOpen"
-                class="fixed inset-0 z-50 overflow-y-auto"
-                aria-modal="true"
-                role="dialog"
-            >
-                <!-- Overlay -->
-                <div
-                    class="fixed inset-0 bg-black/50 backdrop-blur-sm dark:bg-black/70"
-                    @click="handleOverlayClick"
-                />
+            <!-- Overlay -->
+            <Motion
+                :initial="{ opacity: 0 }"
+                :animate="{ opacity: 1 }"
+                :exit="{ opacity: 0 }"
+                :transition="{ duration: 0.15 }"
+                class="fixed inset-0 bg-black/50 backdrop-blur-sm dark:bg-black/70"
+                @click="handleOverlayClick"
+            />
 
-                <!-- Modal Container -->
-                <div class="flex min-h-full items-center justify-center p-4">
-                    <Transition
-                        enter-active-class="transition-all duration-200 ease-out"
-                        enter-from-class="opacity-0 scale-95 translate-y-4"
-                        enter-to-class="opacity-100 scale-100 translate-y-0"
-                        leave-active-class="transition-all duration-150 ease-in"
-                        leave-from-class="opacity-100 scale-100 translate-y-0"
-                        leave-to-class="opacity-0 scale-95 translate-y-4"
-                    >
-                        <div v-if="isOpen" :class="modalClasses">
+            <!-- Modal Container -->
+            <div class="flex min-h-full items-center justify-center p-4">
+                <Motion
+                    :initial="{ opacity: 0, scale: 0.97, y: 16 }"
+                    :animate="{ opacity: 1, scale: 1, y: 0 }"
+                    :exit="{ opacity: 0, scale: 0.97, y: 16 }"
+                    :transition="{ type: 'spring', stiffness: 400, damping: 30, duration: 0.25 }"
+                    :class="modalClasses"
+                >
                             <!-- Header -->
                             <div
                                 v-if="title || $slots.header || closable"
@@ -172,16 +171,14 @@ onUnmounted(() => {
                             </div>
 
                             <!-- Footer -->
-                            <div
-                                v-if="$slots.footer"
-                                class="flex shrink-0 items-center justify-end gap-3 border-t border-zinc-200 bg-zinc-50/80 px-5 py-4 dark:border-zinc-700 dark:bg-zinc-800/50"
-                            >
-                                <slot name="footer" />
-                            </div>
-                        </div>
-                    </Transition>
-                </div>
+                    <div
+                        v-if="$slots.footer"
+                        class="flex shrink-0 items-center justify-end gap-3 border-t border-zinc-200 bg-zinc-50/80 px-5 py-4 dark:border-zinc-700 dark:bg-zinc-800/50"
+                    >
+                        <slot name="footer" />
+                    </div>
+                </Motion>
             </div>
-        </Transition>
+        </Motion>
     </Teleport>
 </template>

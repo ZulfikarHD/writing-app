@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import Button from '@/components/ui/Button.vue';
-import Card from '@/components/ui/Card.vue';
-import Input from '@/components/ui/Input.vue';
-import Textarea from '@/components/ui/Textarea.vue';
+import Button from '@/components/ui/buttons/Button.vue';
+import Card from '@/components/ui/layout/Card.vue';
+import Input from '@/components/ui/forms/Input.vue';
+import Textarea from '@/components/ui/forms/Textarea.vue';
 import axios from 'axios';
 import { computed, ref, watch } from 'vue';
 
@@ -61,32 +61,32 @@ const currentThumbnailUrl = computed(() => {
 const handleFileSelect = (event: Event) => {
     const target = event.target as HTMLInputElement;
     const file = target.files?.[0];
-    
+
     if (!file) return;
-    
+
     // Validate file type
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     if (!validTypes.includes(file.type)) {
         thumbnailError.value = 'Please select a valid image (JPEG, PNG, GIF, or WebP)';
         return;
     }
-    
+
     // Validate file size (2MB)
     if (file.size > 2 * 1024 * 1024) {
         thumbnailError.value = 'Image must be less than 2MB';
         return;
     }
-    
+
     thumbnailError.value = null;
     thumbnailFile.value = file;
-    
+
     // Create preview
     const reader = new FileReader();
     reader.onload = (e) => {
         thumbnailPreview.value = e.target?.result as string;
     };
     reader.readAsDataURL(file);
-    
+
     // If we have an entry ID, upload immediately
     if (props.entryId) {
         uploadThumbnail();
@@ -96,20 +96,20 @@ const handleFileSelect = (event: Event) => {
 // Upload thumbnail to server
 const uploadThumbnail = async () => {
     if (!thumbnailFile.value || !props.entryId) return;
-    
+
     thumbnailUploading.value = true;
     thumbnailError.value = null;
-    
+
     try {
         const formData = new FormData();
         formData.append('thumbnail', thumbnailFile.value);
-        
+
         const response = await axios.post(`/api/codex/${props.entryId}/thumbnail`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
         });
-        
+
         emit('thumbnailUpdated', response.data.thumbnail_path);
         thumbnailFile.value = null;
     } catch (err: unknown) {
@@ -134,7 +134,7 @@ const removeThumbnail = async () => {
             thumbnailUploading.value = false;
         }
     }
-    
+
     thumbnailPreview.value = null;
     thumbnailFile.value = null;
     if (fileInputRef.value) {

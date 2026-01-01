@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import { Motion } from 'motion-v';
+import { ref } from 'vue';
 import CodexTypeBadge from '../shared/CodexTypeBadge.vue';
 import CodexTypeIcon from '../shared/CodexTypeIcon.vue';
 
@@ -50,14 +52,26 @@ const truncateDescription = (text: string | null, length: number = 100) => {
     if (text.length <= length) return text;
     return text.substring(0, length).trim() + '...';
 };
+
+// Press feedback state
+const isPressed = ref(false);
 </script>
 
 <template>
-    <Link
-        :href="`/codex/${entry.id}`"
-        class="group block rounded-lg border border-zinc-200 bg-white transition-all hover:border-violet-300 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-violet-600"
-        :class="compact ? 'p-3' : 'p-4'"
+    <Motion
+        :animate="{ scale: isPressed ? 0.97 : 1 }"
+        :transition="{ type: 'spring', stiffness: 400, damping: 30 }"
     >
+        <Link
+            :href="`/codex/${entry.id}`"
+            class="group block rounded-lg border border-zinc-200 bg-white transition-all hover:border-violet-300 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-violet-600"
+            :class="compact ? 'p-3' : 'p-4'"
+            @mousedown="isPressed = true"
+            @mouseup="isPressed = false"
+            @mouseleave="isPressed = false"
+            @touchstart="isPressed = true"
+            @touchend="isPressed = false"
+        >
         <div class="flex items-start gap-3">
             <!-- Thumbnail / Icon -->
             <div
@@ -110,5 +124,6 @@ const truncateDescription = (text: string | null, length: number = 100) => {
                 </div>
             </div>
         </div>
-    </Link>
+        </Link>
+    </Motion>
 </template>

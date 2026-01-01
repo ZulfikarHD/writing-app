@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Motion } from 'motion-v';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 interface Props {
@@ -90,15 +91,14 @@ onUnmounted(() => {
 <template>
     <Teleport to="body">
         <div :class="['pointer-events-none fixed z-50', positionClasses[position]]">
-            <Transition
-                enter-active-class="transition-all duration-300 ease-out"
-                enter-from-class="opacity-0 translate-y-2 scale-95"
-                enter-to-class="opacity-100 translate-y-0 scale-100"
-                leave-active-class="transition-all duration-200 ease-in"
-                leave-from-class="opacity-100 translate-y-0 scale-100"
-                leave-to-class="opacity-0 translate-y-2 scale-95"
+            <Motion
+                v-if="isVisible"
+                :initial="{ opacity: 0, y: -8, scale: 0.95 }"
+                :animate="{ opacity: 1, y: 0, scale: 1 }"
+                :exit="{ opacity: 0, y: -8, scale: 0.95 }"
+                :transition="{ type: 'spring', stiffness: 400, damping: 30, duration: 0.3 }"
+                :class="toastClasses"
             >
-                <div v-if="isVisible" :class="toastClasses">
                     <div class="p-4">
                         <div class="flex items-start">
                             <div class="shrink-0">
@@ -139,17 +139,16 @@ onUnmounted(() => {
                             </div>
                         </div>
                     </div>
-                    <!-- Progress bar -->
-                    <div v-if="duration > 0" class="h-1 w-full bg-zinc-100 dark:bg-zinc-800">
-                        <div
-                            :class="['h-full', iconColors[variant].replace('text-', 'bg-')]"
-                            :style="{
-                                animation: `shrink ${duration}ms linear forwards`,
-                            }"
-                        />
-                    </div>
+                <!-- Progress bar -->
+                <div v-if="duration > 0" class="h-1 w-full bg-zinc-100 dark:bg-zinc-800">
+                    <div
+                        :class="['h-full', iconColors[variant].replace('text-', 'bg-')]"
+                        :style="{
+                            animation: `shrink ${duration}ms linear forwards`,
+                        }"
+                    />
                 </div>
-            </Transition>
+            </Motion>
         </div>
     </Teleport>
 </template>

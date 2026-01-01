@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import Button from '@/components/ui/Button.vue';
-import Input from '@/components/ui/Input.vue';
-import Modal from '@/components/ui/Modal.vue';
-import Textarea from '@/components/ui/Textarea.vue';
+import Button from '@/components/ui/buttons/Button.vue';
+import Input from '@/components/ui/forms/Input.vue';
+import Modal from '@/components/ui/layout/Modal.vue';
+import Textarea from '@/components/ui/forms/Textarea.vue';
 import axios from 'axios';
 import { ref, watch, computed } from 'vue';
 

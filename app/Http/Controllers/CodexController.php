@@ -472,8 +472,8 @@ class CodexController extends Controller
     }
 
     /**
-     * API endpoint to get a single entry's details.
-     * Used by polling to detect mention and tag changes.
+     * API endpoint to get a single entry's full details.
+     * Used by CodexEntryModal and for polling to detect changes.
      */
     public function apiShow(Request $request, CodexEntry $entry): JsonResponse
     {
@@ -481,8 +481,19 @@ class CodexController extends Controller
             abort(403);
         }
 
-        // Load mentions and tags for polling to detect changes
-        $entry->load(['mentions.scene.chapter', 'tags']);
+        // Load all relations needed for the full entry view
+        $entry->load([
+            'aliases',
+            'details.definition',
+            'outgoingRelations.target',
+            'incomingRelations.source',
+            'progressions.scene.chapter',
+            'progressions.detail',
+            'categories',
+            'tags',
+            'mentions.scene.chapter',
+            'externalLinks',
+        ]);
 
         return response()->json([
             'entry' => [
@@ -490,28 +501,104 @@ class CodexController extends Controller
                 'type' => $entry->type,
                 'name' => $entry->name,
                 'description' => $entry->description,
+                'research_notes' => $entry->research_notes,
                 'thumbnail_path' => $entry->thumbnail_path,
                 'ai_context_mode' => $entry->ai_context_mode,
-            ],
-            // Include mentions for live polling updates
-            'mentions' => $entry->mentions->map(fn ($mention) => [
-                'id' => $mention->id,
-                'mention_count' => $mention->mention_count,
-                'scene' => [
-                    'id' => $mention->scene->id,
-                    'title' => $mention->scene->title,
-                    'chapter' => $mention->scene->chapter ? [
-                        'id' => $mention->scene->chapter->id,
-                        'title' => $mention->scene->chapter->title,
+                'is_archived' => $entry->is_archived,
+                'is_tracking_enabled' => $entry->is_tracking_enabled,
+                'aliases' => $entry->aliases->map(fn ($alias) => [
+                    'id' => $alias->id,
+                    'alias' => $alias->alias,
+                ]),
+                'details' => $entry->details->map(fn ($detail) => [
+                    'id' => $detail->id,
+                    'key_name' => $detail->key_name,
+                    'value' => $detail->value,
+                    'sort_order' => $detail->sort_order,
+                    'definition_id' => $detail->definition_id,
+                    'ai_visibility' => $detail->ai_visibility,
+                    'type' => $detail->type,
+                    'definition' => $detail->definition ? [
+                        'id' => $detail->definition->id,
+                        'name' => $detail->definition->name,
+                        'type' => $detail->definition->type,
+                        'options' => $detail->definition->options,
+                        'show_in_sidebar' => $detail->definition->show_in_sidebar,
                     ] : null,
-                ],
-            ]),
-            // Sprint 14: Include tags for live polling updates
-            'tags' => $entry->tags->map(fn ($tag) => [
-                'id' => $tag->id,
-                'name' => $tag->name,
-                'color' => $tag->color,
-            ]),
+                ]),
+                'outgoing_relations' => $entry->outgoingRelations->map(fn ($rel) => [
+                    'id' => $rel->id,
+                    'relation_type' => $rel->relation_type,
+                    'label' => $rel->label,
+                    'is_bidirectional' => $rel->is_bidirectional,
+                    'target' => $rel->target ? [
+                        'id' => $rel->target->id,
+                        'name' => $rel->target->name,
+                        'type' => $rel->target->type,
+                    ] : null,
+                ]),
+                'incoming_relations' => $entry->incomingRelations->map(fn ($rel) => [
+                    'id' => $rel->id,
+                    'relation_type' => $rel->relation_type,
+                    'label' => $rel->label,
+                    'is_bidirectional' => $rel->is_bidirectional,
+                    'source' => $rel->source ? [
+                        'id' => $rel->source->id,
+                        'name' => $rel->source->name,
+                        'type' => $rel->source->type,
+                    ] : null,
+                ]),
+                'progressions' => $entry->progressions->map(fn ($prog) => [
+                    'id' => $prog->id,
+                    'story_timestamp' => $prog->story_timestamp,
+                    'note' => $prog->note,
+                    'new_value' => $prog->new_value,
+                    'mode' => $prog->mode,
+                    'scene' => $prog->scene ? [
+                        'id' => $prog->scene->id,
+                        'title' => $prog->scene->title,
+                        'chapter' => $prog->scene->chapter ? [
+                            'id' => $prog->scene->chapter->id,
+                            'title' => $prog->scene->chapter->title,
+                        ] : null,
+                    ] : null,
+                    'detail' => $prog->detail ? [
+                        'id' => $prog->detail->id,
+                        'key_name' => $prog->detail->key_name,
+                    ] : null,
+                ]),
+                'categories' => $entry->categories->map(fn ($cat) => [
+                    'id' => $cat->id,
+                    'name' => $cat->name,
+                    'color' => $cat->color,
+                ]),
+                'tags' => $entry->tags->map(fn ($tag) => [
+                    'id' => $tag->id,
+                    'name' => $tag->name,
+                    'color' => $tag->color,
+                ]),
+                'external_links' => $entry->externalLinks->map(fn ($link) => [
+                    'id' => $link->id,
+                    'title' => $link->title,
+                    'url' => $link->url,
+                    'notes' => $link->notes,
+                    'sort_order' => $link->sort_order,
+                ]),
+                'mentions' => $entry->mentions->map(fn ($mention) => [
+                    'id' => $mention->id,
+                    'mention_count' => $mention->mention_count,
+                    'scene' => [
+                        'id' => $mention->scene->id,
+                        'title' => $mention->scene->title,
+                        'chapter' => $mention->scene->chapter ? [
+                            'id' => $mention->scene->chapter->id,
+                            'title' => $mention->scene->chapter->title,
+                        ] : null,
+                    ],
+                ]),
+                'created_at' => $entry->created_at,
+                'updated_at' => $entry->updated_at,
+            ],
         ]);
     }
 

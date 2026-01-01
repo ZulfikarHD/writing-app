@@ -8,6 +8,7 @@
  *
  * Works on both desktop (context menu alternative) and mobile (tap).
  */
+import { Motion } from 'motion-v';
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 
 const props = defineProps<{
@@ -119,20 +120,16 @@ onUnmounted(() => {
 
 <template>
     <Teleport to="body">
-        <Transition
-            enter-active-class="transition duration-150 ease-out"
-            enter-from-class="opacity-0 scale-90 translate-y-2"
-            enter-to-class="opacity-100 scale-100 translate-y-0"
-            leave-active-class="transition duration-100 ease-in"
-            leave-from-class="opacity-100 scale-100"
-            leave-to-class="opacity-0 scale-90"
+        <Motion
+            v-if="visible && selectedText"
+            :initial="{ opacity: 0, scale: 0.9, y: 8 }"
+            :animate="{ opacity: 1, scale: 1, y: 0 }"
+            :exit="{ opacity: 0, scale: 0.9 }"
+            :transition="{ type: 'spring', stiffness: 500, damping: 35, duration: 0.2 }"
+            data-selection-menu
+            :style="menuStyle"
+            class="flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2 py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
         >
-            <div
-                v-if="visible && selectedText"
-                data-selection-menu
-                :style="menuStyle"
-                class="flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2 py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
-            >
                 <button
                     type="button"
                     class="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-violet-600 transition-colors hover:bg-violet-50 dark:text-violet-400 dark:hover:bg-violet-900/30"
@@ -144,7 +141,6 @@ onUnmounted(() => {
                     <span class="hidden sm:inline">Create Codex Entry</span>
                     <span class="sm:hidden">Codex</span>
                 </button>
-            </div>
-        </Transition>
+        </Motion>
     </Teleport>
 </template>

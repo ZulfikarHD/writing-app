@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import Alert from '@/components/ui/Alert.vue';
-import Button from '@/components/ui/Button.vue';
-import Card from '@/components/ui/Card.vue';
-import Checkbox from '@/components/ui/Checkbox.vue';
-import Input from '@/components/ui/Input.vue';
+import Alert from '@/components/ui/feedback/Alert.vue';
+import Button from '@/components/ui/buttons/Button.vue';
+import Card from '@/components/ui/layout/Card.vue';
+import Checkbox from '@/components/ui/forms/Checkbox.vue';
+import Input from '@/components/ui/forms/Input.vue';
 import { useToast } from '@/composables/useToast';
 import type { AIConnection, Provider } from '@/pages/Settings/AIConnections.vue';
 import { router } from '@inertiajs/vue3';
+import { animate, spring } from 'motion';
 import axios from 'axios';
 import { computed, reactive, ref, watch } from 'vue';
 
@@ -116,6 +117,23 @@ const providersList = computed(() => {
         ...value,
     }));
 });
+
+// Animate form sections
+const onEnter = (el: Element) => {
+    animate(
+        el,
+        { opacity: [0, 1], transform: ['translateY(10px)', 'translateY(0)'] },
+        { duration: 0.4, easing: spring({ stiffness: 300, damping: 25 }) }
+    );
+};
+
+const onLeave = (el: Element, done: () => void) => {
+    animate(
+        el,
+        { opacity: [1, 0], transform: ['translateY(0)', 'translateY(-10px)'] },
+        { duration: 0.3, easing: spring({ stiffness: 400, damping: 30 }) }
+    ).finished.then(done);
+};
 </script>
 
 <template>
@@ -164,12 +182,9 @@ const providersList = computed(() => {
 
             <!-- Provider-specific form fields -->
             <Transition
-                enter-active-class="transition ease-out duration-200"
-                enter-from-class="opacity-0"
-                enter-to-class="opacity-100"
-                leave-active-class="transition ease-in duration-150"
-                leave-from-class="opacity-100"
-                leave-to-class="opacity-0"
+                @enter="onEnter"
+                @leave="onLeave"
+                :css="false"
             >
                 <div v-if="selectedProvider || editing" class="space-y-4">
                     <!-- Connection Name -->
@@ -204,7 +219,7 @@ const providersList = computed(() => {
                     <!-- Advanced Settings Toggle -->
                     <button
                         type="button"
-                        class="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
+                        class="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300 active:scale-[0.97] transition-transform"
                         @click="showAdvanced = !showAdvanced"
                     >
                         <svg
@@ -221,12 +236,9 @@ const providersList = computed(() => {
 
                     <!-- Advanced Settings -->
                     <Transition
-                        enter-active-class="transition ease-out duration-200"
-                        enter-from-class="opacity-0 -translate-y-2"
-                        enter-to-class="opacity-100 translate-y-0"
-                        leave-active-class="transition ease-in duration-150"
-                        leave-from-class="opacity-100 translate-y-0"
-                        leave-to-class="opacity-0 -translate-y-2"
+                        @enter="onEnter"
+                        @leave="onLeave"
+                        :css="false"
                     >
                         <div v-if="showAdvanced" class="space-y-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/50">
                             <Input

@@ -49,7 +49,10 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Codex System Testing Guide](./06-testing/codex-testing.md)
 - [Sprint 15 Testing Guide](./06-testing/sprint-15-testing.md)
 - [Sprint 16 Testing Guide](./06-testing/codex-sprint16-testing.md)
-- [Sprint 17 Testing Guide](./06-testing/sprint-17-testing.md) ✨ NEW
+- [Sprint 17 Testing Guide](./06-testing/sprint-17-testing.md)
+
+### Design & Polish
+- [Design System Refinement (2026-01-02)](./bug-fixes/2026-01-02-design-system-refinement.md) ✨ NEW
 
 ### User Journeys
 - [Authentication Flow](./07-user-journeys/authentication/user-auth-flow.md)
@@ -346,5 +349,15 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 
 ---
 
+## 🎨 Recent Updates
+
+### January 2, 2026
+- ✅ **Sprint 17 Completed**: Unified Workspace dengan mode switching (Write/Plan/Codex)
+- ✅ **CodexEntryModal Redesigned**: 6-tab organization dengan AI context clarity
+- ✅ **Design System Refined**: iOS design principles implementation (spring physics, press feedback)
+- ✅ **55 Components Polished**: Consistent styling, enhanced animations, better mobile UX
+
+---
+
 *Last Updated: 2026-01-02*  
-*Latest Features: Sprint 17 (Unified Workspace, Codex Modal Redesign, Quick Create Modal)*
+*Latest Features: Sprint 17 (Unified Workspace) + Design System Refinement (iOS Principles)*

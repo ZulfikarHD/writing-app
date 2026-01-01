@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Motion } from 'motion-v';
 import { ref, computed } from 'vue';
 
 interface Props {
@@ -152,8 +153,12 @@ const closeDropdowns = () => {
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                     </svg>
                 </button>
-                <div
+                <Motion
                     v-if="headingDropdownOpen"
+                    :initial="{ opacity: 0, scale: 0.95, y: -8 }"
+                    :animate="{ opacity: 1, scale: 1, y: 0 }"
+                    :exit="{ opacity: 0, scale: 0.95, y: -8 }"
+                    :transition="{ type: 'spring', stiffness: 500, damping: 35, duration: 0.15 }"
                     class="absolute left-0 top-full z-20 mt-1 w-36 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
                 >
                     <button
@@ -170,7 +175,7 @@ const closeDropdowns = () => {
                     >
                         {{ option.label }}
                     </button>
-                </div>
+                </Motion>
             </div>
 
             <div class="mx-1 h-5 w-px bg-zinc-200 dark:bg-zinc-700 sm:mx-2" />
@@ -320,8 +325,12 @@ const closeDropdowns = () => {
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                     </svg>
                 </button>
-                <div
+                <Motion
                     v-if="alignDropdownOpen"
+                    :initial="{ opacity: 0, scale: 0.95, y: -8 }"
+                    :animate="{ opacity: 1, scale: 1, y: 0 }"
+                    :exit="{ opacity: 0, scale: 0.95, y: -8 }"
+                    :transition="{ type: 'spring', stiffness: 500, damping: 35, duration: 0.15 }"
                     class="absolute left-0 top-full z-20 mt-1 flex gap-1 rounded-lg border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
                 >
                     <button
@@ -358,7 +367,7 @@ const closeDropdowns = () => {
                             <line x1="3" y1="18" x2="21" y2="18" />
                         </svg>
                     </button>
-                </div>
+                </Motion>
             </div>
         </div>
 

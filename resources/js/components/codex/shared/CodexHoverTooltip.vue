@@ -14,6 +14,7 @@
  *
  * @see https://www.novelcrafter.com/help/docs/codex/anatomy-codex-entry
  */
+import { Motion } from 'motion-v';
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
@@ -197,24 +198,20 @@ onUnmounted(() => {
 
 <template>
     <Teleport to="body">
-        <Transition
-            enter-active-class="transition-opacity duration-150 ease-out"
-            enter-from-class="opacity-0"
-            enter-to-class="opacity-100"
-            leave-active-class="transition-opacity duration-100 ease-in"
-            leave-from-class="opacity-100"
-            leave-to-class="opacity-0"
+        <Motion
+            v-if="show && entryId"
+            ref="tooltipEl"
+            :initial="{ opacity: 0, scale: 0.95 }"
+            :animate="{ opacity: 1, scale: 1 }"
+            :exit="{ opacity: 0, scale: 0.95 }"
+            :transition="{ type: 'spring', stiffness: 500, damping: 35, duration: 0.2 }"
+            class="fixed z-50 w-72 rounded-lg border border-zinc-200 bg-white p-4 shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+            :style="{
+                left: `${adjustedPosition.x}px`,
+                top: `${adjustedPosition.y}px`,
+            }"
+            @click.stop
         >
-            <div
-                v-if="show && entryId"
-                ref="tooltipEl"
-                class="fixed z-50 w-72 rounded-lg border border-zinc-200 bg-white p-4 shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
-                :style="{
-                    left: `${adjustedPosition.x}px`,
-                    top: `${adjustedPosition.y}px`,
-                }"
-                @click.stop
-            >
                 <!-- Loading state -->
                 <div v-if="loading" class="flex items-center justify-center py-6">
                     <div class="h-5 w-5 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
@@ -280,7 +277,6 @@ onUnmounted(() => {
                         </svg>
                     </button>
                 </div>
-            </div>
-        </Transition>
+        </Motion>
     </Teleport>
 </template>

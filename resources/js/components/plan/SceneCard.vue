@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { Motion } from 'motion-v';
+import { computed, ref } from 'vue';
 
 interface Label {
     id: number;
@@ -60,19 +61,31 @@ const handleContextMenu = (e: MouseEvent) => {
     e.preventDefault();
     emit('contextmenu', e, props.scene);
 };
+
+// Press feedback state
+const isPressed = ref(false);
 </script>
 
 <template>
-    <div
-        :class="[
-            'group relative cursor-pointer rounded-lg border border-zinc-200 bg-white p-3 shadow-sm transition-all',
-            'hover:border-violet-300 hover:shadow-md active:scale-[0.98]',
-            'dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-violet-600',
-            { 'cursor-grab': draggable },
-        ]"
-        @click="emit('click', scene)"
-        @contextmenu="handleContextMenu"
+    <Motion
+        :animate="{ scale: isPressed ? 0.97 : 1 }"
+        :transition="{ type: 'spring', stiffness: 400, damping: 30 }"
     >
+        <div
+            :class="[
+                'group relative cursor-pointer rounded-lg border border-zinc-200 bg-white p-3 shadow-sm transition-all',
+                'hover:border-violet-300 hover:shadow-md',
+                'dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-violet-600',
+                { 'cursor-grab': draggable },
+            ]"
+            @click="emit('click', scene)"
+            @contextmenu="handleContextMenu"
+            @mousedown="isPressed = true"
+            @mouseup="isPressed = false"
+            @mouseleave="isPressed = false"
+            @touchstart="isPressed = true"
+            @touchend="isPressed = false"
+        >
         <!-- Status indicator -->
         <div class="mb-2 flex items-center justify-between">
             <div class="flex items-center gap-2">
@@ -127,5 +140,6 @@ const handleContextMenu = (e: MouseEvent) => {
             </svg>
             {{ scene.codex_mentions_count }}
         </div>
-    </div>
+        </div>
+    </Motion>
 </template>

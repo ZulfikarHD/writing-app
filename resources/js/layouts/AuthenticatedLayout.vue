@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import ConfirmProvider from '@/components/ui/ConfirmProvider.vue';
-import ToastContainer from '@/components/ui/ToastContainer.vue';
+import ConfirmProvider from '@/components/ui/overlays/ConfirmProvider.vue';
+import ToastContainer from '@/components/ui/feedback/ToastContainer.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { Motion } from 'motion-v';
 import { computed, ref } from 'vue';

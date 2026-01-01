@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import Button from '@/components/ui/Button.vue';
-import Card from '@/components/ui/Card.vue';
-import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
-import Toast from '@/components/ui/Toast.vue';
+import Button from '@/components/ui/buttons/Button.vue';
+import Card from '@/components/ui/layout/Card.vue';
+import ConfirmDialog from '@/components/ui/overlays/ConfirmDialog.vue';
+import Toast from '@/components/ui/feedback/Toast.vue';
 import { AliasManager, CategoryManager, DetailManager, MentionHeatmap, ProgressionManager, RelationGraph, RelationManager, ResearchTab, TagManager, TrackingToggle } from '@/components/codex';
 import { Head, Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
@@ -512,7 +512,7 @@ onUnmounted(() => {
                     <!-- Relations -->
                     <Card>
                         <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Relations</h2>
-                        
+
                         <!-- Relation Graph Visualization -->
                         <div class="mb-6">
                             <RelationGraph

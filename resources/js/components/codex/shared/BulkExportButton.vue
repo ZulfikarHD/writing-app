@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Button from '@/components/ui/Button.vue';
+import Button from '@/components/ui/buttons/Button.vue';
 import { ref } from 'vue';
 
 const props = defineProps<{

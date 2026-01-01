@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import Button from '@/components/ui/Button.vue';
-import Modal from '@/components/ui/Modal.vue';
+import Button from '@/components/ui/buttons/Button.vue';
+import Modal from '@/components/ui/layout/Modal.vue';
 import axios from 'axios';
 import { ref, computed } from 'vue';
 

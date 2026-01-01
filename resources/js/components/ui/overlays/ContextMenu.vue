@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Motion } from 'motion-v';
 import { ref, watch, onUnmounted, nextTick } from 'vue';
 
 interface MenuItem {
@@ -100,20 +101,16 @@ const handleItemClick = (item: MenuItem) => {
 
 <template>
     <Teleport to="body">
-        <Transition
-            enter-active-class="transition ease-out duration-100"
-            enter-from-class="transform opacity-0 scale-95"
-            enter-to-class="transform opacity-100 scale-100"
-            leave-active-class="transition ease-in duration-75"
-            leave-from-class="transform opacity-100 scale-100"
-            leave-to-class="transform opacity-0 scale-95"
+        <Motion
+            v-if="position"
+            ref="menuRef"
+            :initial="{ opacity: 0, scale: 0.95 }"
+            :animate="{ opacity: 1, scale: 1 }"
+            :exit="{ opacity: 0, scale: 0.95 }"
+            :transition="{ type: 'spring', stiffness: 500, damping: 35, duration: 0.15 }"
+            :style="{ left: `${adjustedPosition.x}px`, top: `${adjustedPosition.y}px` }"
+            class="fixed z-50 min-w-40 origin-top-left rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
         >
-            <div
-                v-if="position"
-                ref="menuRef"
-                :style="{ left: `${adjustedPosition.x}px`, top: `${adjustedPosition.y}px` }"
-                class="fixed z-50 min-w-40 origin-top-left rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
-            >
                 <template v-for="(item, index) in items" :key="index">
                     <div v-if="item.divider" class="my-1 border-t border-zinc-200 dark:border-zinc-700" />
                     <button
@@ -131,7 +128,6 @@ const handleItemClick = (item: MenuItem) => {
                         {{ item.label }}
                     </button>
                 </template>
-            </div>
-        </Transition>
+        </Motion>
     </Teleport>
 </template>

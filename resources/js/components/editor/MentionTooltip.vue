@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Motion } from 'motion-v';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 interface EntryInfo {
@@ -153,25 +154,21 @@ onUnmounted(() => {
 
 <template>
     <Teleport to="body">
-        <Transition
-            enter-active-class="transition duration-150 ease-out"
-            enter-from-class="opacity-0 scale-95"
-            enter-to-class="opacity-100 scale-100"
-            leave-active-class="transition duration-100 ease-in"
-            leave-from-class="opacity-100 scale-100"
-            leave-to-class="opacity-0 scale-95"
+        <Motion
+            v-if="entry && typeInfo"
+            ref="tooltipRef"
+            :initial="{ opacity: 0, scale: 0.95 }"
+            :animate="{ opacity: 1, scale: 1 }"
+            :exit="{ opacity: 0, scale: 0.95 }"
+            :transition="{ type: 'spring', stiffness: 500, damping: 35, duration: 0.2 }"
+            class="fixed z-50 w-70 cursor-pointer rounded-lg border bg-white p-3 shadow-lg dark:bg-zinc-800"
+            :class="typeInfo.borderColor"
+            :style="{
+                top: `${position.top}px`,
+                left: `${position.left}px`,
+            }"
+            @click="handleClick"
         >
-            <div
-                v-if="entry && typeInfo"
-                ref="tooltipRef"
-                class="fixed z-50 w-70 cursor-pointer rounded-lg border bg-white p-3 shadow-lg dark:bg-zinc-800"
-                :class="typeInfo.borderColor"
-                :style="{
-                    top: `${position.top}px`,
-                    left: `${position.left}px`,
-                }"
-                @click="handleClick"
-            >
                 <!-- Arrow -->
                 <div
                     class="absolute h-2 w-2 rotate-45 border bg-white dark:bg-zinc-800"
@@ -219,7 +216,6 @@ onUnmounted(() => {
                 <p class="mt-2 text-xs text-zinc-400 dark:text-zinc-500">
                     Click to view details
                 </p>
-            </div>
-        </Transition>
+        </Motion>
     </Teleport>
 </template>
