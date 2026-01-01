@@ -47,9 +47,10 @@ Query Parameters:
 |-----------|------|-------------|
 | type | string | Filter by entry type |
 | category | int | Filter by category ID |
+| tag | int | Filter by tag ID (Sprint 14) |
 | search | string | Search by name/description/alias |
 
-Response: Inertia page render dengan entries, seriesEntries, categories, types, filters.
+Response: Inertia page render dengan entries, seriesEntries, categories, tags (Sprint 14), types, filters.
 
 ---
 
@@ -298,7 +299,10 @@ Request Body:
 ```json
 {
   "key_name": "Height",
-  "value": "180cm"
+  "value": "180cm",
+  "type": "line",
+  "ai_visibility": "always",
+  "definition_id": null
 }
 ```
 
@@ -306,6 +310,9 @@ Request Body:
 |-------|------|----------|------------|
 | key_name | string | Yes | max:255 |
 | value | string | Yes | max:10000 |
+| type | string | No | text, line, dropdown, codex_reference (default: text) |
+| ai_visibility | string | No | always, never, nsfw_only (default: always) |
+| definition_id | int | No | Reference ke CodexDetailDefinition |
 
 Response: `201 Created`
 ```json
@@ -314,7 +321,11 @@ Response: `201 Created`
     "id": 3,
     "key_name": "Height",
     "value": "180cm",
-    "sort_order": 3
+    "sort_order": 3,
+    "type": "line",
+    "ai_visibility": "always",
+    "definition_id": null,
+    "definition": null
   }
 }
 ```
@@ -1001,6 +1012,530 @@ Response: `200 OK`
 
 ---
 
+### Sprint 14: Tags System & Enhanced Details
+
+#### List Tags for Novel
+
+**`GET /api/novels/{novel}/codex/tags`**
+
+Mendapatkan semua tags untuk novel, dengan optional filter by entry type.
+
+Query Parameters:
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| entry_type | string | Filter tags untuk specific entry type (character, location, dll) |
+
+Response: `200 OK`
+```json
+{
+  "tags": [
+    {
+      "id": 1,
+      "name": "Protagonist",
+      "color": "#8B5CF6",
+      "entry_type": "character",
+      "is_predefined": true,
+      "entries_count": 5
+    }
+  ]
+}
+```
+
+---
+
+#### Create Tag
+
+**`POST /api/novels/{novel}/codex/tags`**
+
+Membuat tag baru untuk novel. Tags digunakan untuk organizational purposes dan TIDAK dikirim ke AI.
+
+Request Body:
+```json
+{
+  "name": "Main Cast",
+  "color": "#3B82F6",
+  "entry_type": "character"
+}
+```
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| name | string | Yes | max:50, unique per novel |
+| color | string | No | Hex color format (#RRGGBB) |
+| entry_type | string | No | Limit tag untuk specific type |
+
+Response: `201 Created`
+```json
+{
+  "tag": {
+    "id": 1,
+    "name": "Main Cast",
+    "color": "#3B82F6",
+    "entry_type": "character",
+    "is_predefined": false,
+    "entries_count": 0
+  }
+}
+```
+
+---
+
+#### Update Tag
+
+**`PATCH /api/codex/tags/{tag}`**
+
+Update tag existing. CANNOT update predefined tags.
+
+Request Body:
+```json
+{
+  "name": "Updated Name",
+  "color": "#EF4444"
+}
+```
+
+Response: `200 OK` dengan updated tag object.
+
+---
+
+#### Delete Tag
+
+**`DELETE /api/codex/tags/{tag}`**
+
+Delete tag. CANNOT delete predefined tags. Assignments ke entries akan otomatis removed (cascade).
+
+Response: `200 OK`
+```json
+{
+  "success": true
+}
+```
+
+---
+
+#### Assign Tag to Entry
+
+**`POST /api/codex/{entry}/tags`**
+
+Assign tag ke codex entry (auto-save, instant update).
+
+Request Body:
+```json
+{
+  "tag_id": 1
+}
+```
+
+Validation:
+- Tag must belong to same novel
+- Tag entry_type filter must match entry type (if set)
+
+Response: `200 OK`
+```json
+{
+  "success": true,
+  "tag": {
+    "id": 1,
+    "name": "Protagonist",
+    "color": "#8B5CF6"
+  }
+}
+```
+
+---
+
+#### Remove Tag from Entry
+
+**`DELETE /api/codex/{entry}/tags/{tag}`**
+
+Remove tag assignment dari entry (auto-save, instant update).
+
+Response: `200 OK`
+```json
+{
+  "success": true
+}
+```
+
+---
+
+#### Initialize Predefined Tags
+
+**`POST /api/novels/{novel}/codex/tags/initialize`**
+
+Initialize predefined tags untuk novel (automatically called on first tag access).
+
+Predefined tags per type:
+- **Character:** Protagonist, Antagonist, Supporting, Minor, Mentioned
+- **Location:** Major, Minor, Historical
+- **Item:** Weapon, Artifact, Tool
+
+Response: `200 OK`
+```json
+{
+  "message": "Predefined tags initialized successfully.",
+  "initialized": true,
+  "count": 11
+}
+```
+
+---
+
+#### List Detail Definitions
+
+**`GET /api/novels/{novel}/codex/detail-definitions`**
+
+Mendapatkan custom definitions dan system presets untuk novel.
+
+Query Parameters:
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| entry_type | string | Filter definitions untuk specific entry type |
+
+Response: `200 OK`
+```json
+{
+  "definitions": [
+    {
+      "id": 1,
+      "name": "Custom Field",
+      "type": "dropdown",
+      "options": ["Option A", "Option B"],
+      "entry_types": ["character"],
+      "show_in_sidebar": false,
+      "ai_visibility": "always",
+      "is_preset": false
+    }
+  ],
+  "presets": [
+    {
+      "id": "preset_0",
+      "name": "Story Role",
+      "type": "dropdown",
+      "options": ["Protagonist", "Antagonist", "Supporting", "Minor"],
+      "entry_types": ["character"],
+      "show_in_sidebar": true,
+      "ai_visibility": "always",
+      "is_preset": true
+    }
+  ]
+}
+```
+
+**System Presets Available:**
+- **Story Role** (dropdown): Protagonist, Antagonist, Supporting, Minor
+- **Pronouns** (dropdown): he/him, she/her, they/them, other
+- **Backstory** (text): Full character backstory
+- **Occupation** (line): Single-line occupation
+- **Physical Appearance** (text): Description, AI visibility = never
+- **Voice Sheet** (text): Character voice/dialogue notes
+- **Fighting Style** (text): Combat description, AI visibility = nsfw_only
+- **Location Type** (dropdown): City, Town, Village, Building, dll
+- **Climate** (line): Location climate info
+- **Item Type** (dropdown): Weapon, Armor, Tool, Artifact, dll
+- **Powers/Abilities** (text): Special powers/skills
+- **Organization Type** (dropdown): Government, Military, Religious, dll
+
+---
+
+#### Create Detail Definition
+
+**`POST /api/novels/{novel}/codex/detail-definitions`**
+
+Membuat custom detail definition untuk novel.
+
+Request Body:
+```json
+{
+  "name": "Custom Attribute",
+  "type": "dropdown",
+  "options": ["Option A", "Option B", "Option C"],
+  "entry_types": ["character"],
+  "show_in_sidebar": false,
+  "ai_visibility": "always"
+}
+```
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| name | string | Yes | max:100 |
+| type | string | Yes | text, line, dropdown, codex_reference |
+| options | array | Required for dropdown | min:2 options |
+| entry_types | array | No | Array of valid types, null = all types |
+| show_in_sidebar | boolean | No | default: false |
+| ai_visibility | string | No | always, never, nsfw_only (default: always) |
+
+Response: `201 Created` dengan definition object.
+
+---
+
+#### Update Detail Definition
+
+**`PATCH /api/codex/detail-definitions/{definition}`**
+
+Update custom definition. CANNOT update system presets.
+
+Request Body: Same as Create Detail Definition
+
+Response: `200 OK` dengan updated definition.
+
+---
+
+#### Delete Detail Definition
+
+**`DELETE /api/codex/detail-definitions/{definition}`**
+
+Delete custom definition. CANNOT delete system presets.
+
+Validation:
+- Definition must not be used by any details
+- Will return 422 dengan usage count if still in use
+
+Response: `200 OK`
+```json
+{
+  "success": true
+}
+```
+
+---
+
+#### Add Detail from Preset
+
+**`POST /api/codex/{entry}/details/from-preset`**
+
+Quick create detail menggunakan system preset template.
+
+Request Body:
+```json
+{
+  "preset_index": 0,
+  "value": "Protagonist"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| preset_index | int | Yes | Index dari CodexDetailDefinition::SYSTEM_PRESETS |
+| value | string | No | Initial value (default to first dropdown option jika dropdown) |
+
+Validation:
+- Preset must be valid for entry type
+- Preset index must exist
+
+Response: `201 Created`
+```json
+{
+  "detail": {
+    "id": 1,
+    "key_name": "Story Role",
+    "value": "Protagonist",
+    "type": "dropdown",
+    "ai_visibility": "always",
+    "definition": null
+  },
+  "preset": {
+    "name": "Story Role",
+    "type": "dropdown",
+    "options": ["Protagonist", "Antagonist", "Supporting", "Minor"]
+  }
+}
+```
+
+---
+
+#### Detail Types
+
+**Text Type:**
+- Multi-line text input
+- Unlimited length (within MySQL TEXT limits)
+- Use for: backstory, notes, descriptions
+
+**Line Type:**
+- Single-line text input
+- Best for: occupation, age, simple attributes
+
+**Dropdown Type:**
+- Pre-defined options
+- User selects from list
+- `show_in_sidebar` option displays value next to entry name
+
+**Codex Reference Type:**
+- Links to another codex entry
+- Future implementation untuk Sprint 16+
+
+---
+
+#### AI Visibility Modes
+
+Setiap detail dapat di-set visibility mode-nya:
+
+| Mode | Behavior | Use Case |
+|------|----------|----------|
+| **always** | Always included in AI context | Important character traits, plot-relevant info |
+| **never** | Never sent to AI | Private notes, meta information, physical descriptions |
+| **nsfw_only** | Only included dengan NSFW prompts | Combat details, mature content |
+
+**Update via Detail PATCH endpoint:**
+```json
+{
+  "ai_visibility": "never"
+}
+```
+
+---
+
+### Sprint 15: Editor Integration & UX Enhancements
+
+#### Duplicate Entry
+
+**`POST /api/codex/{entry}/duplicate`**
+
+Deep-clone entry dengan semua aliases, details, dan progressions (tanpa scene links).
+
+Request Body: None
+
+Response: `302 Redirect` ke entry baru
+
+**Clone Behavior:**
+- Name appended dengan "(Copy)" atau "(Copy 2)" jika duplikat
+- Semua aliases di-clone
+- Semua details di-clone (tanpa progression pada details)
+- Progressions di-clone tanpa scene associations
+- Thumbnail, research_notes, tags tetap sama
+
+---
+
+#### Bulk Create Entries
+
+**`POST /api/novels/{novel}/codex/bulk-create`**
+
+Create multiple entries dari formatted text input. Format: `Name | Type | Description`
+
+Request Body:
+```json
+{
+  "input": "Alice | character | A young witch\nBob | character | Alice's mentor\nCastle | location | A dark fortress",
+  "preview": false,
+  "skip_duplicates": true
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| input | string | Yes | Multi-line text, satu entry per baris |
+| preview | boolean | No | Jika true, return preview tanpa create (default: false) |
+| skip_duplicates | boolean | No | Skip entry jika nama sudah ada (default: true) |
+
+**Input Format Rules:**
+- Format: `Name | Type | Description`
+- Type: character, location, item, lore, organization, subplot
+- Description opsional
+- Lines starting with `#` diabaikan (comment)
+- Empty lines diabaikan
+- Whitespace otomatis di-trim
+
+Response (Preview Mode): `200 OK`
+```json
+{
+  "preview": {
+    "entries": [
+      {
+        "name": "Alice",
+        "type": "character",
+        "description": "A young witch"
+      }
+    ],
+    "errors": [
+      {
+        "line": 5,
+        "message": "Invalid type 'charcter'. Did you mean 'character'?"
+      }
+    ],
+    "warnings": [
+      {
+        "line": 3,
+        "message": "Entry 'Bob' already exists in this novel"
+      }
+    ]
+  },
+  "stats": {
+    "valid": 2,
+    "errors": 1,
+    "warnings": 1
+  }
+}
+```
+
+Response (Create Mode): `201 Created`
+```json
+{
+  "created": [
+    {
+      "id": 10,
+      "name": "Alice",
+      "type": "character"
+    },
+    {
+      "id": 11,
+      "name": "Castle",
+      "type": "location"
+    }
+  ],
+  "skipped": [
+    {
+      "name": "Bob",
+      "reason": "Duplicate name"
+    }
+  ],
+  "stats": {
+    "created": 2,
+    "skipped": 1
+  }
+}
+```
+
+**Type Suggestions:**
+Service akan suggest type yang paling mirip untuk typo:
+- "charcter" → "character"
+- "loction" → "location"
+- "characters" (plural) → "character"
+
+---
+
+#### Swap Relation Direction
+
+**`POST /api/codex/relations/{relation}/swap`**
+
+Swap source dan target entry dalam relation. Berguna untuk memperbaiki arah relation tanpa delete-recreate.
+
+Request Body: None
+
+Response: `200 OK`
+```json
+{
+  "relation": {
+    "id": 5,
+    "source_entry_id": 2,
+    "target_entry_id": 1,
+    "type": "enemy"
+  },
+  "message": "Relation direction swapped successfully"
+}
+```
+
+**Before:**
+```
+Entry A --[enemy]--> Entry B
+```
+
+**After:**
+```
+Entry B --[enemy]--> Entry A
+```
+
+---
+
 ## Error Codes
 
 | Code | HTTP Status | Description |
@@ -1015,12 +1550,27 @@ Response: `200 OK`
 
 ## Related Documentation
 
-- **Sprint Documentation:** [Sprint 04 - Codex System](../10-sprints/sprint-04-codex-system.md)
-- **Testing Guide:** [Codex Testing](../06-testing/codex-testing.md)
+- **Sprint Documentation:** 
+  - [Sprint 04 - Codex System](../10-sprints/sprint-04-codex-system.md)
+  - [Sprint 13 - Codex V2 Enhancements](../10-sprints/sprint-13-codex-v2-enhancements.md)
+  - [Sprint 15 - Editor Integration & UX](../10-sprints/sprint-15-codex-v2-editor-ux.md)
+- **Testing Guide:** 
+  - [Codex Testing](../06-testing/codex-testing.md)
+  - [Codex Sprint 15 Testing](../06-testing/codex-sprint15-testing.md)
+- **User Journeys:** [Codex Sprint 15 Editor Integration](../07-user-journeys/codex/sprint-15-editor-integration.md)
 
 ---
 
 ## Version History
+
+### v1.3.0 (2026-01-01) - Sprint 15
+- ✨ Added Duplicate Entry endpoint (`POST /api/codex/{entry}/duplicate`)
+- ✨ Added Bulk Create endpoint dengan preview mode dan validation
+- ✨ Added Swap Relation Direction endpoint
+- 🎨 New TipTap extensions: CodexProgression, QuickCreateCodex
+- 🎯 New Vue components: ProgressionEditorModal, BulkCreateModal, CodexHoverTooltip, SelectionActionMenu
+- 📱 Mobile support untuk tap tooltips dan selection menu
+- ✅ Comprehensive test coverage (21 unit + 12 feature tests)
 
 ### v1.2.0 (2026-01-01) - Sprint 13
 - ✨ Added Research Notes field (`research_notes`) - private notes NOT sent to AI

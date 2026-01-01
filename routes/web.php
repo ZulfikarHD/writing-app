@@ -9,10 +9,12 @@ use App\Http\Controllers\CodexAliasController;
 use App\Http\Controllers\CodexCategoryController;
 use App\Http\Controllers\CodexController;
 use App\Http\Controllers\CodexDetailController;
+use App\Http\Controllers\CodexDetailDefinitionController;
 use App\Http\Controllers\CodexExternalLinkController;
 use App\Http\Controllers\CodexImageController;
 use App\Http\Controllers\CodexProgressionController;
 use App\Http\Controllers\CodexRelationController;
+use App\Http\Controllers\CodexTagController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EditorController;
 use App\Http\Controllers\NovelController;
@@ -110,7 +112,9 @@ Route::middleware('auth')->group(function () {
     Route::post('api/codex/{entry}/archive', [CodexController::class, 'archive'])->name('codex.archive');
     Route::post('api/codex/{entry}/restore', [CodexController::class, 'restore'])->name('codex.restore');
     Route::post('api/codex/{entry}/rescan-mentions', [CodexController::class, 'rescanMentions'])->name('codex.rescan-mentions');
+    Route::post('api/codex/{entry}/duplicate', [CodexController::class, 'duplicate'])->name('codex.duplicate');
     Route::delete('api/codex/{entry}', [CodexController::class, 'destroy'])->name('codex.destroy');
+    Route::post('api/novels/{novel}/codex/bulk-create', [CodexController::class, 'bulkCreate'])->name('codex.bulk-create');
 
     // Codex Image API routes
     Route::post('api/codex/{entry}/thumbnail', [CodexImageController::class, 'upload'])->name('codex.thumbnail.upload');
@@ -133,6 +137,7 @@ Route::middleware('auth')->group(function () {
     Route::get('api/codex/{entry}/relations', [CodexRelationController::class, 'index'])->name('codex.relations.index');
     Route::post('api/codex/{entry}/relations', [CodexRelationController::class, 'store'])->name('codex.relations.store');
     Route::patch('api/codex/relations/{relation}', [CodexRelationController::class, 'update'])->name('codex.relations.update');
+    Route::post('api/codex/relations/{relation}/swap', [CodexRelationController::class, 'swap'])->name('codex.relations.swap');
     Route::delete('api/codex/relations/{relation}', [CodexRelationController::class, 'destroy'])->name('codex.relations.destroy');
     Route::get('api/codex/relation-types', [CodexRelationController::class, 'types'])->name('codex.relations.types');
 
@@ -155,6 +160,25 @@ Route::middleware('auth')->group(function () {
     Route::patch('api/codex/external-links/{link}', [CodexExternalLinkController::class, 'update'])->name('codex.external-links.update');
     Route::delete('api/codex/external-links/{link}', [CodexExternalLinkController::class, 'destroy'])->name('codex.external-links.destroy');
     Route::post('api/codex/{entry}/external-links/reorder', [CodexExternalLinkController::class, 'reorder'])->name('codex.external-links.reorder');
+
+    // Codex Tag API routes (Sprint 14: US-12.4)
+    Route::get('api/novels/{novel}/codex/tags', [CodexTagController::class, 'index'])->name('codex.tags.index');
+    Route::post('api/novels/{novel}/codex/tags', [CodexTagController::class, 'store'])->name('codex.tags.store');
+    Route::post('api/novels/{novel}/codex/tags/initialize', [CodexTagController::class, 'initializePredefined'])->name('codex.tags.initialize');
+    Route::patch('api/codex/tags/{tag}', [CodexTagController::class, 'update'])->name('codex.tags.update');
+    Route::delete('api/codex/tags/{tag}', [CodexTagController::class, 'destroy'])->name('codex.tags.destroy');
+    Route::post('api/codex/{entry}/tags', [CodexTagController::class, 'assignToEntry'])->name('codex.tags.assign');
+    Route::delete('api/codex/{entry}/tags/{tag}', [CodexTagController::class, 'removeFromEntry'])->name('codex.tags.remove');
+
+    // Codex Detail Definition API routes (Sprint 14: US-12.5, US-12.7)
+    Route::get('api/novels/{novel}/codex/detail-definitions', [CodexDetailDefinitionController::class, 'index'])->name('codex.definitions.index');
+    Route::post('api/novels/{novel}/codex/detail-definitions', [CodexDetailDefinitionController::class, 'store'])->name('codex.definitions.store');
+    Route::patch('api/codex/detail-definitions/{definition}', [CodexDetailDefinitionController::class, 'update'])->name('codex.definitions.update');
+    Route::delete('api/codex/detail-definitions/{definition}', [CodexDetailDefinitionController::class, 'destroy'])->name('codex.definitions.destroy');
+    Route::get('api/codex/detail-presets/{index}', [CodexDetailDefinitionController::class, 'getPreset'])->name('codex.presets.show');
+
+    // Codex Detail from Preset (Sprint 14: US-12.7)
+    Route::post('api/codex/{entry}/details/from-preset', [CodexDetailController::class, 'storeFromPreset'])->name('codex.details.from-preset');
 
     // Chapter API routes
     Route::get('api/novels/{novel}/chapters', [ChapterController::class, 'index'])->name('chapters.index');

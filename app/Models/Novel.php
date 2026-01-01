@@ -125,6 +125,26 @@ class Novel extends Model
     }
 
     /**
+     * Sprint 14: Tags for quick organizational labels.
+     *
+     * @return HasMany<CodexTag, $this>
+     */
+    public function codexTags(): HasMany
+    {
+        return $this->hasMany(CodexTag::class)->orderBy('name');
+    }
+
+    /**
+     * Sprint 14: Detail definitions for this novel.
+     *
+     * @return HasMany<CodexDetailDefinition, $this>
+     */
+    public function codexDetailDefinitions(): HasMany
+    {
+        return $this->hasMany(CodexDetailDefinition::class)->orderBy('sort_order');
+    }
+
+    /**
      * Recalculate and update word count from all scenes.
      */
     public function recalculateWordCount(): void

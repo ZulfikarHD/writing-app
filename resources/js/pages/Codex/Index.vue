@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Button from '@/components/ui/Button.vue';
 import Input from '@/components/ui/Input.vue';
-import { BulkExportButton, BulkImportModal } from '@/components/codex';
+import { BulkCreateModal, BulkExportButton, BulkImportModal } from '@/components/codex';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 
@@ -9,6 +9,14 @@ interface Category {
     id: number;
     name: string;
     color: string | null;
+}
+
+// Sprint 14: Tag interface
+interface Tag {
+    id: number;
+    name: string;
+    color: string | null;
+    entry_type?: string | null;
 }
 
 interface CodexEntry {
@@ -20,12 +28,14 @@ interface CodexEntry {
     ai_context_mode: string;
     aliases: string[];
     categories: Category[];
+    tags?: Tag[]; // Sprint 14
     is_series_entry?: boolean;
 }
 
 interface Filters {
     type: string | null;
     category: string | null;
+    tag: string | null; // Sprint 14
     search: string | null;
 }
 
@@ -40,6 +50,7 @@ const props = defineProps<{
     entries: CodexEntry[];
     seriesEntries?: CodexEntry[];
     categories: Category[];
+    tags?: Tag[]; // Sprint 14
     types: string[];
     filters: Filters;
 }>();
@@ -47,11 +58,19 @@ const props = defineProps<{
 const searchQuery = ref(props.filters.search || '');
 const selectedType = ref(props.filters.type || '');
 const selectedCategory = ref(props.filters.category || '');
+const selectedTag = ref(props.filters.tag || ''); // Sprint 14
 const viewMode = ref<'grid' | 'list'>('grid');
 const showImportModal = ref(false);
+const showBulkCreateModal = ref(false); // Sprint 15
 
 const handleImportComplete = () => {
     showImportModal.value = false;
+    router.reload();
+};
+
+// Sprint 15: Handle bulk create completion
+const handleBulkCreateComplete = () => {
+    showBulkCreateModal.value = false;
     router.reload();
 };
 
@@ -127,6 +146,7 @@ const applyFilters = () => {
         {
             type: selectedType.value || undefined,
             category: selectedCategory.value || undefined,
+            tag: selectedTag.value || undefined, // Sprint 14
             search: searchQuery.value || undefined,
         },
         { preserveState: true },
@@ -140,7 +160,7 @@ watch(searchQuery, () => {
     searchTimeout = setTimeout(applyFilters, 300);
 });
 
-watch([selectedType, selectedCategory], () => {
+watch([selectedType, selectedCategory, selectedTag], () => {
     applyFilters();
 });
 
@@ -148,7 +168,18 @@ const clearFilters = () => {
     searchQuery.value = '';
     selectedType.value = '';
     selectedCategory.value = '';
+    selectedTag.value = ''; // Sprint 14
     router.get(`/novels/${props.novel.id}/codex`);
+};
+
+// Sprint 14: Helper for tag colors
+const getContrastColor = (hexColor: string | null): string => {
+    if (!hexColor) return '#374151';
+    const r = parseInt(hexColor.slice(1, 3), 16);
+    const g = parseInt(hexColor.slice(3, 5), 16);
+    const b = parseInt(hexColor.slice(5, 7), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5 ? '#1F2937' : '#FFFFFF';
 };
 
 const getTypeLabel = (type: string) => typeConfig[type]?.label || type;
@@ -195,6 +226,13 @@ const truncateDescription = (text: string | null, length: number = 100) => {
                             Import
                         </Button>
                         <BulkExportButton :novel-id="novel.id" :disabled="entries.length === 0" />
+                        <!-- Bulk Create Button (Sprint 15: US-12.12) -->
+                        <Button variant="ghost" size="sm" @click="showBulkCreateModal = true">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Bulk Create
+                        </Button>
                         <Button :href="`/novels/${novel.id}/codex/create`" as="a">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
@@ -262,9 +300,21 @@ const truncateDescription = (text: string | null, length: number = 100) => {
                         </option>
                     </select>
 
+                    <!-- Tag Filter (Sprint 14) -->
+                    <select
+                        v-if="tags && tags.length > 0"
+                        v-model="selectedTag"
+                        class="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                    >
+                        <option value="">All Tags</option>
+                        <option v-for="tag in tags" :key="tag.id" :value="tag.id">
+                            {{ tag.name }}
+                        </option>
+                    </select>
+
                     <!-- Clear Filters -->
                     <button
-                        v-if="searchQuery || selectedType || selectedCategory"
+                        v-if="searchQuery || selectedType || selectedCategory || selectedTag"
                         type="button"
                         class="text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
                         @click="clearFilters"
@@ -339,6 +389,23 @@ const truncateDescription = (text: string | null, length: number = 100) => {
                                         </span>
                                         <span v-if="entry.aliases.length > 3" class="text-xs text-zinc-400">
                                             +{{ entry.aliases.length - 3 }} more
+                                        </span>
+                                    </div>
+                                    <!-- Tags (Sprint 14) -->
+                                    <div v-if="entry.tags && entry.tags.length > 0" class="mt-2 flex flex-wrap gap-1">
+                                        <span
+                                            v-for="tag in entry.tags.slice(0, 2)"
+                                            :key="tag.id"
+                                            class="inline-flex rounded-full px-1.5 py-0.5 text-xs font-medium"
+                                            :style="{
+                                                backgroundColor: tag.color || '#E5E7EB',
+                                                color: getContrastColor(tag.color),
+                                            }"
+                                        >
+                                            {{ tag.name }}
+                                        </span>
+                                        <span v-if="entry.tags.length > 2" class="text-xs text-zinc-400">
+                                            +{{ entry.tags.length - 2 }}
                                         </span>
                                     </div>
                                 </div>
@@ -492,6 +559,14 @@ const truncateDescription = (text: string | null, length: number = 100) => {
             :novel-id="novel.id"
             @close="showImportModal = false"
             @imported="handleImportComplete"
+        />
+
+        <!-- Bulk Create Modal (Sprint 15: US-12.12) -->
+        <BulkCreateModal
+            :show="showBulkCreateModal"
+            :novel-id="novel.id"
+            @close="showBulkCreateModal = false"
+            @created="handleBulkCreateComplete"
         />
     </div>
 </template>

@@ -9,6 +9,27 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * CodexEntry Model
+ *
+ * Represents a world-building entry (character, location, item, etc.)
+ * Sprint 14 adds tags relationship for quick organizational labels.
+ *
+ * @property int $id
+ * @property int $novel_id
+ * @property string $type
+ * @property string $name
+ * @property string|null $description
+ * @property string|null $research_notes
+ * @property string|null $thumbnail_path
+ * @property string $ai_context_mode
+ * @property int $sort_order
+ * @property bool $is_archived
+ * @property bool $is_tracking_enabled
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property \Illuminate\Support\Carbon|null $deleted_at
+ */
 class CodexEntry extends Model
 {
     /** @use HasFactory<\Database\Factories\CodexEntryFactory> */
@@ -119,6 +140,17 @@ class CodexEntry extends Model
     public function categories(): BelongsToMany
     {
         return $this->belongsToMany(CodexCategory::class, 'codex_entry_categories');
+    }
+
+    /**
+     * Tags for quick organization (Sprint 14: US-12.4).
+     * Tags are NOT sent to AI - they're purely organizational.
+     *
+     * @return BelongsToMany<CodexTag, $this>
+     */
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(CodexTag::class, 'codex_entry_tags');
     }
 
     /**

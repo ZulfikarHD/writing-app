@@ -59,7 +59,7 @@ return new class extends Migration
             $table->foreignId('local_entry_id')->nullable()->constrained('codex_entries')->nullOnDelete(); // Local override
             $table->timestamps();
 
-            $table->unique(['novel_id', 'series_codex_entry_id']);
+            $table->unique(['novel_id', 'series_codex_entry_id'], 'novel_series_codex_unique');
         });
     }
 

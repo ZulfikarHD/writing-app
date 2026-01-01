@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreCodexEntryRequest;
 use App\Http\Requests\UpdateCodexEntryRequest;
+use App\Models\CodexDetail;
+use App\Models\CodexDetailDefinition;
 use App\Models\CodexEntry;
 use App\Models\Novel;
 use App\Models\SeriesCodexEntry;
+use App\Services\Codex\BulkEntryCreator;
 use App\Services\Codex\BulkExportService;
 use App\Services\Codex\BulkImportService;
 use App\Services\Codex\MentionTracker;
@@ -27,7 +30,7 @@ class CodexController extends Controller
             abort(403);
         }
 
-        $query = $novel->codexEntries()->active()->with(['aliases', 'categories']);
+        $query = $novel->codexEntries()->active()->with(['aliases', 'categories', 'tags']);
 
         // Filter by type
         if ($request->filled('type')) {
@@ -37,6 +40,11 @@ class CodexController extends Controller
         // Filter by category
         if ($request->filled('category')) {
             $query->whereHas('categories', fn ($q) => $q->where('codex_categories.id', $request->category));
+        }
+
+        // Filter by tag (Sprint 14)
+        if ($request->filled('tag')) {
+            $query->whereHas('tags', fn ($q) => $q->where('codex_tags.id', $request->tag));
         }
 
         // Search by name/description
@@ -98,6 +106,12 @@ class CodexController extends Controller
                     'name' => $cat->name,
                     'color' => $cat->color,
                 ]),
+                // Sprint 14: Tags
+                'tags' => $entry->tags->map(fn ($tag) => [
+                    'id' => $tag->id,
+                    'name' => $tag->name,
+                    'color' => $tag->color,
+                ]),
                 'is_series_entry' => false,
             ]),
             'seriesEntries' => $seriesEntries->map(fn (SeriesCodexEntry $entry) => [
@@ -120,8 +134,16 @@ class CodexController extends Controller
             'filters' => [
                 'type' => $request->type,
                 'category' => $request->category,
+                'tag' => $request->tag, // Sprint 14
                 'search' => $request->search,
             ],
+            // Sprint 14: All tags for filter dropdown
+            'tags' => $novel->codexTags()->orderBy('name')->get()->map(fn ($tag) => [
+                'id' => $tag->id,
+                'name' => $tag->name,
+                'color' => $tag->color,
+                'entry_type' => $tag->entry_type,
+            ]),
         ]);
     }
 
@@ -181,12 +203,13 @@ class CodexController extends Controller
 
         $entry->load([
             'aliases',
-            'details',
+            'details.definition', // Sprint 14: Include definition for type info
             'outgoingRelations.targetEntry',
             'incomingRelations.sourceEntry',
             'progressions.scene.chapter',
             'progressions.detail',
             'categories',
+            'tags', // Sprint 14: Tags for quick labels
             'mentions.scene.chapter',
             'externalLinks', // Sprint 13: F-12.2.2
         ]);
@@ -232,6 +255,17 @@ class CodexController extends Controller
                     'key_name' => $detail->key_name,
                     'value' => $detail->value,
                     'sort_order' => $detail->sort_order,
+                    // Sprint 14: Type and AI visibility
+                    'definition_id' => $detail->definition_id,
+                    'ai_visibility' => $detail->ai_visibility,
+                    'type' => $detail->getEffectiveType(),
+                    'definition' => $detail->definition ? [
+                        'id' => $detail->definition->id,
+                        'name' => $detail->definition->name,
+                        'type' => $detail->definition->type,
+                        'options' => $detail->definition->options,
+                        'show_in_sidebar' => $detail->definition->show_in_sidebar,
+                    ] : null,
                 ]),
                 'outgoing_relations' => $entry->outgoingRelations->map(fn ($rel) => [
                     'id' => $rel->id,
@@ -279,6 +313,12 @@ class CodexController extends Controller
                     'name' => $cat->name,
                     'color' => $cat->color,
                 ]),
+                // Sprint 14: Tags
+                'tags' => $entry->tags->map(fn ($tag) => [
+                    'id' => $tag->id,
+                    'name' => $tag->name,
+                    'color' => $tag->color,
+                ]),
                 'mentions' => $entry->mentions->map(fn ($mention) => [
                     'id' => $mention->id,
                     'mention_count' => $mention->mention_count,
@@ -302,6 +342,43 @@ class CodexController extends Controller
             ],
             'types' => CodexEntry::getTypes(),
             'contextModes' => CodexEntry::getContextModes(),
+            // Sprint 14: Available tags for this novel (filtered by entry type)
+            'availableTags' => $entry->novel->codexTags()
+                ->forType($entry->type)
+                ->orderBy('name')
+                ->get()
+                ->map(fn ($tag) => [
+                    'id' => $tag->id,
+                    'name' => $tag->name,
+                    'color' => $tag->color,
+                    'is_predefined' => $tag->is_predefined,
+                ]),
+            // Sprint 14: Detail definitions and presets
+            'detailDefinitions' => $entry->novel->codexDetailDefinitions()
+                ->forEntryType($entry->type)
+                ->orderBy('sort_order')
+                ->get()
+                ->map(fn ($def) => [
+                    'id' => $def->id,
+                    'name' => $def->name,
+                    'type' => $def->type,
+                    'options' => $def->options,
+                    'ai_visibility' => $def->ai_visibility,
+                    'show_in_sidebar' => $def->show_in_sidebar,
+                ]),
+            'detailPresets' => collect(CodexDetailDefinition::SYSTEM_PRESETS)
+                ->filter(fn ($preset) => $preset['entry_types'] === null ||
+                    in_array($entry->type, $preset['entry_types'], true))
+                ->values()
+                ->map(fn ($preset, $index) => [
+                    'index' => $index,
+                    'name' => $preset['name'],
+                    'type' => $preset['type'],
+                    'options' => $preset['options'],
+                    'ai_visibility' => $preset['ai_visibility'],
+                ]),
+            'aiVisibilityModes' => CodexDetail::getAiVisibilityModes(),
+            'detailTypes' => CodexDetail::getTypes(),
         ]);
     }
 
@@ -396,7 +473,7 @@ class CodexController extends Controller
 
     /**
      * API endpoint to get a single entry's details.
-     * Used by polling to detect mention changes.
+     * Used by polling to detect mention and tag changes.
      */
     public function apiShow(Request $request, CodexEntry $entry): JsonResponse
     {
@@ -404,8 +481,8 @@ class CodexController extends Controller
             abort(403);
         }
 
-        // Load mentions for polling to detect changes
-        $entry->load('mentions.scene.chapter');
+        // Load mentions and tags for polling to detect changes
+        $entry->load(['mentions.scene.chapter', 'tags']);
 
         return response()->json([
             'entry' => [
@@ -428,6 +505,12 @@ class CodexController extends Controller
                         'title' => $mention->scene->chapter->title,
                     ] : null,
                 ],
+            ]),
+            // Sprint 14: Include tags for live polling updates
+            'tags' => $entry->tags->map(fn ($tag) => [
+                'id' => $tag->id,
+                'name' => $tag->name,
+                'color' => $tag->color,
             ]),
         ]);
     }
@@ -677,5 +760,174 @@ class CodexController extends Controller
             'skipped' => $result['skipped'],
             'errors' => $result['errors'],
         ]);
+    }
+
+    /**
+     * Duplicate an entry with all its details and aliases.
+     *
+     * Sprint 15 (F-12.7.2): Deep clones an entry including:
+     * - Basic entry data (with " (Copy)" appended to name)
+     * - All aliases
+     * - All details
+     * - Progressions (WITHOUT scene links to avoid confusion)
+     *
+     * Does NOT clone:
+     * - Relations (would create complex bidirectional issues)
+     * - Mentions (scene-specific)
+     * - Categories (user should re-assign as needed)
+     * - Tags (user should re-assign as needed)
+     *
+     * @see https://www.novelcrafter.com/help/docs/codex/the-codex
+     */
+    public function duplicate(Request $request, CodexEntry $entry): JsonResponse
+    {
+        if ($entry->novel->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        // Load all data to clone
+        $entry->load(['aliases', 'details', 'progressions']);
+
+        // Create the duplicate entry with " (Copy)" suffix
+        $newName = $entry->name.' (Copy)';
+
+        // Ensure unique name by adding number if needed
+        $existingCount = CodexEntry::where('novel_id', $entry->novel_id)
+            ->where('name', 'like', $entry->name.' (Copy%')
+            ->count();
+
+        if ($existingCount > 0) {
+            $newName = $entry->name.' (Copy '.($existingCount + 1).')';
+        }
+
+        $newEntry = $entry->novel->codexEntries()->create([
+            'type' => $entry->type,
+            'name' => $newName,
+            'description' => $entry->description,
+            'research_notes' => $entry->research_notes,
+            'thumbnail_path' => null, // Don't clone thumbnail - user should upload new
+            'ai_context_mode' => $entry->ai_context_mode,
+            'sort_order' => $entry->novel->codexEntries()->max('sort_order') + 1,
+            'is_archived' => false,
+            'is_tracking_enabled' => $entry->is_tracking_enabled,
+        ]);
+
+        // Clone aliases
+        foreach ($entry->aliases as $alias) {
+            $newEntry->aliases()->create([
+                'alias' => $alias->alias,
+            ]);
+        }
+
+        // Clone details (preserve definition links and AI visibility)
+        foreach ($entry->details as $index => $detail) {
+            $newEntry->details()->create([
+                'definition_id' => $detail->definition_id,
+                'key_name' => $detail->key_name,
+                'value' => $detail->value,
+                'sort_order' => $index,
+                'ai_visibility' => $detail->ai_visibility,
+                'type' => $detail->type,
+            ]);
+        }
+
+        // Clone progressions (WITHOUT scene links - they don't apply to the copy)
+        foreach ($entry->progressions as $index => $progression) {
+            $newEntry->progressions()->create([
+                'scene_id' => null, // Don't link to scenes
+                'codex_detail_id' => null, // Details have new IDs
+                'story_timestamp' => $progression->story_timestamp,
+                'note' => $progression->note,
+                'new_value' => $progression->new_value,
+                'mode' => $progression->mode,
+                'sort_order' => $index,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'entry' => [
+                'id' => $newEntry->id,
+                'type' => $newEntry->type,
+                'name' => $newEntry->name,
+                'description' => $newEntry->description,
+            ],
+            'redirect' => route('codex.show', $newEntry),
+        ], 201);
+    }
+
+    /**
+     * Bulk create entries from formatted text input.
+     *
+     * Sprint 15 (US-12.12): Enables rapid codex setup by parsing multi-line
+     * input in the format: "Name | Type | Description" (one per line)
+     *
+     * Supports:
+     * - Preview mode (parse and validate only)
+     * - Create mode (actually create entries)
+     * - Skip duplicates option
+     *
+     * @see https://www.novelcrafter.com/help/docs/codex/the-codex
+     */
+    public function bulkCreate(Request $request, Novel $novel, BulkEntryCreator $bulkCreator): JsonResponse
+    {
+        if ($novel->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'input' => 'required|string|max:100000',
+            'preview' => 'sometimes|boolean',
+            'skip_duplicates' => 'sometimes|boolean',
+        ]);
+
+        $isPreview = $validated['preview'] ?? false;
+        $skipDuplicates = $validated['skip_duplicates'] ?? true;
+
+        // Parse the input
+        $parseResult = $bulkCreator->parse($validated['input']);
+
+        // If there are parse errors, return them
+        if (! empty($parseResult['errors'])) {
+            return response()->json([
+                'success' => false,
+                'parse_errors' => $parseResult['errors'],
+                'valid_count' => count($parseResult['entries']),
+            ], 422);
+        }
+
+        // Validate against existing data
+        $validationResult = $bulkCreator->validate($novel, $parseResult['entries']);
+
+        // Preview mode: return what would be created
+        if ($isPreview) {
+            return response()->json([
+                'success' => true,
+                'preview' => true,
+                'entries' => $validationResult['valid'],
+                'warnings' => $validationResult['warnings'],
+                'total' => count($validationResult['valid']),
+            ]);
+        }
+
+        // Create mode: actually create the entries
+        $createResult = $bulkCreator->create(
+            $novel,
+            $validationResult['valid'],
+            $skipDuplicates
+        );
+
+        return response()->json([
+            'success' => true,
+            'created' => $createResult['created']->map(fn (CodexEntry $entry) => [
+                'id' => $entry->id,
+                'type' => $entry->type,
+                'name' => $entry->name,
+            ]),
+            'created_count' => $createResult['created']->count(),
+            'skipped' => $createResult['skipped'],
+            'skipped_count' => count($createResult['skipped']),
+            'warnings' => $validationResult['warnings'],
+        ], 201);
     }
 }

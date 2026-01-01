@@ -7,8 +7,9 @@ import EditorSidebar from '@/components/editor/EditorSidebar.vue';
 import EditorSettingsPanel from '@/components/editor/EditorSettingsPanel.vue';
 import SceneMetadataPanel from '@/components/editor/SceneMetadataPanel.vue';
 import MentionTooltip from '@/components/editor/MentionTooltip.vue';
+import SelectionActionMenu from '@/components/editor/SelectionActionMenu.vue';
 import CodexSidebarPanel from '@/components/editor/CodexSidebarPanel.vue';
-import { QuickCreateModal } from '@/components/codex';
+import { ProgressionEditorModal, QuickCreateModal } from '@/components/codex';
 import { useAutoSave } from '@/composables/useAutoSave';
 import { useEditorSettings } from '@/composables/useEditorSettings';
 import { useCodexHighlight } from '@/composables/useCodexHighlight';
@@ -71,6 +72,8 @@ const codexPanelOpen = ref(false);
 const selectedCodexEntryId = ref<number | null>(null);
 const quickCreateOpen = ref(false);
 const quickCreateSelectedText = ref('');
+// Sprint 15: Progression modal state
+const progressionModalOpen = ref(false);
 const content = ref(props.activeScene?.content || null);
 const wordCount = ref(props.activeScene?.word_count || 0);
 const currentScene = ref<Scene | null>(props.activeScene);
@@ -134,6 +137,11 @@ const handleKeyDown = (e: KeyboardEvent) => {
         e.preventDefault();
         openQuickCreate();
     }
+    // Sprint 15: Open progression modal with Ctrl+Shift+P
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'P') {
+        e.preventDefault();
+        openProgressionModal();
+    }
 };
 
 const openQuickCreate = () => {
@@ -154,11 +162,31 @@ const closeQuickCreate = () => {
     quickCreateSelectedText.value = '';
 };
 
+// Sprint 15: Progression modal handlers
+const openProgressionModal = () => {
+    progressionModalOpen.value = true;
+};
+
+const closeProgressionModal = () => {
+    progressionModalOpen.value = false;
+};
+
+const handleProgressionSaved = () => {
+    // Could show a toast notification here
+    closeProgressionModal();
+};
+
 const handleCodexCreated = () => {
     // Refresh codex entries to update highlighting
     refreshCodexEntries();
     // Clear tooltip cache so new entries show correctly
     clearTooltipCache();
+};
+
+// Sprint 15: Handle selection action menu (mobile-friendly quick create)
+const handleSelectionCreateEntry = (text: string) => {
+    quickCreateSelectedText.value = text;
+    quickCreateOpen.value = true;
 };
 
 // Handle click on codex mentions
@@ -369,6 +397,12 @@ const editorWidthClass = computed(() => {
             @close="closeTooltip"
         />
 
+        <!-- Sprint 15: Selection Action Menu (for mobile-friendly quick create) -->
+        <SelectionActionMenu
+            :container-ref="editorContainerRef"
+            @create-entry="handleSelectionCreateEntry"
+        />
+
         <!-- Settings Panel -->
         <EditorSettingsPanel :open="settingsPanelOpen" @close="closeSettings" />
 
@@ -389,6 +423,16 @@ const editorWidthClass = computed(() => {
             :selected-text="quickCreateSelectedText"
             @close="closeQuickCreate"
             @created="handleCodexCreated"
+        />
+
+        <!-- Sprint 15: Progression Modal -->
+        <ProgressionEditorModal
+            :show="progressionModalOpen"
+            :novel-id="novel.id"
+            :scene-id="activeScene?.id"
+            :scene-name="activeScene?.title || undefined"
+            @close="closeProgressionModal"
+            @saved="handleProgressionSaved"
         />
     </div>
 </template>

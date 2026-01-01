@@ -7,46 +7,46 @@ todos:
     status: completed
   - id: models
     content: Create CodexTag and CodexDetailDefinition models, update CodexEntry and CodexDetail relationships
-    status: in_progress
+    status: completed
   - id: tag-controller
     content: Create CodexTagController with CRUD and entry assignment endpoints
-    status: pending
+    status: completed
   - id: definition-controller
     content: Create CodexDetailDefinitionController for detail type templates
-    status: pending
+    status: completed
   - id: update-controllers
     content: Update CodexController and CodexDetailController to include tags/types in responses
-    status: pending
+    status: completed
   - id: routes
     content: Register all new API routes in routes/web.php
-    status: pending
+    status: completed
   - id: seeder
     content: Create CodexPresetSeeder for built-in detail presets (Story Role, Pronouns, etc.)
-    status: pending
+    status: completed
   - id: tag-manager-vue
     content: Create TagManager.vue component with auto-save tag assignment
-    status: pending
+    status: completed
   - id: ai-visibility-vue
     content: Create AIVisibilityToggle.vue component for per-detail AI control
-    status: pending
+    status: completed
   - id: detail-manager-update
     content: Update DetailManager.vue to support types, definitions, and AI visibility
-    status: pending
+    status: completed
   - id: preset-picker-vue
     content: Create DetailPresetPicker.vue for quick detail creation from presets
-    status: pending
+    status: completed
   - id: index-filter
     content: Add tag filter dropdown to Codex/Index.vue
-    status: pending
+    status: completed
   - id: show-integration
     content: Integrate TagManager into Codex/Show.vue sidebar
-    status: pending
+    status: completed
   - id: context-builder
     content: Update CodexContextBuilder to respect ai_visibility when building AI context
-    status: pending
+    status: completed
   - id: tests
     content: Write feature tests for new tag and detail definition endpoints
-    status: pending
+    status: completed
 ---
 
 # Sprint 14: Tags and Enhanced Details Development Strategy

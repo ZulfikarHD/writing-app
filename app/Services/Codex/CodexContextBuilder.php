@@ -2,6 +2,7 @@
 
 namespace App\Services\Codex;
 
+use App\Models\CodexDetail;
 use App\Models\CodexEntry;
 use Illuminate\Support\Collection;
 
@@ -15,7 +16,13 @@ use Illuminate\Support\Collection;
  * - AI context mode filtering
  * - Performance optimization via caching
  *
+ * Sprint 14 (US-12.6): Respects per-detail AI visibility settings:
+ * - 'always': Always included in AI context
+ * - 'never': Never included (private notes in details)
+ * - 'nsfw_only': Only included when NSFW prompt is used
+ *
  * @see https://www.novelcrafter.com/help/docs/codex/codex-relations
+ * @see https://www.novelcrafter.com/help/docs/codex/codex-details
  */
 class CodexContextBuilder
 {
@@ -30,17 +37,28 @@ class CodexContextBuilder
     public const MAX_CASCADE_DEPTH = 3;
 
     /**
+     * Whether to include NSFW-only content.
+     */
+    private bool $includeNsfw = false;
+
+    /**
      * Build AI context for detected entries, including related entries.
      *
      * @param  array<int>  $detectedEntryIds  IDs of entries detected in text
      * @param  int  $cascadeDepth  How many levels of relations to include
+     * @param  bool  $includeNsfw  Whether to include NSFW-only details
      * @return Collection<int, array<string, mixed>> Formatted context for AI
      */
-    public function buildContext(array $detectedEntryIds, int $cascadeDepth = self::DEFAULT_CASCADE_DEPTH): Collection
-    {
+    public function buildContext(
+        array $detectedEntryIds,
+        int $cascadeDepth = self::DEFAULT_CASCADE_DEPTH,
+        bool $includeNsfw = false
+    ): Collection {
         if (empty($detectedEntryIds)) {
             return collect();
         }
+
+        $this->includeNsfw = $includeNsfw;
 
         // Clamp cascade depth to safe range
         $cascadeDepth = max(0, min($cascadeDepth, self::MAX_CASCADE_DEPTH));
@@ -48,12 +66,17 @@ class CodexContextBuilder
         // Get all entry IDs including related ones
         $allEntryIds = $this->gatherRelatedEntryIds($detectedEntryIds, $cascadeDepth);
 
-        // Load entries with their relations and details
+        // Load entries with their relations and details (with definitions for type info)
         $entries = CodexEntry::query()
             ->whereIn('id', $allEntryIds)
             ->where('ai_context_mode', '!=', CodexEntry::CONTEXT_NEVER)
             ->where('is_archived', false)
-            ->with(['aliases', 'details', 'outgoingRelations.targetEntry', 'incomingRelations.sourceEntry'])
+            ->with([
+                'aliases',
+                'details.definition', // Sprint 14: Include definition for visibility info
+                'outgoingRelations.targetEntry',
+                'incomingRelations.sourceEntry',
+            ])
             ->get();
 
         return $this->formatForAI($entries, $detectedEntryIds);
@@ -102,6 +125,7 @@ class CodexContextBuilder
 
     /**
      * Format entries for AI consumption.
+     * Sprint 14: Filters details by AI visibility.
      *
      * @param  Collection<int, CodexEntry>  $entries
      * @param  array<int>  $detectedIds  IDs that were directly detected (not via relations)
@@ -118,14 +142,29 @@ class CodexContextBuilder
                 'name' => $entry->name,
                 'aliases' => $entry->aliases->pluck('alias')->all(),
                 'description' => $entry->description,
-                'details' => $entry->details->map(fn ($d) => [
+                // Sprint 14: Filter details by AI visibility
+                'details' => $this->filterDetailsForAI($entry->details)->map(fn ($d) => [
                     'key' => $d->key_name,
                     'value' => $d->value,
-                ])->all(),
+                ])->values()->all(),
                 'relations' => $this->formatRelations($entry),
                 'is_directly_detected' => $isDirectlyDetected,
                 'included_via_relation' => ! $isDirectlyDetected,
             ];
+        });
+    }
+
+    /**
+     * Filter details based on their AI visibility settings.
+     * Sprint 14 (US-12.6): Per-detail AI visibility control.
+     *
+     * @param  Collection<int, CodexDetail>  $details
+     * @return Collection<int, CodexDetail>
+     */
+    private function filterDetailsForAI(Collection $details): Collection
+    {
+        return $details->filter(function (CodexDetail $detail) {
+            return $detail->shouldIncludeInAiContext($this->includeNsfw);
         });
     }
 
@@ -190,12 +229,18 @@ class CodexContextBuilder
 
     /**
      * Build a compact context string for AI prompts.
+     * Sprint 14: Now respects per-detail AI visibility.
      *
      * @param  array<int>  $detectedEntryIds
+     * @param  int  $cascadeDepth
+     * @param  bool  $includeNsfw  Whether to include NSFW-only content
      */
-    public function buildContextString(array $detectedEntryIds, int $cascadeDepth = self::DEFAULT_CASCADE_DEPTH): string
-    {
-        $context = $this->buildContext($detectedEntryIds, $cascadeDepth);
+    public function buildContextString(
+        array $detectedEntryIds,
+        int $cascadeDepth = self::DEFAULT_CASCADE_DEPTH,
+        bool $includeNsfw = false
+    ): string {
+        $context = $this->buildContext($detectedEntryIds, $cascadeDepth, $includeNsfw);
 
         if ($context->isEmpty()) {
             return '';
@@ -240,5 +285,16 @@ class CodexContextBuilder
         }
 
         return $output;
+    }
+
+    /**
+     * Set whether NSFW content should be included.
+     * Fluent setter for method chaining.
+     */
+    public function withNsfw(bool $includeNsfw = true): self
+    {
+        $this->includeNsfw = $includeNsfw;
+
+        return $this;
     }
 }

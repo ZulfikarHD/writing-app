@@ -156,6 +156,51 @@ class CodexRelationController extends Controller
     }
 
     /**
+     * Swap the direction of a relation (source ↔ target).
+     *
+     * Sprint 15 (US-12.14): Allows users to fix relation direction mistakes
+     * without having to delete and recreate the relation.
+     */
+    public function swap(Request $request, CodexRelation $relation): JsonResponse
+    {
+        if ($relation->sourceEntry->novel->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        // Swap source and target
+        $originalSourceId = $relation->source_entry_id;
+        $originalTargetId = $relation->target_entry_id;
+
+        $relation->update([
+            'source_entry_id' => $originalTargetId,
+            'target_entry_id' => $originalSourceId,
+        ]);
+
+        // Reload with new relationships
+        $relation->load(['sourceEntry', 'targetEntry']);
+
+        return response()->json([
+            'success' => true,
+            'relation' => [
+                'id' => $relation->id,
+                'relation_type' => $relation->relation_type,
+                'label' => $relation->label,
+                'is_bidirectional' => $relation->is_bidirectional,
+                'source' => [
+                    'id' => $relation->sourceEntry->id,
+                    'name' => $relation->sourceEntry->name,
+                    'type' => $relation->sourceEntry->type,
+                ],
+                'target' => [
+                    'id' => $relation->targetEntry->id,
+                    'name' => $relation->targetEntry->name,
+                    'type' => $relation->targetEntry->type,
+                ],
+            ],
+        ]);
+    }
+
+    /**
      * Get available relation types.
      */
     public function types(): JsonResponse

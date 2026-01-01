@@ -3,7 +3,7 @@ import Button from '@/components/ui/Button.vue';
 import Card from '@/components/ui/Card.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import Toast from '@/components/ui/Toast.vue';
-import { AliasManager, CategoryManager, DetailManager, MentionHeatmap, ProgressionManager, RelationGraph, RelationManager, ResearchTab, TrackingToggle } from '@/components/codex';
+import { AliasManager, CategoryManager, DetailManager, MentionHeatmap, ProgressionManager, RelationGraph, RelationManager, ResearchTab, TagManager, TrackingToggle } from '@/components/codex';
 import { Head, Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { ref, computed, onMounted, onUnmounted } from 'vue';
@@ -13,11 +13,38 @@ interface Alias {
     alias: string;
 }
 
+interface DetailDefinition {
+    id: number;
+    name: string;
+    type: string;
+    options: string[] | null;
+    show_in_sidebar: boolean;
+}
+
 interface Detail {
     id: number;
     key_name: string;
     value: string;
     sort_order: number;
+    definition_id: number | null;
+    ai_visibility: 'always' | 'never' | 'nsfw_only';
+    type: string;
+    definition: DetailDefinition | null;
+}
+
+interface Tag {
+    id: number;
+    name: string;
+    color: string | null;
+    is_predefined?: boolean;
+}
+
+interface DetailPreset {
+    index: number;
+    name: string;
+    type: string;
+    options: string[] | null;
+    ai_visibility: string;
 }
 
 interface RelationEntry {
@@ -89,6 +116,7 @@ interface CodexEntry {
     incoming_relations: Relation[];
     progressions: Progression[];
     categories: Category[];
+    tags: Tag[]; // Sprint 14
     mentions: Mention[];
     external_links: ExternalLink[];
 }
@@ -105,6 +133,12 @@ const props = defineProps<{
     types: string[];
     contextModes: string[];
     scenes: SceneOption[];
+    // Sprint 14
+    availableTags?: Tag[];
+    detailDefinitions?: DetailDefinition[];
+    detailPresets?: DetailPreset[];
+    aiVisibilityModes?: string[];
+    detailTypes?: string[];
 }>();
 
 const typeConfig: Record<string, { label: string; icon: string; color: string }> = {
@@ -200,6 +234,27 @@ const handleDelete = () => {
 
 const handleDataUpdated = () => {
     router.reload({ only: ['entry'] });
+};
+
+/**
+ * Duplicate the current entry (Sprint 15: F-12.7.2).
+ * Deep clones the entry including aliases, details, and progressions.
+ */
+const duplicating = ref(false);
+
+const handleDuplicate = async () => {
+    duplicating.value = true;
+    try {
+        const response = await axios.post(`/api/codex/${props.entry.id}/duplicate`);
+        if (response.data.redirect) {
+            showToast('success', 'Entry Duplicated', `Created "${response.data.entry.name}"`);
+            router.visit(response.data.redirect);
+        }
+    } catch {
+        showToast('danger', 'Error', 'Failed to duplicate entry');
+    } finally {
+        duplicating.value = false;
+    }
 };
 
 const rescanning = ref(false);
@@ -313,6 +368,13 @@ onUnmounted(() => {
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                             Edit
+                        </Button>
+                        <!-- Duplicate Button (Sprint 15: F-12.7.2) -->
+                        <Button variant="ghost" size="sm" :loading="duplicating" @click="handleDuplicate">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            Duplicate
                         </Button>
                         <Button variant="ghost" size="sm" @click="handleArchive">
                             {{ entry.is_archived ? 'Restore' : 'Archive' }}
@@ -440,6 +502,7 @@ onUnmounted(() => {
                             :entry-id="entry.id"
                             :entry-type="entry.type"
                             :details="entry.details"
+                            :detail-presets="detailPresets"
                             @updated="handleDataUpdated"
                         />
                     </Card>
@@ -483,6 +546,15 @@ onUnmounted(() => {
 
                 <!-- Sidebar -->
                 <div class="space-y-6">
+                    <!-- Tags (Sprint 14: US-12.4) -->
+                    <TagManager
+                        :entry-id="entry.id"
+                        :novel-id="novel.id"
+                        :assigned-tags="entry.tags"
+                        :available-tags="availableTags || []"
+                        @updated="handleDataUpdated"
+                    />
+
                     <!-- Aliases -->
                     <Card>
                         <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Aliases</h2>

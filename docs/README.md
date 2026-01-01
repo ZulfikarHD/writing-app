@@ -27,7 +27,9 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Sprint 02 - Manuscript Editor](./10-sprints/sprint-02-manuscript-editor.md) ✅ Complete
 - [Sprint 03 - AI Connections & UI System](./10-sprints/sprint-03-ai-ui-system.md) ✅ Complete
 - [Sprint 04 - Codex System](./10-sprints/sprint-04-codex-system.md) ✅ Complete
-- [Sprint 13 - Codex V2: Auto-Mentions & Research](./10-sprints/sprint-13-codex-v2-enhancements.md) ✅ Complete ✨ NEW
+- [Sprint 13 - Codex V2: Auto-Mentions & Research](./10-sprints/sprint-13-codex-v2-enhancements.md) ✅ Complete
+- [Sprint 14 - Codex V2: Tags & Enhanced Details](./10-sprints/sprint-14-codex-tags-details.md) ✅ Complete ✨ NEW
+- [Sprint 15 - Codex V2: Batch Operations & QoL](./10-sprints/sprint-15-codex-enhancements.md) ✅ Complete ✨ NEW
 
 ### API Reference
 - [Authentication API](./04-api-reference/authentication.md)
@@ -42,7 +44,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Foundation Testing Guide](./06-testing/foundation-testing.md)
 - [Manuscript Editor Testing Guide](./06-testing/manuscript-editor-testing.md)
 - [AI Connections Testing Guide](./06-testing/ai-connections-testing.md)
-- [Codex System Testing Guide](./06-testing/codex-testing.md) ✨ NEW
+- [Codex System Testing Guide](./06-testing/codex-testing.md)
+- [Sprint 15 Testing Guide](./06-testing/sprint-15-testing.md) ✨ NEW
 
 ### User Journeys
 - [Authentication Flow](./07-user-journeys/authentication/user-auth-flow.md)
@@ -66,6 +69,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 | **Codex System** | ✅ Complete | [Sprint 04](./10-sprints/sprint-04-codex-system.md) | [Link](./04-api-reference/codex.md) | [Link](./06-testing/codex-testing.md) |
 | **Series Management** | ✅ Complete | [Sprint 04](./10-sprints/sprint-04-codex-system.md) | [Link](./04-api-reference/series.md) | [Link](./06-testing/codex-testing.md) |
 | **Codex V2 - Auto-Mentions & Research** | ✅ Complete | [Sprint 13](./10-sprints/sprint-13-codex-v2-enhancements.md) | [Link](./04-api-reference/codex.md) | [Link](./06-testing/codex-testing.md) |
+| **Codex V2 - Tags & Enhanced Details** | ✅ Complete | [Sprint 14](./10-sprints/sprint-14-codex-tags-details.md) | [Link](./04-api-reference/codex.md) | [Link](./06-testing/codex-testing.md) |
+| **Codex V2 - Batch Operations & QoL** | ✅ Complete | [Sprint 15](./10-sprints/sprint-15-codex-enhancements.md) | [Link](./04-api-reference/codex.md) | [Link](./06-testing/sprint-15-testing.md) |
 
 ---
 
@@ -138,6 +143,84 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 
 ---
 
+## 🔗 Sprint 14 - Codex V2: Tags & Enhanced Details
+
+### Features Delivered
+
+#### US-12.4: Tags System
+- **Custom Tags**: Create organizational labels dengan color coding
+- **Predefined Tags**: 11 system tags per entry type (Protagonist, Major, Weapon, dll)
+- **Tag Filtering**: Filter entries by assigned tags di Index page
+- **NOT Sent to AI**: Pure organizational tool, separate dari Categories
+- **Auto-Save Assignment**: Instant tag add/remove tanpa manual save
+
+#### US-12.5: Enhanced Detail Types
+- **Text Type**: Multi-line text input untuk backstory, notes
+- **Line Type**: Single-line input untuk occupation, simple facts
+- **Dropdown Type**: Pre-defined options dengan select UI
+- **Codex Reference**: Link ke entry lain (schema ready, UI Sprint 16+)
+
+#### US-12.6: AI Visibility per Detail
+- **Always**: Always included in AI context
+- **Never**: Private notes yang TIDAK dikirim ke AI
+- **NSFW Only**: Only included dengan NSFW prompts
+- **Granular Control**: Per-detail toggle dengan visual indicators (👁️/🔒/🔞)
+
+#### US-12.7: Detail Presets
+- **12 System Presets**: Story Role, Pronouns, Backstory, Occupation, dll
+- **Filtered by Type**: Presets relevant ke entry type shown
+- **One-Click Add**: "Add from Preset" dengan default values
+- **Type-Aware**: Each preset has correct type dan AI visibility pre-set
+
+### Stats
+- **20+ Tests Added**: Tags CRUD, definitions, AI visibility filtering
+- **3 New Tables**: codex_tags, codex_entry_tags, codex_detail_definitions
+- **14 New API Endpoints**: Full tag & definition management
+- **2,500+ Lines Added**: Backend + frontend implementation
+
+### Quick Links
+- [Sprint 14 Documentation](./10-sprints/sprint-14-codex-tags-details.md)
+- [Codex API Documentation - Sprint 14 Section](./04-api-reference/codex.md#sprint-14-tags-system--enhanced-details)
+- [NovelCrafter Parity Reference](https://www.novelcrafter.com/help/docs/codex/codex-details)
+
+---
+
+## 🔗 Sprint 15 - Codex V2: Batch Operations & QoL
+
+### Features Delivered
+
+#### F-12.7.2: Duplicate Entry
+- **Deep Clone**: Clone entry dengan aliases, details, progressions
+- **Smart Naming**: Auto-append "(Copy)" dengan increment untuk duplicates
+- **Selective Clone**: Skip thumbnail, relations, mentions (by design)
+- **Instant Redirect**: Navigate ke duplicate entry after creation
+
+#### US-12.12: Bulk Create Entries
+- **Text-Based Input**: Format "Name | Type | Description" (one per line)
+- **Fuzzy Type Matching**: 40+ aliases (char → character, loc → location)
+- **Preview Mode**: See what will be created before committing
+- **Duplicate Detection**: Skip atau warn untuk existing entries
+- **Comment Support**: Lines dengan # prefix ignored
+- **Error Reporting**: Line-by-line validation dengan suggestions
+
+#### US-12.14: Swap Relation Direction
+- **One-Click Swap**: Reverse source ↔ target tanpa delete
+- **Preserve Metadata**: Keep type, label, bidirectional flag
+- **Instant Update**: No page reload needed
+
+### Stats
+- **18+ Tests Added**: Duplicate, bulk create, swap, edge cases
+- **1 New Service**: BulkEntryCreator dengan parse, validate, create
+- **3 New Endpoints**: duplicate, bulk-create, swap
+- **3 New Components**: BulkCreateModal, CodexHoverTooltip, ProgressionEditorModal
+
+### Quick Links
+- [Sprint 15 Documentation](./10-sprints/sprint-15-codex-enhancements.md)
+- [Sprint 15 Testing Guide](./06-testing/sprint-15-testing.md)
+- [Codex API Documentation - Sprint 15 Section](./04-api-reference/codex.md#sprint-15-editor-integration--ux-enhancements)
+
+---
+
 ## 🔗 Previous Sprints
 
 ### Sprint 03 - AI Connections & UI System
@@ -152,4 +235,7 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 
 ---
 
-**Last Updated:** 2026-01-01
+---
+
+*Last Updated: 2026-01-01*  
+*Latest Features: Sprint 14 (Tags & Enhanced Details), Sprint 15 (Batch Operations)*

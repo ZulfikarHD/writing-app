@@ -145,6 +145,28 @@ const deleteRelation = async (relation: Relation) => {
     }
 };
 
+/**
+ * Swap relation direction (source ↔ target).
+ * Sprint 15 (US-12.14): Allows fixing relation direction mistakes.
+ */
+const swapRelation = async (relation: Relation) => {
+    loading.value = true;
+    error.value = null;
+
+    try {
+        const response = await axios.post(`/api/codex/relations/${relation.id}/swap`);
+
+        if (response.data.success) {
+            // Reload relations to get updated state
+            emit('updated');
+        }
+    } catch {
+        error.value = 'Failed to swap relation direction';
+    } finally {
+        loading.value = false;
+    }
+};
+
 const getRelatedEntry = (relation: Relation) => {
     return relation.direction === 'outgoing' ? relation.target : relation.source;
 };
@@ -198,16 +220,32 @@ const getRelationLabel = (relation: Relation) => {
                         </p>
                     </div>
                 </div>
-                <button
-                    type="button"
-                    class="rounded p-1 text-zinc-400 transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
-                    :disabled="loading"
-                    @click="deleteRelation(relation)"
-                >
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                </button>
+                <div class="flex items-center gap-1">
+                    <!-- Swap Direction Button (Sprint 15: US-12.14) -->
+                    <button
+                        type="button"
+                        class="rounded p-1 text-zinc-400 transition-colors hover:bg-violet-100 hover:text-violet-600 dark:hover:bg-violet-900/30 dark:hover:text-violet-400"
+                        :disabled="loading"
+                        title="Swap direction"
+                        @click="swapRelation(relation)"
+                    >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
+                    </button>
+                    <!-- Delete Button -->
+                    <button
+                        type="button"
+                        class="rounded p-1 text-zinc-400 transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                        :disabled="loading"
+                        title="Delete relation"
+                        @click="deleteRelation(relation)"
+                    >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
 
