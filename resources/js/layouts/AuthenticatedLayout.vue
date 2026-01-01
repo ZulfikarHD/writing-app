@@ -90,11 +90,18 @@ const logout = () => {
                                 class="absolute right-0 mt-2 w-48 origin-top-right rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
                             >
                                 <Link
+                                    href="/settings/ai"
+                                    class="block px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                                >
+                                    AI Settings
+                                </Link>
+                                <Link
                                     href="/profile"
                                     class="block px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-700"
                                 >
                                     Profile Settings
                                 </Link>
+                                <hr class="my-1 border-zinc-200 dark:border-zinc-700" />
                                 <button
                                     @click="logout"
                                     class="block w-full px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-700"

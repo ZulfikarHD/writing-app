@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ActController;
+use App\Http\Controllers\AIConnectionController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\ChapterController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SceneController;
 use App\Http\Controllers\SceneLabelController;
+use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -95,4 +97,18 @@ Route::middleware('auth')->group(function () {
     // Onboarding routes
     Route::post('onboarding/welcome', [OnboardingController::class, 'completeWelcome'])->name('onboarding.welcome');
     Route::post('onboarding/skip', [OnboardingController::class, 'skip'])->name('onboarding.skip');
+
+    // Settings routes
+    Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::get('settings/ai', [SettingsController::class, 'aiConnections'])->name('settings.ai');
+
+    // AI Connection API routes
+    Route::get('api/ai-connections/providers', [AIConnectionController::class, 'providers'])->name('ai-connections.providers');
+    Route::get('api/ai-connections', [AIConnectionController::class, 'index'])->name('ai-connections.index');
+    Route::post('api/ai-connections', [AIConnectionController::class, 'store'])->name('ai-connections.store');
+    Route::get('api/ai-connections/{aiConnection}', [AIConnectionController::class, 'show'])->name('ai-connections.show');
+    Route::patch('api/ai-connections/{aiConnection}', [AIConnectionController::class, 'update'])->name('ai-connections.update');
+    Route::delete('api/ai-connections/{aiConnection}', [AIConnectionController::class, 'destroy'])->name('ai-connections.destroy');
+    Route::post('api/ai-connections/{aiConnection}/test', [AIConnectionController::class, 'test'])->name('ai-connections.test');
+    Route::get('api/ai-connections/{aiConnection}/models', [AIConnectionController::class, 'models'])->name('ai-connections.models');
 });

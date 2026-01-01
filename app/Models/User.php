@@ -72,6 +72,38 @@ class User extends Authenticatable
         return $this->hasOne(UserOnboardingState::class);
     }
 
+    /**
+     * @return HasMany<AIConnection, $this>
+     */
+    public function aiConnections(): HasMany
+    {
+        return $this->hasMany(AIConnection::class);
+    }
+
+    /**
+     * @return HasMany<AIModelCollection, $this>
+     */
+    public function aiModelCollections(): HasMany
+    {
+        return $this->hasMany(AIModelCollection::class);
+    }
+
+    /**
+     * @return HasMany<AIUsageLog, $this>
+     */
+    public function aiUsageLogs(): HasMany
+    {
+        return $this->hasMany(AIUsageLog::class);
+    }
+
+    /**
+     * Get the user's default AI connection.
+     */
+    public function defaultAIConnection(): ?AIConnection
+    {
+        return $this->aiConnections()->where('is_default', true)->where('is_active', true)->first();
+    }
+
     public function defaultPenName(): ?PenName
     {
         return $this->penNames()->where('is_default', true)->first();

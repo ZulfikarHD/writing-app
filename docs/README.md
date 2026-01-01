@@ -29,11 +29,13 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Authentication API](./04-api-reference/authentication.md)
 - [Novels API](./04-api-reference/novels.md)
 - [Profile API](./04-api-reference/profile.md)
-- [Manuscript Editor API](./04-api-reference/manuscript-editor.md) ✨ NEW
+- [Manuscript Editor API](./04-api-reference/manuscript-editor.md)
+- [AI Connections API](./04-api-reference/ai-connections.md) ✨ NEW
 
 ### Testing
 - [Foundation Testing Guide](./06-testing/foundation-testing.md)
-- [Manuscript Editor Testing Guide](./06-testing/manuscript-editor-testing.md) ✨ NEW
+- [Manuscript Editor Testing Guide](./06-testing/manuscript-editor-testing.md)
+- [AI Connections Testing Guide](./06-testing/ai-connections-testing.md) ✨ NEW
 
 ### User Journeys
 - [Authentication Flow](./07-user-journeys/authentication/user-auth-flow.md)
@@ -52,6 +54,7 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 | Rich Text Editor | ✅ Complete | [Sprint 01](./10-sprints/sprint-01-foundation.md) | [Link](./04-api-reference/manuscript-editor.md) | [Link](./06-testing/manuscript-editor-testing.md) |
 | Scene/Chapter Structure | ✅ Complete | [Sprint 01](./10-sprints/sprint-01-foundation.md) | [Link](./04-api-reference/manuscript-editor.md) | [Link](./06-testing/manuscript-editor-testing.md) |
 | Editor Settings | ✅ Complete | [Sprint 01](./10-sprints/sprint-01-foundation.md) | N/A | [Link](./06-testing/manuscript-editor-testing.md) |
+| AI Connections | ✅ Complete | Sprint 03 | [Link](./04-api-reference/ai-connections.md) | [Link](./06-testing/ai-connections-testing.md) |
 
 ---
 
@@ -66,6 +69,23 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 | Animation | Motion-V | Latest |
 | Package Manager | Yarn | v1.22 |
 | PHP Version | PHP | v8.4 |
+
+---
+
+---
+
+## 🔗 Sprint 03 - AI Connections
+
+### Features Delivered
+- **AI Provider Management**: Connect multiple AI providers (OpenAI, Anthropic, OpenRouter, Ollama, Groq, LM Studio)
+- **Secure API Key Storage**: Encrypted storage with masked display
+- **Connection Testing**: Test API credentials with detailed feedback
+- **Model Discovery**: Fetch and display available models from each provider
+- **Default Connection**: Set preferred AI provider as default
+
+### Quick Links
+- [API Documentation](./04-api-reference/ai-connections.md)
+- [Testing Guide](./06-testing/ai-connections-testing.md)
 
 ---
 
