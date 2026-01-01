@@ -83,7 +83,7 @@ const submit = async () => {
             <div class="mx-auto max-w-3xl px-4 py-4 sm:px-6 lg:px-8">
                 <div class="flex items-center gap-4">
                     <Link
-                        :href="`/novels/${novel.id}/codex`"
+                        :href="`/novels/${novel.id}/workspace?mode=codex`"
                         class="flex items-center gap-2 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
                     >
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -178,7 +178,7 @@ const submit = async () => {
 
                 <!-- Actions -->
                 <div class="flex items-center justify-end gap-3">
-                    <Button :href="`/novels/${novel.id}/codex`" as="a" variant="ghost"> Cancel </Button>
+                    <Button :href="`/novels/${novel.id}/workspace?mode=codex`" as="a" variant="ghost"> Cancel </Button>
                     <Button type="submit" :loading="isSubmitting" :disabled="!form.type || !form.name.trim() || isSubmitting"> Create Entry </Button>
                 </div>
             </form>

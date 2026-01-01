@@ -16,6 +16,7 @@ class Act extends Model
         'novel_id',
         'title',
         'position',
+        'disable_numeration',
     ];
 
     /**
@@ -25,6 +26,7 @@ class Act extends Model
     {
         return [
             'position' => 'integer',
+            'disable_numeration' => 'boolean',
         ];
     }
 

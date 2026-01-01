@@ -20,6 +20,7 @@ class Scene extends Model
         'summary',
         'position',
         'pov_character_id',
+        'pov_type',
         'status',
         'word_count',
         'subtitle',
@@ -27,6 +28,16 @@ class Scene extends Model
         'exclude_from_ai',
         'metadata',
         'archived_at',
+    ];
+
+    /**
+     * Valid POV types.
+     */
+    public const POV_TYPES = [
+        '1st_person' => '1st Person',
+        '2nd_person' => '2nd Person',
+        '3rd_limited' => '3rd Person Limited',
+        '3rd_omniscient' => '3rd Person Omniscient',
     ];
 
     /**

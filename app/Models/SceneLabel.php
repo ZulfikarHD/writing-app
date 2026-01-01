@@ -16,7 +16,24 @@ class SceneLabel extends Model
         'novel_id',
         'name',
         'color',
+        'preset_type',
         'position',
+    ];
+
+    /**
+     * Preset types for quick label creation.
+     */
+    public const PRESET_STATUS = [
+        ['name' => 'Idea', 'color' => '#FDE68A'],
+        ['name' => 'Draft', 'color' => '#FCA5A5'],
+        ['name' => 'Edited', 'color' => '#6EE7B7'],
+        ['name' => 'Finalized', 'color' => '#93C5FD'],
+    ];
+
+    public const PRESET_TEMPORAL = [
+        ['name' => 'Past', 'color' => '#C4B5FD'],
+        ['name' => 'Present', 'color' => '#6EE7B7'],
+        ['name' => 'Future', 'color' => '#93C5FD'],
     ];
 
     /**

@@ -17,7 +17,6 @@ use App\Http\Controllers\CodexRelationController;
 use App\Http\Controllers\CodexTagController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EditorController;
-use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\NovelController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlanController;
@@ -27,6 +26,8 @@ use App\Http\Controllers\SceneLabelController;
 use App\Http\Controllers\SeriesCodexController;
 use App\Http\Controllers\SeriesController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\WorkspaceController;
+use App\Models\Novel;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -92,12 +93,30 @@ Route::middleware('auth')->group(function () {
     Route::get('novels/{novel}/workspace', [WorkspaceController::class, 'show'])->name('workspace.show');
     Route::get('novels/{novel}/workspace/{scene}', [WorkspaceController::class, 'show'])->name('workspace.scene');
 
-    // Plan routes
-    Route::get('novels/{novel}/plan', [PlanController::class, 'show'])->name('plan.show');
+    // Plan routes - redirect to workspace
+    Route::get('novels/{novel}/plan', fn (Novel $novel) => redirect()->route('workspace.show', ['novel' => $novel, 'mode' => 'plan']))->name('plan.redirect');
+
+    // Plan API routes (used by workspace PlanPanel)
     Route::get('api/novels/{novel}/scenes/search', [PlanController::class, 'search'])->name('scenes.search');
+    Route::get('api/novels/{novel}/plan/matrix', [PlanController::class, 'matrix'])->name('plan.matrix');
+    Route::get('api/novels/{novel}/plan/settings', [PlanController::class, 'getSettings'])->name('plan.settings');
+    Route::patch('api/novels/{novel}/plan/settings', [PlanController::class, 'updateSettings'])->name('plan.settings.update');
+    Route::patch('api/scenes/{scene}/pov', [PlanController::class, 'setScenePov'])->name('scenes.pov');
+    Route::post('api/scenes/{scene}/labels/sync', [PlanController::class, 'setSceneLabel'])->name('scenes.labels.sync');
+    Route::get('api/templates', [PlanController::class, 'getTemplates'])->name('templates.index');
+    Route::post('api/plan/parse-outline', [PlanController::class, 'parseOutline'])->name('plan.parse-outline');
+    Route::post('api/novels/{novel}/plan/from-outline', [PlanController::class, 'createFromOutline'])->name('plan.from-outline');
+    Route::post('api/novels/{novel}/plan/bulk-pov', [PlanController::class, 'bulkSetPov'])->name('plan.bulk-pov');
+    Route::patch('api/acts/{act}/numeration', [PlanController::class, 'toggleActNumeration'])->name('acts.numeration');
+    Route::patch('api/chapters/{chapter}/numeration', [PlanController::class, 'toggleChapterNumeration'])->name('chapters.numeration');
+    Route::post('api/acts/{act}/copy-prose', [PlanController::class, 'copyActProse'])->name('acts.copy-prose');
+    Route::post('api/acts/{act}/copy-outlines', [PlanController::class, 'copyActOutlines'])->name('acts.copy-outlines');
+    Route::delete('api/novels/{novel}/empty-scenes', [PlanController::class, 'deleteEmptyScenes'])->name('novels.delete-empty-scenes');
 
     // Codex routes (Pages)
-    Route::get('novels/{novel}/codex', [CodexController::class, 'index'])->name('codex.index');
+    // Index redirects to workspace - the main codex list is now in workspace mode=codex
+    Route::get('novels/{novel}/codex', fn (Novel $novel) => redirect()->route('workspace.show', ['novel' => $novel, 'mode' => 'codex']))->name('codex.redirect');
+    // Create, Show, Edit pages are still standalone for full functionality
     Route::get('novels/{novel}/codex/create', [CodexController::class, 'create'])->name('codex.create');
     Route::get('codex/{entry}', [CodexController::class, 'show'])->name('codex.show');
     Route::get('codex/{entry}/edit', [CodexController::class, 'edit'])->name('codex.edit');

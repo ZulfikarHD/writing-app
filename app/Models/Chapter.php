@@ -16,8 +16,10 @@ class Chapter extends Model
         'novel_id',
         'act_id',
         'title',
+        'summary',
         'position',
         'settings',
+        'disable_numeration',
     ];
 
     /**
@@ -28,6 +30,7 @@ class Chapter extends Model
         return [
             'position' => 'integer',
             'settings' => 'array',
+            'disable_numeration' => 'boolean',
         ];
     }
 

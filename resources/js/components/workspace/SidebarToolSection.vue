@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Motion, AnimatePresence } from 'motion-v';
 import type { SidebarTool } from '@/composables/useWorkspaceState';
 
 defineProps<{
@@ -20,45 +21,59 @@ const iconPaths: Record<string, string> = {
     notes: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z',
     chat: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z',
 };
+
+const iconColors: Record<string, string> = {
+    document: 'text-amber-500 dark:text-amber-400',
+    book: 'text-violet-500 dark:text-violet-400',
+    notes: 'text-emerald-500 dark:text-emerald-400',
+    chat: 'text-blue-500 dark:text-blue-400',
+};
 </script>
 
 <template>
-    <div class="border-b border-zinc-200 dark:border-zinc-700">
+    <div class="border-b border-zinc-200/80 dark:border-zinc-700/80">
         <!-- Section Header -->
         <button
             type="button"
-            class="group flex w-full items-center gap-2 px-3 py-2.5 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-700/50"
+            class="group flex w-full items-center gap-2.5 px-3.5 py-3 text-left transition-all hover:bg-zinc-100/80 active:scale-[0.99] dark:hover:bg-zinc-700/40"
             @click="emit('toggle')"
         >
-            <!-- Expand/Collapse Chevron -->
-            <svg
-                :class="['h-3 w-3 text-zinc-400 transition-transform', expanded ? 'rotate-90' : '']"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
+            <!-- Expand/Collapse Chevron with animation -->
+            <Motion
+                :animate="{ rotate: expanded ? 90 : 0 }"
+                :transition="{ type: 'spring', stiffness: 300, damping: 25 }"
+                class="flex items-center justify-center"
             >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
+                <svg
+                    class="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+            </Motion>
 
-            <!-- Icon -->
-            <svg class="h-4 w-4 text-zinc-500 dark:text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <!-- Icon with color -->
+            <svg :class="['h-4.5 w-4.5 shrink-0', iconColors[icon]]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" :d="iconPaths[icon]" />
             </svg>
 
-            <!-- Title -->
-            <span class="flex-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <!-- Title with better contrast -->
+            <span class="flex-1 text-sm font-semibold tracking-tight text-zinc-800 dark:text-zinc-200">
                 {{ title }}
             </span>
 
-            <!-- Pin Button -->
-            <button
-                type="button"
+            <!-- Pin Button with animation -->
+            <Motion
+                :animate="{ scale: pinned ? 1.1 : 1, opacity: pinned ? 1 : 0.6 }"
+                :transition="{ type: 'spring', stiffness: 400, damping: 20 }"
+                class="rounded-md p-1.5 transition-colors"
                 :class="[
-                    'rounded p-1 transition-all',
                     pinned
-                        ? 'text-violet-600 dark:text-violet-400'
-                        : 'text-zinc-400 opacity-0 hover:text-zinc-600 group-hover:opacity-100 dark:text-zinc-500 dark:hover:text-zinc-300',
+                        ? 'bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400'
+                        : 'text-zinc-400 opacity-0 hover:bg-zinc-200 hover:text-zinc-600 group-hover:opacity-100 dark:text-zinc-500 dark:hover:bg-zinc-600 dark:hover:text-zinc-300',
                 ]"
                 :title="pinned ? 'Unpin section' : 'Pin section'"
                 @click.stop="emit('pin')"
@@ -78,12 +93,23 @@ const iconPaths: Record<string, string> = {
                         d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
                     />
                 </svg>
-            </button>
+            </Motion>
         </button>
 
-        <!-- Content -->
-        <div v-if="expanded" class="px-2 pb-2">
-            <slot />
-        </div>
+        <!-- Content with animation -->
+        <AnimatePresence mode="wait">
+            <Motion
+                v-if="expanded"
+                :initial="{ opacity: 0, height: 0 }"
+                :animate="{ opacity: 1, height: 'auto' }"
+                :exit="{ opacity: 0, height: 0 }"
+                :transition="{ type: 'spring', stiffness: 400, damping: 35, mass: 0.8 }"
+                class="overflow-hidden"
+            >
+                <div class="px-2.5 pb-2.5">
+                    <slot />
+                </div>
+            </Motion>
+        </AnimatePresence>
     </div>
 </template>

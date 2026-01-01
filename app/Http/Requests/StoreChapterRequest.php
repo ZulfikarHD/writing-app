@@ -27,6 +27,7 @@ class StoreChapterRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'position' => ['nullable', 'integer', 'min:0'],
+            'act_id' => ['nullable', 'integer', 'exists:acts,id'],
         ];
     }
 }

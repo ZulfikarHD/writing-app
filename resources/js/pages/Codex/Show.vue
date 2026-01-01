@@ -222,7 +222,7 @@ const handleDelete = () => {
             confirmDialog.value.loading = true;
             try {
                 await axios.delete(`/api/codex/${props.entry.id}`);
-                router.visit(`/novels/${props.novel.id}/codex`);
+                router.visit(`/novels/${props.novel.id}/workspace?mode=codex`);
             } catch {
                 showToast('danger', 'Error', 'Failed to delete entry');
                 confirmDialog.value.loading = false;
@@ -352,7 +352,7 @@ onUnmounted(() => {
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-4">
                         <Link
-                            :href="`/novels/${novel.id}/codex`"
+                            :href="`/novels/${novel.id}/workspace?mode=codex`"
                             class="flex items-center gap-2 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
                         >
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

@@ -124,13 +124,23 @@ class SceneController extends Controller
             'notes' => ['sometimes', 'nullable', 'string'],
             'pov_character_id' => ['sometimes', 'nullable', 'integer'],
             'exclude_from_ai' => ['sometimes', 'boolean'],
+            'chapter_id' => ['sometimes', 'integer', 'exists:chapters,id'],
         ]);
+
+        // If moving to a different chapter, verify ownership
+        if (isset($validated['chapter_id']) && $validated['chapter_id'] !== $scene->chapter_id) {
+            $targetChapter = Chapter::find($validated['chapter_id']);
+            if (! $targetChapter || $targetChapter->novel->user_id !== $request->user()->id) {
+                abort(403, 'Cannot move scene to this chapter');
+            }
+        }
 
         $scene->update($validated);
 
         return response()->json([
             'scene' => [
                 'id' => $scene->id,
+                'chapter_id' => $scene->chapter_id,
                 'title' => $scene->title,
                 'position' => $scene->position,
                 'status' => $scene->status,

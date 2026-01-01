@@ -2,6 +2,8 @@
 import { Head, router } from '@inertiajs/vue3';
 import { ref, computed, onMounted, onBeforeUnmount, watch, defineAsyncComponent } from 'vue';
 import WorkspaceSidebar from '@/components/workspace/WorkspaceSidebar.vue';
+import ScenesRightSidebar from '@/components/workspace/ScenesRightSidebar.vue';
+import SceneDetailsSidebar from '@/components/workspace/SceneDetailsSidebar.vue';
 import ModeNavigation from '@/components/workspace/ModeNavigation.vue';
 import { useWorkspaceState, type WorkspaceMode } from '@/composables/useWorkspaceState';
 import { useEditorSettings } from '@/composables/useEditorSettings';
@@ -109,10 +111,31 @@ const { editorStyles } = useEditorSettings();
 const currentScene = ref<Scene | null>(props.activeScene);
 const localChapters = ref<Chapter[]>([...props.chapters]);
 
+// Sidebar states
+const scenesSidebarOpen = ref(true); // Scenes sidebar (right) - open by default
+const detailsSidebarOpen = ref(false); // Scene details sidebar
+
 // Modal states
 const quickCreateOpen = ref(false);
 const quickCreateSelectedText = ref('');
 const codexCreateOpen = ref(false);
+
+// Toggle scenes sidebar (chapters & scenes tree)
+const toggleScenesSidebar = () => {
+    scenesSidebarOpen.value = !scenesSidebarOpen.value;
+};
+
+// Toggle details sidebar (scene metadata)
+const toggleDetailsSidebar = () => {
+    detailsSidebarOpen.value = !detailsSidebarOpen.value;
+};
+
+// Auto-close details sidebar when not in write mode
+watch([() => isWriteMode.value, () => currentScene.value], ([writeMode]) => {
+    if (!writeMode) {
+        detailsSidebarOpen.value = false;
+    }
+});
 
 // Word count computed
 const totalWordCount = computed(() => {
@@ -154,8 +177,15 @@ const updateUrl = () => {
 watch(mode, updateUrl);
 watch(activeCodexEntryId, updateUrl);
 
-// Handle scene selection
-const handleSceneSelect = (sceneId: number) => {
+// Handle scene selection - accepts either scene ID or scene object
+const handleSceneSelect = (sceneOrId: number | { id: number }) => {
+    const sceneId = typeof sceneOrId === 'number' ? sceneOrId : sceneOrId.id;
+
+    // Always switch to write mode when selecting a scene
+    if (mode.value !== 'write') {
+        setMode('write');
+    }
+
     if (sceneId !== currentScene.value?.id) {
         router.visit(`/novels/${props.novel.id}/workspace/${sceneId}`, {
             preserveState: true,
@@ -267,19 +297,16 @@ onBeforeUnmount(() => {
     <div class="flex h-screen bg-white dark:bg-zinc-900" :style="editorStyles">
         <Head :title="`${novel.title} - Workspace`" />
 
-        <!-- Sidebar -->
+        <!-- Left Sidebar (Codex, Notes) -->
         <WorkspaceSidebar
             v-if="!sidebarCollapsed"
             :novel="novel"
-            :chapters="localChapters"
-            :active-scene-id="currentScene?.id"
             :total-word-count="totalWordCount"
             :current-mode="mode"
-            @select-scene="handleSceneSelect"
-            @chapters-update="handleChaptersUpdate"
             @close="toggleSidebar"
             @open-codex-entry="openCodexEntry"
             @open-quick-create="openQuickCreate"
+            @toggle-scenes-sidebar="toggleScenesSidebar"
         />
 
         <!-- Main Content -->
@@ -320,10 +347,47 @@ onBeforeUnmount(() => {
 
                 <!-- Right Actions -->
                 <div class="flex items-center gap-2">
-                    <!-- Word Count (Write Mode) -->
-                    <span v-if="isWriteMode" class="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:inline">
+                    <!-- Word Count -->
+                    <span class="hidden text-sm text-zinc-500 dark:text-zinc-400 sm:inline">
                         {{ totalWordCount.toLocaleString() }} words
                     </span>
+
+                    <!-- Scenes Sidebar Toggle -->
+                    <button
+                        type="button"
+                        :class="[
+                            'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all active:scale-95',
+                            scenesSidebarOpen
+                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+                                : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800',
+                        ]"
+                        title="Toggle scenes panel"
+                        @click="toggleScenesSidebar"
+                    >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <span class="hidden lg:inline">Scenes</span>
+                    </button>
+
+                    <!-- Scene Details Toggle (Write Mode only) -->
+                    <button
+                        v-if="isWriteMode && currentScene"
+                        type="button"
+                        :class="[
+                            'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all active:scale-95',
+                            detailsSidebarOpen
+                                ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300'
+                                : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800',
+                        ]"
+                        title="Toggle scene details"
+                        @click="toggleDetailsSidebar"
+                    >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span class="hidden lg:inline">Details</span>
+                    </button>
 
                     <!-- Exit Button -->
                     <a
@@ -368,6 +432,26 @@ onBeforeUnmount(() => {
                 />
             </main>
         </div>
+
+        <!-- Right Sidebar: Scenes (Chapters & Scenes Tree) -->
+        <ScenesRightSidebar
+            :novel="novel"
+            :chapters="localChapters"
+            :active-scene-id="currentScene?.id"
+            :is-open="scenesSidebarOpen"
+            @select-scene="handleSceneSelect"
+            @chapters-update="handleChaptersUpdate"
+            @close="scenesSidebarOpen = false"
+        />
+
+        <!-- Right Sidebar: Scene Details (Write Mode only) -->
+        <SceneDetailsSidebar
+            v-if="isWriteMode && detailsSidebarOpen"
+            :scene="currentScene"
+            :novel-id="novel.id"
+            @close="detailsSidebarOpen = false"
+            @open-codex-entry="openCodexEntry"
+        />
 
         <!-- Codex Entry Modal -->
         <CodexEntryModal

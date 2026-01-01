@@ -134,16 +134,16 @@ const onSceneDragEnd = async (chapterId: number) => {
 const chapterDragOptions = computed(() => ({
     animation: 200,
     group: 'chapters',
-    ghostClass: 'opacity-50',
-    chosenClass: 'bg-violet-100 dark:bg-violet-900/30',
+    ghostClass: 'drag-ghost',
+    chosenClass: 'drag-chosen',
     handle: '.chapter-drag-handle',
 }));
 
 const sceneDragOptions = computed(() => ({
     animation: 200,
     group: 'scenes',
-    ghostClass: 'opacity-50',
-    chosenClass: 'bg-violet-100 dark:bg-violet-900/30',
+    ghostClass: 'drag-ghost',
+    chosenClass: 'drag-chosen',
 }));
 </script>
 
@@ -324,7 +324,7 @@ const sceneDragOptions = computed(() => ({
         <div class="border-t border-zinc-200 px-2 py-2 dark:border-zinc-700">
             <div class="flex gap-1">
                 <Link
-                    :href="`/novels/${novel.id}/plan`"
+                    :href="`/novels/${novel.id}/workspace?mode=plan`"
                     class="flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-zinc-600 transition-all hover:bg-zinc-200 active:scale-95 dark:text-zinc-400 dark:hover:bg-zinc-700"
                 >
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -333,7 +333,7 @@ const sceneDragOptions = computed(() => ({
                     Plan
                 </Link>
                 <Link
-                    :href="`/novels/${novel.id}/codex`"
+                    :href="`/novels/${novel.id}/workspace?mode=codex`"
                     class="flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-zinc-600 transition-all hover:bg-zinc-200 active:scale-95 dark:text-zinc-400 dark:hover:bg-zinc-700"
                 >
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -352,3 +352,18 @@ const sceneDragOptions = computed(() => ({
         </div>
     </aside>
 </template>
+
+<style scoped>
+/* Custom classes for vuedraggable - classList.add() doesn't accept space-separated strings */
+:deep(.drag-ghost) {
+    opacity: 0.5;
+}
+
+:deep(.drag-chosen) {
+    background-color: rgb(237 233 254); /* violet-100 */
+}
+
+:global(.dark) :deep(.drag-chosen) {
+    background-color: rgb(91 33 182 / 0.3); /* violet-900/30 */
+}
+</style>
