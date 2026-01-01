@@ -300,6 +300,8 @@ const pollMentions = async () => {
 
         // Only reload if mentions actually changed
         if (newHash !== lastMentionHash) {
+            // Sprint 16: Show toast notification for new mentions
+            showToast('info', 'Mentions Updated', 'New mentions detected in your scenes');
             lastMentionHash = newHash;
             router.reload({ only: ['entry'] });
         }

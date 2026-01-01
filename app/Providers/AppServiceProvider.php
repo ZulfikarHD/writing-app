@@ -22,5 +22,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Scene::observe(SceneObserver::class);
+
+        // Sprint 16 (F-12.1.5): ChatMessage observer will be registered here
+        // when the ChatMessage model is implemented:
+        // ChatMessage::observe(\App\Observers\ChatMessageObserver::class);
     }
 }

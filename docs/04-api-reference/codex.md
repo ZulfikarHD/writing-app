@@ -576,11 +576,38 @@ Response: `200 OK`
 ```json
 {
   "categories": [
-    { "id": 1, "name": "Main Characters", "color": "#3B82F6", "sort_order": 1 },
-    { "id": 2, "name": "Side Characters", "color": "#10B981", "sort_order": 2 }
+    {
+      "id": 1,
+      "name": "Main Characters",
+      "color": "#3B82F6",
+      "sort_order": 1,
+      "entry_count": 3,
+      "total_entry_count": 5,
+      "linked_tag_id": 2,
+      "linked_tag": {
+        "id": 2,
+        "name": "Protagonist",
+        "color": "#8B5CF6"
+      },
+      "linked_detail_definition_id": null,
+      "linked_detail_definition": null,
+      "linked_detail_value": null,
+      "has_auto_linking": true,
+      "auto_linked_count": 2
+    }
   ]
 }
 ```
+
+**Sprint 16 Fields:**
+- `linked_tag_id`: Tag yang di-link → entries dengan tag ini auto-appear
+- `linked_tag`: Full tag object jika ada link
+- `linked_detail_definition_id`: Detail definition yang di-link
+- `linked_detail_definition`: Full definition object jika ada link
+- `linked_detail_value`: Value yang harus match (untuk dropdown details)
+- `has_auto_linking`: Boolean apakah category punya auto-linking enabled
+- `auto_linked_count`: Jumlah entries yang auto-linked
+- `total_entry_count`: entry_count (manual) + auto_linked_count
 
 ---
 
@@ -592,11 +619,43 @@ Request Body:
 ```json
 {
   "name": "Villains",
-  "color": "#EF4444"
+  "color": "#EF4444",
+  "linked_tag_id": 5,
+  "linked_detail_definition_id": null,
+  "linked_detail_value": null
 }
 ```
 
+| Field | Type | Required | Description (Sprint 16) |
+|-------|------|----------|-------------------------|
+| name | string | Yes | Category name |
+| color | string | No | Hex color code |
+| parent_id | int | No | Parent category ID |
+| sort_order | int | No | Sort order (auto-assigned if omitted) |
+| **linked_tag_id** | int | No | Tag ID - entries dengan tag ini auto-link (Sprint 16) |
+| **linked_detail_definition_id** | int | No | Detail definition ID - untuk dropdown linking (Sprint 16) |
+| **linked_detail_value** | string | No | Detail value to match (Sprint 16) |
+
+**Sprint 16 Notes:**
+- Jika `linked_tag_id` provided, semua entries dengan tag tersebut otomatis muncul di category
+- Jika `linked_detail_definition_id` + `linked_detail_value` provided, entries dengan detail value matching otomatis muncul
+- Detail definition harus type `dropdown` untuk linking to work
+- Auto-linked entries dan manually assigned entries keduanya muncul di category
+
 Response: `201 Created`
+```json
+{
+  "category": {
+    "id": 3,
+    "name": "Villains",
+    "color": "#EF4444",
+    "linked_tag_id": 5,
+    "has_auto_linking": true,
+    "auto_linked_count": 2,
+    "total_entry_count": 2
+  }
+}
+```
 
 ---
 
@@ -604,7 +663,67 @@ Response: `201 Created`
 
 **`PATCH /api/codex/categories/{category}`**
 
+Request Body:
+```json
+{
+  "name": "Main Villains",
+  "linked_tag_id": null,
+  "linked_detail_definition_id": 3,
+  "linked_detail_value": "Antagonist"
+}
+```
+
+**Sprint 16 Notes:**
+- Setting `linked_tag_id: null` removes tag linking
+- Setting `linked_detail_definition_id: null` removes detail linking
+- Dapat switch dari tag linking ke detail linking atau vice versa
+
 Response: `200 OK`
+```json
+{
+  "category": {
+    "id": 3,
+    "name": "Main Villains",
+    "linked_tag_id": null,
+    "linked_detail_definition_id": 3,
+    "linked_detail_value": "Antagonist",
+    "has_auto_linking": true
+  }
+}
+```
+
+---
+
+#### Preview Auto-Linked Entries (Sprint 16)
+
+**`GET /api/codex/categories/{category}/preview-entries`**
+
+**Purpose:** Preview entries yang akan auto-link sebelum saving category.
+
+Response: `200 OK`
+```json
+{
+  "entries": [
+    {
+      "id": 10,
+      "name": "Elena Blackwood",
+      "type": "character"
+    },
+    {
+      "id": 15,
+      "name": "Marcus Stone",
+      "type": "character"
+    }
+  ],
+  "count": 2,
+  "has_auto_linking": true
+}
+```
+
+**Use Case:**
+- Call this endpoint di CategoryManager untuk show preview entries
+- User dapat see which entries akan auto-link sebelum save
+- Transparency untuk user tentang auto-linking behavior
 
 ---
 
@@ -619,21 +738,38 @@ Response: `200 OK`
 }
 ```
 
+**Sprint 16 Note:** Deleting category tidak delete entries. Children categories moved ke parent level.
+
 ---
 
 #### Assign Category to Entry
 
-**`POST /api/codex/{entry}/categories/{category}`**
+**`POST /api/codex/{entry}/categories`**
+
+Request Body:
+```json
+{
+  "category_ids": [1, 2, 3]
+}
+```
 
 Response: `200 OK`
+```json
+{
+  "categories": [
+    {
+      "id": 1,
+      "name": "Main Characters",
+      "color": "#3B82F6"
+    }
+  ]
+}
+```
 
----
-
-#### Remove Category from Entry
-
-**`DELETE /api/codex/{entry}/categories/{category}`**
-
-Response: `200 OK`
+**Sprint 16 Note:** Manual assignment works alongside auto-linking. Entry dapat simultaneously be:
+- Manually assigned ke category A
+- Auto-linked ke category B (via tag)
+- Total categories = manual + auto
 
 ---
 

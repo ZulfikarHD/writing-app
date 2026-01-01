@@ -8,10 +8,23 @@ use App\Models\Novel;
 use App\Models\Scene;
 use Illuminate\Support\Collection;
 
+/**
+ * MentionTracker Service
+ *
+ * Handles automatic detection of codex entry mentions in scenes.
+ * Sprint 16 (F-12.1.4): Now scans both content and summaries.
+ *
+ * Auto-scan on save (synchronous - no queue workers):
+ * - Scene content changes → triggered by SceneObserver
+ * - Scene summary changes → triggered by SceneObserver
+ */
 class MentionTracker
 {
     /**
      * Scan a scene for codex entry mentions and update the mention records.
+     * Sprint 16: Now scans BOTH content and summary for mentions.
+     *
+     * Runs synchronously - no queue workers needed.
      */
     public function scanScene(Scene $scene): void
     {
@@ -20,10 +33,12 @@ class MentionTracker
             return;
         }
 
-        // Extract plain text from scene content
-        $text = $this->extractText($scene->content);
-        if (empty($text)) {
-            // Clear all mentions for this scene if no content
+        // Sprint 16: Extract text from BOTH content and summary
+        $contentText = $this->extractText($scene->content);
+        $summaryText = $scene->summary ?? '';
+
+        // If both are empty, clear all mentions
+        if (empty($contentText) && empty($summaryText)) {
             CodexMention::where('scene_id', $scene->id)->delete();
 
             return;
@@ -32,12 +47,31 @@ class MentionTracker
         // Get all entries for this novel with their aliases
         $entries = $this->getEntriesWithAliases($novel);
 
-        // Track mentions for each entry
+        // Track mentions for each entry (with source tracking)
         $mentionData = [];
         foreach ($entries as $entry) {
-            $result = $this->findMentions($text, $entry);
-            if ($result['count'] > 0) {
-                $mentionData[$entry->id] = $result;
+            $contentResult = $this->findMentions($contentText, $entry);
+            $summaryResult = $this->findMentions($summaryText, $entry);
+
+            $totalCount = $contentResult['count'] + $summaryResult['count'];
+
+            if ($totalCount > 0) {
+                // Determine source
+                $source = $this->determineSource(
+                    $contentResult['count'] > 0,
+                    $summaryResult['count'] > 0
+                );
+
+                // Merge positions (content positions stay as-is, summary positions offset)
+                $positions = $contentResult['positions'];
+                // Note: Summary positions are tracked separately to avoid confusion
+                // We store content positions only as they're used for editor highlighting
+
+                $mentionData[$entry->id] = [
+                    'count' => $totalCount,
+                    'positions' => $positions,
+                    'source' => $source,
+                ];
             }
         }
 
@@ -117,9 +151,25 @@ class MentionTracker
     }
 
     /**
+     * Sprint 16: Determine the source of a mention.
+     */
+    private function determineSource(bool $inContent, bool $inSummary): string
+    {
+        if ($inContent && $inSummary) {
+            return CodexMention::SOURCE_BOTH;
+        }
+        if ($inSummary) {
+            return CodexMention::SOURCE_SUMMARY;
+        }
+
+        return CodexMention::SOURCE_CONTENT;
+    }
+
+    /**
      * Update mention records for a scene.
+     * Sprint 16: Now includes source tracking.
      *
-     * @param  array<int, array{count: int, positions: array<int>}>  $mentionData
+     * @param  array<int, array{count: int, positions: array<int>, source?: string}>  $mentionData
      */
     private function updateMentions(int $sceneId, array $mentionData): void
     {
@@ -149,6 +199,7 @@ class MentionTracker
                 [
                     'mention_count' => $data['count'],
                     'positions' => $data['positions'],
+                    'source' => $data['source'] ?? CodexMention::SOURCE_CONTENT,
                 ]
             );
         }

@@ -153,6 +153,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('api/codex/categories/{category}', [CodexCategoryController::class, 'update'])->name('codex.categories.update');
     Route::delete('api/codex/categories/{category}', [CodexCategoryController::class, 'destroy'])->name('codex.categories.destroy');
     Route::post('api/codex/{entry}/categories', [CodexCategoryController::class, 'assignToEntry'])->name('codex.categories.assign');
+    // Sprint 16: Preview entries that would auto-link to a category
+    Route::get('api/codex/categories/{category}/preview-entries', [CodexCategoryController::class, 'previewEntries'])->name('codex.categories.preview');
 
     // Codex External Link API routes (Sprint 13: F-12.2.2)
     Route::get('api/codex/{entry}/external-links', [CodexExternalLinkController::class, 'index'])->name('codex.external-links.index');

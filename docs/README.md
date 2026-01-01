@@ -28,8 +28,9 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Sprint 03 - AI Connections & UI System](./10-sprints/sprint-03-ai-ui-system.md) ✅ Complete
 - [Sprint 04 - Codex System](./10-sprints/sprint-04-codex-system.md) ✅ Complete
 - [Sprint 13 - Codex V2: Auto-Mentions & Research](./10-sprints/sprint-13-codex-v2-enhancements.md) ✅ Complete
-- [Sprint 14 - Codex V2: Tags & Enhanced Details](./10-sprints/sprint-14-codex-tags-details.md) ✅ Complete ✨ NEW
-- [Sprint 15 - Codex V2: Batch Operations & QoL](./10-sprints/sprint-15-codex-enhancements.md) ✅ Complete ✨ NEW
+- [Sprint 14 - Codex V2: Tags & Enhanced Details](./10-sprints/sprint-14-codex-tags-details.md) ✅ Complete
+- [Sprint 15 - Codex V2: Batch Operations & QoL](./10-sprints/sprint-15-codex-enhancements.md) ✅ Complete
+- [Sprint 16 - Codex V2: Polish & Integration](./10-sprints/sprint-16-codex-enhancements.md) ✅ Complete ✨ NEW
 
 ### API Reference
 - [Authentication API](./04-api-reference/authentication.md)
@@ -45,7 +46,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Manuscript Editor Testing Guide](./06-testing/manuscript-editor-testing.md)
 - [AI Connections Testing Guide](./06-testing/ai-connections-testing.md)
 - [Codex System Testing Guide](./06-testing/codex-testing.md)
-- [Sprint 15 Testing Guide](./06-testing/sprint-15-testing.md) ✨ NEW
+- [Sprint 15 Testing Guide](./06-testing/sprint-15-testing.md)
+- [Sprint 16 Testing Guide](./06-testing/codex-sprint16-testing.md) ✨ NEW
 
 ### User Journeys
 - [Authentication Flow](./07-user-journeys/authentication/user-auth-flow.md)
@@ -71,6 +73,7 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 | **Codex V2 - Auto-Mentions & Research** | ✅ Complete | [Sprint 13](./10-sprints/sprint-13-codex-v2-enhancements.md) | [Link](./04-api-reference/codex.md) | [Link](./06-testing/codex-testing.md) |
 | **Codex V2 - Tags & Enhanced Details** | ✅ Complete | [Sprint 14](./10-sprints/sprint-14-codex-tags-details.md) | [Link](./04-api-reference/codex.md) | [Link](./06-testing/codex-testing.md) |
 | **Codex V2 - Batch Operations & QoL** | ✅ Complete | [Sprint 15](./10-sprints/sprint-15-codex-enhancements.md) | [Link](./04-api-reference/codex.md) | [Link](./06-testing/sprint-15-testing.md) |
+| **Codex V2 - Polish & Integration** | ✅ Complete | [Sprint 16](./10-sprints/sprint-16-codex-enhancements.md) | [Link](./04-api-reference/codex.md) | [Link](./06-testing/codex-sprint16-testing.md) |
 
 ---
 
@@ -235,7 +238,50 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 
 ---
 
+## 🔗 Sprint 16 - Codex V2: Polish & Integration
+
+### Features Delivered
+
+#### US-12.13: Categories with Tag Integration
+- **Auto-Linking by Tag**: Link category ke tag → entries dengan tag tersebut otomatis muncul
+- **Auto-Linking by Detail Value**: Link ke detail definition + value → entries matching otomatis muncul
+- **Preview Entries**: Preview entries yang akan auto-link sebelum save
+- **Combined Counts**: Total entries = manual + auto-linked
+- **Edit Category UI**: Enhanced CategoryManager dengan tag integration controls
+
+#### F-12.1.4: Mention Tracking in Summaries
+- **Dual Source Scanning**: MentionTracker scan BOTH content dan summary
+- **Source Tracking**: Track dimana mention ditemukan (content/summary/both)
+- **Observer Enhancement**: SceneObserver trigger pada summary changes
+- **Accurate Counts**: Combine mentions dari both sources
+- **Synchronous Processing**: Tetap real-time tanpa queue workers
+
+#### F-12.1.5: Mention Tracking in Chat (Infrastructure)
+- **ChatMentionTracker Service**: Ready-to-use untuk chat feature
+- **ChatMessageObserver**: Auto-scan scaffold prepared
+- **Consistent Pattern**: Same logic sebagai scene mention tracking
+- **Future-Proof**: Activate tanpa major refactoring ketika chat ready
+
+#### Live UI Enhancements
+- **Toast Notifications**: Visual feedback saat mentions update during polling
+- **Live Badge**: Pulsing dot indicator untuk active tracking
+- **5-Second Polling**: Efficient polling tanpa page refresh
+- **Better UX**: Clear visual feedback untuk user awareness
+
+### Stats
+- **27+ Tests Added**: Category integration, summary tracking, source detection
+- **100 Tests Total**: All passing (309 assertions)
+- **3 New Migrations**: Tag integration, source tracking, chat mentions scaffold
+- **2 New Services**: ChatMentionTracker ready untuk future use
+- **Auto-Everything Philosophy**: Maintained - zero manual intervention needed
+
+### Quick Links
+- [Sprint 16 Documentation](./10-sprints/sprint-16-codex-enhancements.md)
+- [Sprint 16 Testing Guide](./06-testing/codex-sprint16-testing.md)
+- [Codex API Documentation](./04-api-reference/codex.md)
+- [NovelCrafter Categories Reference](https://www.novelcrafter.com/help/docs/codex/codex-categories)
+
 ---
 
 *Last Updated: 2026-01-01*  
-*Latest Features: Sprint 14 (Tags & Enhanced Details), Sprint 15 (Batch Operations)*
+*Latest Features: Sprint 16 (Category Tag Integration, Summary Mention Tracking)*

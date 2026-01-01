@@ -1245,7 +1245,7 @@ class CodexTest extends TestCase
             'type' => 'text',
         ]);
 
-        $builder = new \App\Services\Codex\CodexContextBuilder();
+        $builder = new \App\Services\Codex\CodexContextBuilder;
         $context = $builder->buildContext([$entry->id]);
 
         $this->assertCount(1, $context);
@@ -1401,7 +1401,7 @@ class CodexTest extends TestCase
 
     public function test_bulk_create_preview_mode(): void
     {
-        $input = "Test Entry | character | Description here";
+        $input = 'Test Entry | character | Description here';
 
         $response = $this->actingAs($this->user)
             ->postJson("/api/novels/{$this->novel->id}/codex/bulk-create", [
@@ -1475,12 +1475,12 @@ class CodexTest extends TestCase
 
     public function test_bulk_create_supports_all_types(): void
     {
-        $input = "Char | character | A character
+        $input = 'Char | character | A character
 Loc | location | A place
 Item | item | An object
 Lore | lore | Some lore
 Org | organization | A group
-Plot | subplot | A story arc";
+Plot | subplot | A story arc';
 
         $response = $this->actingAs($this->user)
             ->postJson("/api/novels/{$this->novel->id}/codex/bulk-create", [
@@ -1576,5 +1576,387 @@ Plot | subplot | A story arc";
             ->postJson("/api/codex/relations/{$relation->id}/swap");
 
         $response->assertForbidden();
+    }
+
+    // ==================== Sprint 16: Category Tag Integration Tests (US-12.13) ====================
+
+    public function test_can_create_category_with_linked_tag(): void
+    {
+        $tag = CodexTag::create([
+            'novel_id' => $this->novel->id,
+            'name' => 'Protagonist',
+            'color' => '#8B5CF6',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->postJson("/api/novels/{$this->novel->id}/codex/categories", [
+                'name' => 'Main Characters',
+                'color' => '#8b5cf6',
+                'linked_tag_id' => $tag->id,
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('category.name', 'Main Characters')
+            ->assertJsonPath('category.linked_tag_id', $tag->id)
+            ->assertJsonPath('category.has_auto_linking', true);
+
+        $this->assertDatabaseHas('codex_categories', [
+            'novel_id' => $this->novel->id,
+            'name' => 'Main Characters',
+            'linked_tag_id' => $tag->id,
+        ]);
+    }
+
+    public function test_can_update_category_with_linked_tag(): void
+    {
+        $category = CodexCategory::create([
+            'novel_id' => $this->novel->id,
+            'name' => 'Test Category',
+            'color' => '#3b82f6',
+            'sort_order' => 0,
+        ]);
+
+        $tag = CodexTag::create([
+            'novel_id' => $this->novel->id,
+            'name' => 'Hero',
+            'color' => '#10B981',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->patchJson("/api/codex/categories/{$category->id}", [
+                'linked_tag_id' => $tag->id,
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('category.linked_tag_id', $tag->id)
+            ->assertJsonPath('category.has_auto_linking', true);
+    }
+
+    public function test_can_create_category_with_linked_detail_value(): void
+    {
+        $definition = CodexDetailDefinition::create([
+            'novel_id' => $this->novel->id,
+            'name' => 'Story Role',
+            'type' => 'dropdown',
+            'options' => ['Protagonist', 'Antagonist', 'Supporting'],
+            'ai_visibility' => 'always',
+            'is_preset' => false,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->postJson("/api/novels/{$this->novel->id}/codex/categories", [
+                'name' => 'Main Characters',
+                'color' => '#8b5cf6',
+                'linked_detail_definition_id' => $definition->id,
+                'linked_detail_value' => 'Protagonist',
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('category.linked_detail_definition_id', $definition->id)
+            ->assertJsonPath('category.linked_detail_value', 'Protagonist')
+            ->assertJsonPath('category.has_auto_linking', true);
+    }
+
+    public function test_category_auto_links_entries_by_tag(): void
+    {
+        $tag = CodexTag::create([
+            'novel_id' => $this->novel->id,
+            'name' => 'Protagonist',
+            'color' => '#8B5CF6',
+        ]);
+
+        $category = CodexCategory::create([
+            'novel_id' => $this->novel->id,
+            'name' => 'Main Characters',
+            'color' => '#8b5cf6',
+            'linked_tag_id' => $tag->id,
+            'sort_order' => 0,
+        ]);
+
+        // Create entries with and without the tag
+        $taggedEntry = CodexEntry::factory()->create([
+            'novel_id' => $this->novel->id,
+            'name' => 'Hero',
+        ]);
+        $taggedEntry->tags()->attach($tag->id);
+
+        $untaggedEntry = CodexEntry::factory()->create([
+            'novel_id' => $this->novel->id,
+            'name' => 'Villain',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/codex/categories/{$category->id}/preview-entries");
+
+        $response->assertOk()
+            ->assertJsonPath('count', 1)
+            ->assertJsonPath('has_auto_linking', true);
+
+        $entries = $response->json('entries');
+        $this->assertEquals('Hero', $entries[0]['name']);
+    }
+
+    public function test_category_auto_links_entries_by_detail_value(): void
+    {
+        $definition = CodexDetailDefinition::create([
+            'novel_id' => $this->novel->id,
+            'name' => 'Story Role',
+            'type' => 'dropdown',
+            'options' => ['Protagonist', 'Antagonist', 'Supporting'],
+            'ai_visibility' => 'always',
+            'is_preset' => false,
+        ]);
+
+        $category = CodexCategory::create([
+            'novel_id' => $this->novel->id,
+            'name' => 'Main Characters',
+            'color' => '#8b5cf6',
+            'linked_detail_definition_id' => $definition->id,
+            'linked_detail_value' => 'Protagonist',
+            'sort_order' => 0,
+        ]);
+
+        // Create entry with matching detail
+        $matchingEntry = CodexEntry::factory()->create([
+            'novel_id' => $this->novel->id,
+            'name' => 'Hero',
+        ]);
+        CodexDetail::create([
+            'codex_entry_id' => $matchingEntry->id,
+            'definition_id' => $definition->id,
+            'key_name' => 'Story Role',
+            'value' => 'Protagonist',
+            'sort_order' => 0,
+            'ai_visibility' => 'always',
+            'type' => 'dropdown',
+        ]);
+
+        // Create entry with different value
+        $nonMatchingEntry = CodexEntry::factory()->create([
+            'novel_id' => $this->novel->id,
+            'name' => 'Villain',
+        ]);
+        CodexDetail::create([
+            'codex_entry_id' => $nonMatchingEntry->id,
+            'definition_id' => $definition->id,
+            'key_name' => 'Story Role',
+            'value' => 'Antagonist',
+            'sort_order' => 0,
+            'ai_visibility' => 'always',
+            'type' => 'dropdown',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/codex/categories/{$category->id}/preview-entries");
+
+        $response->assertOk()
+            ->assertJsonPath('count', 1);
+
+        $entries = $response->json('entries');
+        $this->assertEquals('Hero', $entries[0]['name']);
+    }
+
+    public function test_category_format_includes_auto_link_fields(): void
+    {
+        $tag = CodexTag::create([
+            'novel_id' => $this->novel->id,
+            'name' => 'Test Tag',
+            'color' => '#8B5CF6',
+        ]);
+
+        $category = CodexCategory::create([
+            'novel_id' => $this->novel->id,
+            'name' => 'Test Category',
+            'color' => '#3b82f6',
+            'linked_tag_id' => $tag->id,
+            'sort_order' => 0,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/novels/{$this->novel->id}/codex/categories");
+
+        $response->assertOk()
+            ->assertJsonStructure([
+                'categories' => [
+                    '*' => [
+                        'id',
+                        'name',
+                        'color',
+                        'linked_tag_id',
+                        'linked_tag',
+                        'linked_detail_definition_id',
+                        'linked_detail_definition',
+                        'linked_detail_value',
+                        'has_auto_linking',
+                        'auto_linked_count',
+                        'total_entry_count',
+                    ],
+                ],
+            ]);
+    }
+
+    // ==================== Sprint 16: Summary Mention Tracking Tests (F-12.1.4) ====================
+
+    public function test_mentions_are_tracked_from_scene_summary(): void
+    {
+        $entry = CodexEntry::factory()->create([
+            'novel_id' => $this->novel->id,
+            'name' => 'Elena',
+            'is_tracking_enabled' => true,
+        ]);
+
+        $chapter = Chapter::factory()->create(['novel_id' => $this->novel->id]);
+        Scene::factory()->create([
+            'chapter_id' => $chapter->id,
+            'content' => null, // No content
+            'summary' => 'Elena arrives at the castle.', // Mention in summary
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->postJson("/api/novels/{$this->novel->id}/codex/scan-mentions");
+
+        $response->assertOk();
+
+        $this->assertDatabaseHas('codex_mentions', [
+            'codex_entry_id' => $entry->id,
+        ]);
+    }
+
+    public function test_mentions_tracked_from_both_content_and_summary(): void
+    {
+        $entry = CodexEntry::factory()->create([
+            'novel_id' => $this->novel->id,
+            'name' => 'Elena',
+            'is_tracking_enabled' => true,
+        ]);
+
+        $chapter = Chapter::factory()->create(['novel_id' => $this->novel->id]);
+        Scene::factory()->create([
+            'chapter_id' => $chapter->id,
+            'content' => [
+                'type' => 'doc',
+                'content' => [
+                    [
+                        'type' => 'paragraph',
+                        'content' => [
+                            ['type' => 'text', 'text' => 'Elena walked into the room.'],
+                        ],
+                    ],
+                ],
+            ],
+            'summary' => 'Elena meets her mentor.',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->postJson("/api/novels/{$this->novel->id}/codex/scan-mentions");
+
+        $response->assertOk();
+
+        $this->assertDatabaseHas('codex_mentions', [
+            'codex_entry_id' => $entry->id,
+            'source' => 'both',
+        ]);
+    }
+
+    public function test_scene_observer_triggers_on_summary_change(): void
+    {
+        $entry = CodexEntry::factory()->create([
+            'novel_id' => $this->novel->id,
+            'name' => 'Marcus',
+            'is_tracking_enabled' => true,
+        ]);
+
+        $chapter = Chapter::factory()->create(['novel_id' => $this->novel->id]);
+        $scene = Scene::factory()->create([
+            'chapter_id' => $chapter->id,
+            'content' => null,
+            'summary' => null,
+        ]);
+
+        // No mentions should exist yet
+        $this->assertDatabaseMissing('codex_mentions', [
+            'codex_entry_id' => $entry->id,
+        ]);
+
+        // Update summary - should trigger mention scan via observer
+        $scene->update(['summary' => 'Marcus discovers a secret.']);
+
+        // Mention should now exist
+        $this->assertDatabaseHas('codex_mentions', [
+            'codex_entry_id' => $entry->id,
+            'scene_id' => $scene->id,
+        ]);
+    }
+
+    public function test_mention_source_is_content_when_only_in_content(): void
+    {
+        $entry = CodexEntry::factory()->create([
+            'novel_id' => $this->novel->id,
+            'name' => 'Elena',
+            'is_tracking_enabled' => true,
+        ]);
+
+        $chapter = Chapter::factory()->create(['novel_id' => $this->novel->id]);
+        Scene::factory()->create([
+            'chapter_id' => $chapter->id,
+            'content' => [
+                'type' => 'doc',
+                'content' => [
+                    [
+                        'type' => 'paragraph',
+                        'content' => [
+                            ['type' => 'text', 'text' => 'Elena smiled.'],
+                        ],
+                    ],
+                ],
+            ],
+            'summary' => 'A scene with no character mentions.',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->postJson("/api/novels/{$this->novel->id}/codex/scan-mentions");
+
+        $response->assertOk();
+
+        $this->assertDatabaseHas('codex_mentions', [
+            'codex_entry_id' => $entry->id,
+            'source' => 'content',
+        ]);
+    }
+
+    public function test_mention_source_is_summary_when_only_in_summary(): void
+    {
+        $entry = CodexEntry::factory()->create([
+            'novel_id' => $this->novel->id,
+            'name' => 'Elena',
+            'is_tracking_enabled' => true,
+        ]);
+
+        $chapter = Chapter::factory()->create(['novel_id' => $this->novel->id]);
+        Scene::factory()->create([
+            'chapter_id' => $chapter->id,
+            'content' => [
+                'type' => 'doc',
+                'content' => [
+                    [
+                        'type' => 'paragraph',
+                        'content' => [
+                            ['type' => 'text', 'text' => 'A scene with no character names.'],
+                        ],
+                    ],
+                ],
+            ],
+            'summary' => 'Elena arrives at the castle.',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->postJson("/api/novels/{$this->novel->id}/codex/scan-mentions");
+
+        $response->assertOk();
+
+        $this->assertDatabaseHas('codex_mentions', [
+            'codex_entry_id' => $entry->id,
+            'source' => 'summary',
+        ]);
     }
 }

@@ -8,6 +8,12 @@ use App\Models\Novel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * CodexCategoryController
+ *
+ * Sprint 16 (US-12.13): Added tag integration support.
+ * Categories can now be linked to tags or detail values for auto-linking entries.
+ */
 class CodexCategoryController extends Controller
 {
     /**
@@ -21,7 +27,7 @@ class CodexCategoryController extends Controller
 
         $categories = $novel->codexCategories()
             ->whereNull('parent_id')
-            ->with('children')
+            ->with(['children', 'linkedTag', 'linkedDetailDefinition'])
             ->orderBy('sort_order')
             ->get();
 
@@ -44,6 +50,10 @@ class CodexCategoryController extends Controller
             'color' => ['nullable', 'string', 'max:7', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'parent_id' => ['nullable', 'integer', 'exists:codex_categories,id'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
+            // Sprint 16: Tag integration
+            'linked_tag_id' => ['nullable', 'integer', 'exists:codex_tags,id'],
+            'linked_detail_definition_id' => ['nullable', 'integer', 'exists:codex_detail_definitions,id'],
+            'linked_detail_value' => ['nullable', 'string', 'max:255'],
         ]);
 
         // Set default sort order
@@ -54,6 +64,7 @@ class CodexCategoryController extends Controller
         }
 
         $category = $novel->codexCategories()->create($validated);
+        $category->load(['linkedTag', 'linkedDetailDefinition']);
 
         return response()->json([
             'category' => $this->formatCategory($category),
@@ -62,6 +73,7 @@ class CodexCategoryController extends Controller
 
     /**
      * Update a category.
+     * Sprint 16: Now accepts linked_tag_id, linked_detail_definition_id, linked_detail_value.
      */
     public function update(Request $request, CodexCategory $category): JsonResponse
     {
@@ -74,6 +86,10 @@ class CodexCategoryController extends Controller
             'color' => ['nullable', 'string', 'max:7', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'parent_id' => ['nullable', 'integer', 'exists:codex_categories,id'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
+            // Sprint 16: Tag integration
+            'linked_tag_id' => ['nullable', 'integer', 'exists:codex_tags,id'],
+            'linked_detail_definition_id' => ['nullable', 'integer', 'exists:codex_detail_definitions,id'],
+            'linked_detail_value' => ['nullable', 'string', 'max:255'],
         ]);
 
         // Prevent category from being its own parent
@@ -81,7 +97,17 @@ class CodexCategoryController extends Controller
             return response()->json(['message' => 'Category cannot be its own parent'], 422);
         }
 
+        // Handle clearing linked tag/detail when null is explicitly sent
+        if (array_key_exists('linked_tag_id', $validated) && $validated['linked_tag_id'] === null) {
+            $category->linked_tag_id = null;
+        }
+        if (array_key_exists('linked_detail_definition_id', $validated) && $validated['linked_detail_definition_id'] === null) {
+            $category->linked_detail_definition_id = null;
+            $category->linked_detail_value = null;
+        }
+
         $category->update($validated);
+        $category->load(['linkedTag', 'linkedDetailDefinition']);
 
         return response()->json([
             'category' => $this->formatCategory($category),
@@ -137,12 +163,40 @@ class CodexCategoryController extends Controller
     }
 
     /**
+     * Sprint 16 (US-12.13): Preview entries that would auto-link to a category.
+     *
+     * GET /api/codex/categories/{category}/preview-entries
+     */
+    public function previewEntries(Request $request, CodexCategory $category): JsonResponse
+    {
+        if ($category->novel->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        $autoLinkedEntries = $category->getAutoLinkedEntries();
+
+        return response()->json([
+            'entries' => $autoLinkedEntries->map(fn (CodexEntry $entry) => [
+                'id' => $entry->id,
+                'name' => $entry->name,
+                'type' => $entry->type,
+            ]),
+            'count' => $autoLinkedEntries->count(),
+            'has_auto_linking' => $category->hasAutoLinking(),
+        ]);
+    }
+
+    /**
      * Format category for API response.
+     * Sprint 16: Added tag integration fields.
      *
      * @return array<string, mixed>
      */
     private function formatCategory(CodexCategory $category): array
     {
+        $manualCount = $category->entries()->count();
+        $autoCount = $category->getAutoLinkedEntries()->count();
+
         return [
             'id' => $category->id,
             'name' => $category->name,
@@ -150,7 +204,25 @@ class CodexCategoryController extends Controller
             'parent_id' => $category->parent_id,
             'sort_order' => $category->sort_order,
             'children' => $category->children->map(fn ($child) => $this->formatCategory($child)),
-            'entry_count' => $category->entries()->count(),
+            'entry_count' => $manualCount,
+            'total_entry_count' => $category->getTotalEntryCount(),
+            // Sprint 16: Tag integration fields
+            'linked_tag_id' => $category->linked_tag_id,
+            'linked_tag' => $category->linkedTag ? [
+                'id' => $category->linkedTag->id,
+                'name' => $category->linkedTag->name,
+                'color' => $category->linkedTag->color,
+            ] : null,
+            'linked_detail_definition_id' => $category->linked_detail_definition_id,
+            'linked_detail_definition' => $category->linkedDetailDefinition ? [
+                'id' => $category->linkedDetailDefinition->id,
+                'name' => $category->linkedDetailDefinition->name,
+                'type' => $category->linkedDetailDefinition->type,
+                'options' => $category->linkedDetailDefinition->options,
+            ] : null,
+            'linked_detail_value' => $category->linked_detail_value,
+            'has_auto_linking' => $category->hasAutoLinking(),
+            'auto_linked_count' => $autoCount,
         ];
     }
 }

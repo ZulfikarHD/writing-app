@@ -27,7 +27,7 @@ class BulkEntryCreatorTest extends TestCase
     {
         parent::setUp();
 
-        $this->creator = new BulkEntryCreator();
+        $this->creator = new BulkEntryCreator;
         $user = User::factory()->create();
         $this->novel = Novel::factory()->create(['user_id' => $user->id]);
     }

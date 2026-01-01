@@ -232,7 +232,6 @@ class CodexContextBuilder
      * Sprint 14: Now respects per-detail AI visibility.
      *
      * @param  array<int>  $detectedEntryIds
-     * @param  int  $cascadeDepth
      * @param  bool  $includeNsfw  Whether to include NSFW-only content
      */
     public function buildContextString(
