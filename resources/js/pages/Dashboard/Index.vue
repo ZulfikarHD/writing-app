@@ -2,6 +2,8 @@
 import EmptyState from '@/components/dashboard/EmptyState.vue';
 import NovelCard from '@/components/dashboard/NovelCard.vue';
 import StatsCard from '@/components/dashboard/StatsCard.vue';
+import Alert from '@/components/ui/Alert.vue';
+import Select from '@/components/ui/Select.vue';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import { Head, usePage } from '@inertiajs/vue3';
 import { Motion } from 'motion-v';
@@ -36,7 +38,14 @@ const page = usePage();
 const user = computed(() => page.props.auth?.user as { name: string } | undefined);
 
 const searchQuery = ref('');
-const sortBy = ref<'recent' | 'title' | 'words'>('recent');
+const sortBy = ref('recent');
+const showFlash = ref(true);
+
+const sortOptions = [
+    { value: 'recent', label: 'Recently Edited' },
+    { value: 'title', label: 'Title' },
+    { value: 'words', label: 'Word Count' },
+];
 
 const filteredNovels = computed(() => {
     let result = [...props.novels];
@@ -83,6 +92,7 @@ const formattedTotalWords = computed(() => {
 });
 
 const flashSuccess = computed(() => page.props.flash?.success as string | undefined);
+const flashError = computed(() => page.props.flash?.error as string | undefined);
 </script>
 
 <template>
@@ -98,12 +108,23 @@ const flashSuccess = computed(() => page.props.flash?.success as string | undefi
             leave-from-class="opacity-100 translate-y-0"
             leave-to-class="opacity-0 -translate-y-2"
         >
-            <div
-                v-if="flashSuccess"
-                class="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400"
-            >
+            <Alert v-if="flashSuccess && showFlash" variant="success" dismissible class="mb-6" @dismiss="showFlash = false">
                 {{ flashSuccess }}
-            </div>
+            </Alert>
+        </Transition>
+
+        <!-- Error Flash Message -->
+        <Transition
+            enter-active-class="transition ease-out duration-300"
+            enter-from-class="opacity-0 -translate-y-2"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition ease-in duration-200"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 -translate-y-2"
+        >
+            <Alert v-if="flashError && showFlash" variant="danger" dismissible class="mb-6" @dismiss="showFlash = false">
+                {{ flashError }}
+            </Alert>
         </Transition>
 
         <!-- Welcome Section -->
@@ -116,9 +137,7 @@ const flashSuccess = computed(() => page.props.flash?.success as string | undefi
             <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">
                 Welcome back, {{ user?.name?.split(' ')[0] }}!
             </h1>
-            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                Continue your writing journey or start something new.
-            </p>
+            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Continue your writing journey or start something new.</p>
         </Motion>
 
         <!-- Stats Grid -->
@@ -138,31 +157,19 @@ const flashSuccess = computed(() => page.props.flash?.success as string | undefi
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                 >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 <input
                     v-model="searchQuery"
                     type="text"
                     placeholder="Search novels..."
-                    class="w-full rounded-lg border border-zinc-200 bg-white py-2 pr-4 pl-10 text-sm placeholder:text-zinc-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:focus:border-violet-500"
+                    class="w-full rounded-lg border border-zinc-200 bg-white py-2 pl-10 pr-4 text-sm placeholder:text-zinc-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:focus:border-violet-500"
                 />
             </div>
 
             <div class="flex items-center gap-2">
                 <span class="text-sm text-zinc-500">Sort by:</span>
-                <select
-                    v-model="sortBy"
-                    class="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
-                >
-                    <option value="recent">Recently Edited</option>
-                    <option value="title">Title</option>
-                    <option value="words">Word Count</option>
-                </select>
+                <Select v-model="sortBy" :options="sortOptions" class="w-40" />
             </div>
         </div>
 

@@ -24,6 +24,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 
 ### Sprint Documentation
 - [Sprint 01 - Foundation & Core Editor](./10-sprints/sprint-01-foundation.md) ✅ Complete
+- [Sprint 02 - Manuscript Editor](./10-sprints/sprint-02-manuscript-editor.md) ✅ Complete
+- [Sprint 03 - AI Connections & UI System](./10-sprints/sprint-03-ai-ui-system.md) ✅ Complete
 
 ### API Reference
 - [Authentication API](./04-api-reference/authentication.md)
@@ -54,7 +56,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 | Rich Text Editor | ✅ Complete | [Sprint 01](./10-sprints/sprint-01-foundation.md) | [Link](./04-api-reference/manuscript-editor.md) | [Link](./06-testing/manuscript-editor-testing.md) |
 | Scene/Chapter Structure | ✅ Complete | [Sprint 01](./10-sprints/sprint-01-foundation.md) | [Link](./04-api-reference/manuscript-editor.md) | [Link](./06-testing/manuscript-editor-testing.md) |
 | Editor Settings | ✅ Complete | [Sprint 01](./10-sprints/sprint-01-foundation.md) | N/A | [Link](./06-testing/manuscript-editor-testing.md) |
-| AI Connections | ✅ Complete | Sprint 03 | [Link](./04-api-reference/ai-connections.md) | [Link](./06-testing/ai-connections-testing.md) |
+| AI Connections | ✅ Complete | [Sprint 03](./10-sprints/sprint-03-ai-ui-system.md) | [Link](./04-api-reference/ai-connections.md) | [Link](./06-testing/ai-connections-testing.md) |
+| UI Component Library | ✅ Complete | [Sprint 03](./10-sprints/sprint-03-ai-ui-system.md) | N/A | N/A |
 
 ---
 
@@ -74,7 +77,7 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 
 ---
 
-## 🔗 Sprint 03 - AI Connections
+## 🔗 Sprint 03 - AI Connections & UI System
 
 ### Features Delivered
 - **AI Provider Management**: Connect multiple AI providers (OpenAI, Anthropic, OpenRouter, Ollama, Groq, LM Studio)
@@ -82,8 +85,12 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - **Connection Testing**: Test API credentials with detailed feedback
 - **Model Discovery**: Fetch and display available models from each provider
 - **Default Connection**: Set preferred AI provider as default
+- **UI Component Library**: Comprehensive reusable components (Forms, Badges, Buttons, Modals, Alerts, Toasts)
+- **Feedback System**: Toast notifications dan confirmation dialogs untuk better UX
+- **Error Handling**: Consistent error display dengan Alert components
 
 ### Quick Links
+- [Sprint Documentation](./10-sprints/sprint-03-ai-ui-system.md)
 - [API Documentation](./04-api-reference/ai-connections.md)
 - [Testing Guide](./06-testing/ai-connections-testing.md)
 

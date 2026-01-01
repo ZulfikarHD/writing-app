@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import ConfirmProvider from '@/components/ui/ConfirmProvider.vue';
+import ToastContainer from '@/components/ui/ToastContainer.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { Motion } from 'motion-v';
 import { computed, ref } from 'vue';
@@ -119,5 +121,11 @@ const logout = () => {
         <main class="mx-auto max-w-7xl px-4 pt-20 pb-8 sm:px-6 lg:px-8">
             <slot />
         </main>
+
+        <!-- Global Toast Container -->
+        <ToastContainer />
+
+        <!-- Global Confirm Dialog Provider -->
+        <ConfirmProvider />
     </div>
 </template>

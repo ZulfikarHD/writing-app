@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import Alert from '@/components/ui/Alert.vue';
 import Button from '@/components/ui/Button.vue';
 import Card from '@/components/ui/Card.vue';
+import Checkbox from '@/components/ui/Checkbox.vue';
 import Input from '@/components/ui/Input.vue';
-import type { AIConnection, Provider } from '@/Pages/Settings/AIConnections.vue';
-import { useForm } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { useToast } from '@/composables/useToast';
+import type { AIConnection, Provider } from '@/pages/Settings/AIConnections.vue';
+import { router } from '@inertiajs/vue3';
+import axios from 'axios';
+import { computed, reactive, ref, watch } from 'vue';
 
 const props = defineProps<{
     providers: Record<string, Provider>;
@@ -16,16 +20,22 @@ const emit = defineEmits<{
     cancel: [];
 }>();
 
+const { success } = useToast();
+
 const selectedProvider = ref<string>(props.editing?.provider || '');
 const showAdvanced = ref(false);
+const isSubmitting = ref(false);
+const errorMessage = ref<string | null>(null);
 
-const form = useForm({
+const form = reactive({
     provider: props.editing?.provider || '',
     name: props.editing?.name || '',
     api_key: '',
     base_url: props.editing?.base_url || '',
     is_default: props.editing?.is_default || false,
 });
+
+const errors = reactive<Record<string, string>>({});
 
 const currentProvider = computed(() => {
     return props.providers[selectedProvider.value] || null;
@@ -48,17 +58,55 @@ if (props.editing) {
     selectedProvider.value = props.editing.provider;
 }
 
-const submit = () => {
-    if (props.editing) {
-        form.patch(`/api/ai-connections/${props.editing.id}`, {
-            preserveScroll: true,
-            onSuccess: () => emit('saved'),
+const clearErrors = () => {
+    Object.keys(errors).forEach((key) => delete errors[key]);
+    errorMessage.value = null;
+};
+
+const submit = async () => {
+    clearErrors();
+    isSubmitting.value = true;
+
+    try {
+        if (props.editing) {
+            await axios.patch(`/api/ai-connections/${props.editing.id}`, {
+                name: form.name,
+                api_key: form.api_key || undefined,
+                base_url: form.base_url || undefined,
+                is_default: form.is_default,
+            });
+        } else {
+            await axios.post('/api/ai-connections', {
+                provider: form.provider,
+                name: form.name,
+                api_key: form.api_key,
+                base_url: form.base_url || undefined,
+                is_default: form.is_default,
+            });
+        }
+
+        // Show success toast
+        success(props.editing ? 'Connection updated successfully.' : 'Connection added successfully.', {
+            title: props.editing ? 'Updated' : 'Added',
         });
-    } else {
-        form.post('/api/ai-connections', {
-            preserveScroll: true,
-            onSuccess: () => emit('saved'),
-        });
+
+        // Reload the connections data via Inertia
+        router.reload({ only: ['connections'] });
+        emit('saved');
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error) && error.response?.data?.errors) {
+            // Validation errors
+            const validationErrors = error.response.data.errors as Record<string, string[]>;
+            Object.entries(validationErrors).forEach(([field, messages]) => {
+                errors[field] = messages[0];
+            });
+        } else if (axios.isAxiosError(error) && error.response?.data?.message) {
+            errorMessage.value = error.response.data.message;
+        } else {
+            errorMessage.value = 'An unexpected error occurred. Please try again.';
+        }
+    } finally {
+        isSubmitting.value = false;
     }
 };
 
@@ -81,7 +129,12 @@ const providersList = computed(() => {
             </p>
         </div>
 
-        <form @submit.prevent="submit" class="space-y-5">
+        <!-- Error Alert -->
+        <Alert v-if="errorMessage" variant="danger" dismissible class="mb-4" @dismiss="errorMessage = null">
+            {{ errorMessage }}
+        </Alert>
+
+        <form class="space-y-5" @submit.prevent="submit">
             <!-- Provider Selection (only for new connections) -->
             <div v-if="!editing">
                 <label class="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Provider</label>
@@ -104,8 +157,8 @@ const providersList = computed(() => {
                         </span>
                     </button>
                 </div>
-                <p v-if="form.errors.provider" class="mt-1 text-sm text-red-600 dark:text-red-400">
-                    {{ form.errors.provider }}
+                <p v-if="errors.provider" class="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {{ errors.provider }}
                 </p>
             </div>
 
@@ -120,13 +173,7 @@ const providersList = computed(() => {
             >
                 <div v-if="selectedProvider || editing" class="space-y-4">
                     <!-- Connection Name -->
-                    <Input
-                        v-model="form.name"
-                        label="Connection Name"
-                        placeholder="My OpenAI Connection"
-                        :error="form.errors.name"
-                        required
-                    />
+                    <Input v-model="form.name" label="Connection Name" placeholder="My OpenAI Connection" :error="errors.name" required />
 
                     <!-- API Key (if required) -->
                     <div v-if="currentProvider?.requires_api_key || editing?.has_api_key">
@@ -135,7 +182,7 @@ const providersList = computed(() => {
                             type="password"
                             label="API Key"
                             :placeholder="editing ? '••••••••••••••••' : 'sk-...'"
-                            :error="form.errors.api_key"
+                            :error="errors.api_key"
                             :required="!editing"
                         />
                         <p v-if="editing?.has_api_key" class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
@@ -144,31 +191,15 @@ const providersList = computed(() => {
                     </div>
 
                     <!-- Local LLM Setup Guide -->
-                    <div
-                        v-if="selectedProvider === 'ollama' || selectedProvider === 'lm_studio'"
-                        class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-900/20"
-                    >
-                        <h4 class="flex items-center gap-2 font-medium text-amber-800 dark:text-amber-400">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                            </svg>
-                            Setup Instructions
-                        </h4>
-                        <div class="mt-2 text-sm text-amber-700 dark:text-amber-300">
-                            <p v-if="selectedProvider === 'ollama'">
-                                Make sure Ollama is running and accessible. You may need to configure CORS by setting:
-                                <code class="mx-1 rounded bg-amber-100 px-1 dark:bg-amber-900/30">OLLAMA_ORIGINS=*</code>
-                            </p>
-                            <p v-if="selectedProvider === 'lm_studio'">
-                                Ensure LM Studio's local server is running. Go to Local Server tab in LM Studio and click "Start Server".
-                            </p>
-                        </div>
-                    </div>
+                    <Alert v-if="selectedProvider === 'ollama' || selectedProvider === 'lm_studio'" variant="warning" title="Setup Instructions">
+                        <template v-if="selectedProvider === 'ollama'">
+                            Make sure Ollama is running and accessible. You may need to configure CORS by setting:
+                            <code class="mx-1 rounded bg-amber-100 px-1 dark:bg-amber-900/30">OLLAMA_ORIGINS=*</code>
+                        </template>
+                        <template v-if="selectedProvider === 'lm_studio'">
+                            Ensure LM Studio's local server is running. Go to Local Server tab in LM Studio and click "Start Server".
+                        </template>
+                    </Alert>
 
                     <!-- Advanced Settings Toggle -->
                     <button
@@ -202,20 +233,10 @@ const providersList = computed(() => {
                                 v-model="form.base_url"
                                 label="Base URL"
                                 :placeholder="currentProvider?.default_base_url || 'https://api.example.com/v1'"
-                                :error="form.errors.base_url"
+                                :error="errors.base_url"
                             />
 
-                            <div class="flex items-center gap-3">
-                                <input
-                                    id="is_default"
-                                    v-model="form.is_default"
-                                    type="checkbox"
-                                    class="h-4 w-4 rounded border-zinc-300 text-violet-600 focus:ring-violet-500 dark:border-zinc-600 dark:bg-zinc-800"
-                                />
-                                <label for="is_default" class="text-sm text-zinc-700 dark:text-zinc-300">
-                                    Set as default connection
-                                </label>
-                            </div>
+                            <Checkbox v-model="form.is_default" label="Set as default connection" />
                         </div>
                     </Transition>
                 </div>
@@ -224,11 +245,7 @@ const providersList = computed(() => {
             <!-- Actions -->
             <div class="flex justify-end gap-3 border-t border-zinc-200 pt-5 dark:border-zinc-700">
                 <Button type="button" variant="ghost" @click="emit('cancel')">Cancel</Button>
-                <Button
-                    type="submit"
-                    :loading="form.processing"
-                    :disabled="form.processing || (!selectedProvider && !editing)"
-                >
+                <Button type="submit" :loading="isSubmitting" :disabled="isSubmitting || (!selectedProvider && !editing)">
                     {{ editing ? 'Save Changes' : 'Add Connection' }}
                 </Button>
             </div>

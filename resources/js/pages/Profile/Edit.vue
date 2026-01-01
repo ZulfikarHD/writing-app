@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import Alert from '@/components/ui/Alert.vue';
 import Button from '@/components/ui/Button.vue';
 import Card from '@/components/ui/Card.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import Input from '@/components/ui/Input.vue';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
@@ -19,6 +21,7 @@ defineProps<{
 
 const page = usePage();
 const flashSuccess = computed(() => page.props.flash?.success as string | undefined);
+const showFlash = ref(true);
 
 const profileForm = useForm({
     name: page.props.auth?.user?.name || '',
@@ -95,12 +98,9 @@ const deleteAccount = () => {
                 leave-from-class="opacity-100 translate-y-0"
                 leave-to-class="opacity-0 -translate-y-2"
             >
-                <div
-                    v-if="flashSuccess"
-                    class="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400"
-                >
+                <Alert v-if="flashSuccess && showFlash" variant="success" dismissible class="mb-6" @dismiss="showFlash = false">
                     {{ flashSuccess }}
-                </div>
+                </Alert>
             </Transition>
 
             <!-- Profile Information -->
@@ -116,14 +116,12 @@ const deleteAccount = () => {
                         <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Update your account's profile information and email address.</p>
                     </div>
 
-                    <form @submit.prevent="updateProfile" class="space-y-5">
+                    <form class="space-y-5" @submit.prevent="updateProfile">
                         <Input v-model="profileForm.name" label="Name" :error="profileForm.errors.name" required />
                         <Input v-model="profileForm.email" type="email" label="Email" :error="profileForm.errors.email" required />
 
                         <div class="flex justify-end pt-2">
-                            <Button type="submit" :loading="profileForm.processing" :disabled="profileForm.processing">
-                                Save Changes
-                            </Button>
+                            <Button type="submit" :loading="profileForm.processing" :disabled="profileForm.processing"> Save Changes </Button>
                         </div>
                     </form>
                 </Card>
@@ -142,7 +140,7 @@ const deleteAccount = () => {
                         <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Ensure your account is using a secure password.</p>
                     </div>
 
-                    <form @submit.prevent="updatePassword" class="space-y-5">
+                    <form class="space-y-5" @submit.prevent="updatePassword">
                         <Input
                             v-model="passwordForm.current_password"
                             type="password"
@@ -150,13 +148,7 @@ const deleteAccount = () => {
                             :error="passwordForm.errors.current_password"
                             required
                         />
-                        <Input
-                            v-model="passwordForm.password"
-                            type="password"
-                            label="New Password"
-                            :error="passwordForm.errors.password"
-                            required
-                        />
+                        <Input v-model="passwordForm.password" type="password" label="New Password" :error="passwordForm.errors.password" required />
                         <Input
                             v-model="passwordForm.password_confirmation"
                             type="password"
@@ -166,9 +158,7 @@ const deleteAccount = () => {
                         />
 
                         <div class="flex justify-end pt-2">
-                            <Button type="submit" :loading="passwordForm.processing" :disabled="passwordForm.processing">
-                                Update Password
-                            </Button>
+                            <Button type="submit" :loading="passwordForm.processing" :disabled="passwordForm.processing"> Update Password </Button>
                         </div>
                     </form>
                 </Card>
@@ -193,49 +183,27 @@ const deleteAccount = () => {
             </Motion>
         </div>
 
-        <!-- Delete Confirmation Modal -->
-        <Teleport to="body">
-            <Transition
-                enter-active-class="transition ease-out duration-200"
-                enter-from-class="opacity-0"
-                enter-to-class="opacity-100"
-                leave-active-class="transition ease-in duration-150"
-                leave-from-class="opacity-100"
-                leave-to-class="opacity-0"
-            >
-                <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <Motion
-                        :initial="{ opacity: 0, scale: 0.95 }"
-                        :animate="{ opacity: 1, scale: 1 }"
-                        :transition="{ type: 'spring', stiffness: 300, damping: 30 }"
-                        class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-zinc-900"
-                    >
-                        <h3 class="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">Delete Account</h3>
-                        <p class="mb-6 text-sm text-zinc-600 dark:text-zinc-400">
-                            Are you sure you want to delete your account? This action cannot be undone. Please enter your password
-                            to confirm.
-                        </p>
-
-                        <form @submit.prevent="deleteAccount" class="space-y-4">
-                            <Input
-                                v-model="deleteForm.password"
-                                type="password"
-                                label="Password"
-                                placeholder="Enter your password"
-                                :error="deleteForm.errors.password"
-                                required
-                            />
-
-                            <div class="flex justify-end gap-3">
-                                <Button type="button" variant="ghost" @click="showDeleteModal = false">Cancel</Button>
-                                <Button type="submit" variant="danger" :loading="deleteForm.processing" :disabled="deleteForm.processing">
-                                    Delete Account
-                                </Button>
-                            </div>
-                        </form>
-                    </Motion>
-                </div>
-            </Transition>
-        </Teleport>
+        <!-- Delete Account Confirmation -->
+        <ConfirmDialog
+            v-model="showDeleteModal"
+            title="Delete Account"
+            message="Are you sure you want to delete your account? This action cannot be undone. All of your data will be permanently removed."
+            confirm-text="Delete Account"
+            cancel-text="Cancel"
+            variant="danger"
+            :loading="deleteForm.processing"
+            @confirm="deleteAccount"
+        >
+            <form class="mt-4" @submit.prevent="deleteAccount">
+                <Input
+                    v-model="deleteForm.password"
+                    type="password"
+                    label="Confirm Password"
+                    placeholder="Enter your password to confirm"
+                    :error="deleteForm.errors.password"
+                    required
+                />
+            </form>
+        </ConfirmDialog>
     </AuthenticatedLayout>
 </template>

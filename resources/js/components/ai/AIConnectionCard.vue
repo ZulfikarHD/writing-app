@@ -1,7 +1,12 @@
 <script setup lang="ts">
+import Alert from '@/components/ui/Alert.vue';
+import Badge from '@/components/ui/Badge.vue';
 import Button from '@/components/ui/Button.vue';
-import type { AIConnection } from '@/Pages/Settings/AIConnections.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import { useToast } from '@/composables/useToast';
+import type { AIConnection } from '@/pages/Settings/AIConnections.vue';
 import { router } from '@inertiajs/vue3';
+import axios from 'axios';
 import { ref } from 'vue';
 
 import ConnectionStatus from './ConnectionStatus.vue';
@@ -14,26 +19,22 @@ const emit = defineEmits<{
     edit: [];
 }>();
 
+const { success, error: showError } = useToast();
+
 const testing = ref(false);
 const testResult = ref<{ success: boolean; message: string; model_count?: number } | null>(null);
 const deleting = ref(false);
 const showDeleteConfirm = ref(false);
+const errorMessage = ref<string | null>(null);
 
 const testConnection = async () => {
     testing.value = true;
     testResult.value = null;
+    errorMessage.value = null;
 
     try {
-        const response = await fetch(`/api/ai-connections/${props.connection.id}/test`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            },
-        });
-
-        const data = await response.json();
-        testResult.value = data;
+        const response = await axios.post(`/api/ai-connections/${props.connection.id}/test`);
+        testResult.value = response.data;
 
         // Reload to update connection status
         router.reload({ only: ['connections'] });
@@ -42,11 +43,18 @@ const testConnection = async () => {
         setTimeout(() => {
             testResult.value = null;
         }, 5000);
-    } catch {
-        testResult.value = {
-            success: false,
-            message: 'Failed to test connection. Please try again.',
-        };
+    } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.data?.message) {
+            testResult.value = {
+                success: false,
+                message: error.response.data.message,
+            };
+        } else {
+            testResult.value = {
+                success: false,
+                message: 'Failed to test connection. Please try again.',
+            };
+        }
     } finally {
         testing.value = false;
     }
@@ -54,19 +62,18 @@ const testConnection = async () => {
 
 const deleteConnection = async () => {
     deleting.value = true;
+    errorMessage.value = null;
 
     try {
-        await fetch(`/api/ai-connections/${props.connection.id}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            },
-        });
-
+        await axios.delete(`/api/ai-connections/${props.connection.id}`);
+        success('Connection deleted successfully.', { title: 'Deleted' });
         router.reload({ only: ['connections'] });
-    } catch {
-        // Handle error
+    } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.data?.message) {
+            showError(error.response.data.message, { title: 'Delete Failed' });
+        } else {
+            showError('Failed to delete connection. Please try again.', { title: 'Delete Failed' });
+        }
     } finally {
         deleting.value = false;
         showDeleteConfirm.value = false;
@@ -74,42 +81,59 @@ const deleteConnection = async () => {
 };
 
 const toggleDefault = async () => {
-    await fetch(`/api/ai-connections/${props.connection.id}`, {
-        method: 'PATCH',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-        },
-        body: JSON.stringify({ is_default: !props.connection.is_default }),
-    });
+    errorMessage.value = null;
+    const newDefault = !props.connection.is_default;
 
-    router.reload({ only: ['connections'] });
+    try {
+        await axios.patch(`/api/ai-connections/${props.connection.id}`, {
+            is_default: newDefault,
+        });
+        if (newDefault) {
+            success(`${props.connection.name} is now the default connection.`, { title: 'Default Updated' });
+        }
+        router.reload({ only: ['connections'] });
+    } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.data?.message) {
+            showError(error.response.data.message, { title: 'Update Failed' });
+        } else {
+            showError('Failed to update connection. Please try again.', { title: 'Update Failed' });
+        }
+    }
 };
 
 const toggleActive = async () => {
-    await fetch(`/api/ai-connections/${props.connection.id}`, {
-        method: 'PATCH',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-        },
-        body: JSON.stringify({ is_active: !props.connection.is_active }),
-    });
+    errorMessage.value = null;
+    const newActive = !props.connection.is_active;
 
-    router.reload({ only: ['connections'] });
+    try {
+        await axios.patch(`/api/ai-connections/${props.connection.id}`, {
+            is_active: newActive,
+        });
+        success(`Connection ${newActive ? 'enabled' : 'disabled'} successfully.`, {
+            title: newActive ? 'Enabled' : 'Disabled',
+        });
+        router.reload({ only: ['connections'] });
+    } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.data?.message) {
+            showError(error.response.data.message, { title: 'Update Failed' });
+        } else {
+            showError('Failed to update connection. Please try again.', { title: 'Update Failed' });
+        }
+    }
 };
 </script>
 
 <template>
     <div
         class="rounded-xl border bg-white transition-all dark:bg-zinc-900"
-        :class="[
-            connection.is_active
-                ? 'border-zinc-200 dark:border-zinc-800'
-                : 'border-zinc-200/50 opacity-60 dark:border-zinc-800/50',
-        ]"
+        :class="[connection.is_active ? 'border-zinc-200 dark:border-zinc-800' : 'border-zinc-200/50 opacity-60 dark:border-zinc-800/50']"
     >
         <div class="p-4">
+            <!-- Error Alert -->
+            <Alert v-if="errorMessage" variant="danger" dismissible class="mb-4" @dismiss="errorMessage = null">
+                {{ errorMessage }}
+            </Alert>
+
             <!-- Header -->
             <div class="flex items-start justify-between">
                 <div class="flex items-center gap-3">
@@ -133,12 +157,7 @@ const toggleActive = async () => {
                     <div>
                         <div class="flex items-center gap-2">
                             <h3 class="font-semibold text-zinc-900 dark:text-white">{{ connection.name }}</h3>
-                            <span
-                                v-if="connection.is_default"
-                                class="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-400"
-                            >
-                                Default
-                            </span>
+                            <Badge v-if="connection.is_default" variant="primary" size="sm">Default</Badge>
                         </div>
                         <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ connection.provider_name }}</p>
                     </div>
@@ -167,36 +186,19 @@ const toggleActive = async () => {
                 leave-from-class="opacity-100 translate-y-0"
                 leave-to-class="opacity-0 -translate-y-1"
             >
-                <div
-                    v-if="testResult"
-                    class="mt-4 rounded-lg px-3 py-2 text-sm"
-                    :class="testResult.success ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'"
-                >
+                <Alert v-if="testResult" :variant="testResult.success ? 'success' : 'danger'" class="mt-4">
                     <div class="flex items-center gap-2">
-                        <svg v-if="testResult.success" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
                         <span>{{ testResult.message }}</span>
-                        <span v-if="testResult.model_count" class="text-xs opacity-75">
-                            ({{ testResult.model_count }} models available)
-                        </span>
+                        <span v-if="testResult.model_count" class="text-xs opacity-75"> ({{ testResult.model_count }} models available) </span>
                     </div>
-                </div>
+                </Alert>
             </Transition>
 
             <!-- Actions -->
             <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-4 dark:border-zinc-800">
                 <Button size="sm" variant="ghost" :loading="testing" @click="testConnection">
                     <svg v-if="!testing" class="mr-1 h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     Test
                 </Button>
@@ -226,7 +228,12 @@ const toggleActive = async () => {
                     {{ connection.is_active ? 'Disable' : 'Enable' }}
                 </Button>
                 <div class="flex-1"></div>
-                <Button v-if="!showDeleteConfirm" size="sm" variant="ghost" class="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20" @click="showDeleteConfirm = true">
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    class="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                    @click="showDeleteConfirm = true"
+                >
                     <svg class="mr-1 h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                             stroke-linecap="round"
@@ -237,12 +244,19 @@ const toggleActive = async () => {
                     </svg>
                     Delete
                 </Button>
-                <div v-else class="flex items-center gap-2">
-                    <span class="text-xs text-red-600 dark:text-red-400">Confirm delete?</span>
-                    <Button size="sm" variant="danger" :loading="deleting" @click="deleteConnection">Yes</Button>
-                    <Button size="sm" variant="ghost" @click="showDeleteConfirm = false">No</Button>
-                </div>
             </div>
         </div>
+
+        <!-- Delete Confirmation Dialog -->
+        <ConfirmDialog
+            v-model="showDeleteConfirm"
+            title="Delete Connection"
+            :message="`Are you sure you want to delete '${connection.name}'? This action cannot be undone.`"
+            confirm-text="Delete"
+            cancel-text="Cancel"
+            variant="danger"
+            :loading="deleting"
+            @confirm="deleteConnection"
+        />
     </div>
 </template>

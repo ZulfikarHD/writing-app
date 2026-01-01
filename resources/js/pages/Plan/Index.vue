@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
-import axios from 'axios';
 import ChapterGroup from '@/components/plan/ChapterGroup.vue';
 import SearchFilter from '@/components/plan/SearchFilter.vue';
+import Button from '@/components/ui/Button.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import ContextMenu from '@/components/ui/ContextMenu.vue';
+import Toast from '@/components/ui/Toast.vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import axios from 'axios';
+import { computed, ref } from 'vue';
 
 interface Label {
     id: number;
@@ -63,6 +66,24 @@ const filterState = ref({
 const filteredChapters = ref<Chapter[]>([...props.chapters]);
 const isSearching = ref(false);
 
+// Confirmation dialog state
+const confirmDialog = ref({
+    show: false,
+    title: '',
+    message: '',
+    variant: 'danger' as 'danger' | 'warning' | 'info',
+    loading: false,
+    onConfirm: () => {},
+});
+
+// Toast notification state
+const toast = ref({
+    show: false,
+    variant: 'danger' as 'info' | 'success' | 'warning' | 'danger',
+    title: '',
+    message: '',
+});
+
 const contextMenu = ref<{
     position: { x: number; y: number } | undefined;
     items: Array<{
@@ -85,6 +106,34 @@ const totalWordCount = computed(() => {
 const totalSceneCount = computed(() => {
     return filteredChapters.value.reduce((total, chapter) => total + chapter.scenes.length, 0);
 });
+
+const showToast = (variant: 'info' | 'success' | 'warning' | 'danger', title: string, message: string) => {
+    toast.value = { show: true, variant, title, message };
+};
+
+const showConfirm = (options: {
+    title: string;
+    message: string;
+    variant?: 'danger' | 'warning' | 'info';
+    onConfirm: () => void | Promise<void>;
+}) => {
+    confirmDialog.value = {
+        show: true,
+        title: options.title,
+        message: options.message,
+        variant: options.variant || 'danger',
+        loading: false,
+        onConfirm: async () => {
+            confirmDialog.value.loading = true;
+            try {
+                await options.onConfirm();
+            } finally {
+                confirmDialog.value.loading = false;
+                confirmDialog.value.show = false;
+            }
+        },
+    };
+};
 
 const handleSearch = async () => {
     const hasFilters = filterState.value.query || filterState.value.status || filterState.value.labelIds.length > 0;
@@ -122,6 +171,7 @@ const handleSearch = async () => {
             }));
     } catch (error) {
         console.error('Search failed:', error);
+        showToast('danger', 'Search Failed', 'Unable to search scenes. Please try again.');
     } finally {
         isSearching.value = false;
     }
@@ -145,8 +195,9 @@ const handleSceneContextMenu = (e: MouseEvent, scene: Scene) => {
                     try {
                         await axios.post(`/api/scenes/${scene.id}/duplicate`);
                         router.reload();
+                        showToast('success', 'Scene Duplicated', 'The scene has been duplicated successfully.');
                     } catch {
-                        alert('Failed to duplicate scene');
+                        showToast('danger', 'Failed to Duplicate', 'Unable to duplicate the scene. Please try again.');
                     }
                 },
             },
@@ -157,23 +208,30 @@ const handleSceneContextMenu = (e: MouseEvent, scene: Scene) => {
                     try {
                         await axios.post(`/api/scenes/${scene.id}/archive`);
                         router.reload();
+                        showToast('success', 'Scene Archived', 'The scene has been archived.');
                     } catch {
-                        alert('Failed to archive scene');
+                        showToast('danger', 'Failed to Archive', 'Unable to archive the scene. Please try again.');
                     }
                 },
             },
             {
                 label: 'Delete Scene',
                 variant: 'danger' as const,
-                action: async () => {
-                    if (confirm(`Are you sure you want to delete "${scene.title || 'Untitled'}"?`)) {
-                        try {
-                            await axios.delete(`/api/scenes/${scene.id}`);
-                            router.reload();
-                        } catch {
-                            alert('Failed to delete scene');
-                        }
-                    }
+                action: () => {
+                    showConfirm({
+                        title: 'Delete Scene',
+                        message: `Are you sure you want to delete "${scene.title || 'Untitled'}"? This action cannot be undone.`,
+                        variant: 'danger',
+                        onConfirm: async () => {
+                            try {
+                                await axios.delete(`/api/scenes/${scene.id}`);
+                                router.reload();
+                                showToast('success', 'Scene Deleted', 'The scene has been deleted.');
+                            } catch {
+                                showToast('danger', 'Failed to Delete', 'Unable to delete the scene. Please try again.');
+                            }
+                        },
+                    });
                 },
             },
         ],
@@ -191,7 +249,7 @@ const handleChapterContextMenu = (e: MouseEvent, chapter: Chapter) => {
                         const response = await axios.post(`/api/chapters/${chapter.id}/scenes`, { title: 'New Scene' });
                         router.visit(`/novels/${props.novel.id}/write/${response.data.scene.id}`);
                     } catch {
-                        alert('Failed to create scene');
+                        showToast('danger', 'Failed to Create', 'Unable to create a new scene. Please try again.');
                     }
                 },
             },
@@ -199,15 +257,21 @@ const handleChapterContextMenu = (e: MouseEvent, chapter: Chapter) => {
             {
                 label: 'Delete Chapter',
                 variant: 'danger' as const,
-                action: async () => {
-                    if (confirm(`Are you sure you want to delete "${chapter.title}"? All scenes will be deleted.`)) {
-                        try {
-                            await axios.delete(`/api/chapters/${chapter.id}`);
-                            router.reload();
-                        } catch {
-                            alert('Failed to delete chapter');
-                        }
-                    }
+                action: () => {
+                    showConfirm({
+                        title: 'Delete Chapter',
+                        message: `Are you sure you want to delete "${chapter.title}"? All scenes in this chapter will be permanently deleted.`,
+                        variant: 'danger',
+                        onConfirm: async () => {
+                            try {
+                                await axios.delete(`/api/chapters/${chapter.id}`);
+                                router.reload();
+                                showToast('success', 'Chapter Deleted', 'The chapter and all its scenes have been deleted.');
+                            } catch {
+                                showToast('danger', 'Failed to Delete', 'Unable to delete the chapter. Please try again.');
+                            }
+                        },
+                    });
                 },
             },
         ],
@@ -219,6 +283,7 @@ const handleScenesReorder = async (chapterId: number, scenes: { id: number; posi
         await axios.post(`/api/chapters/${chapterId}/scenes/reorder`, { scenes });
     } catch {
         router.reload();
+        showToast('danger', 'Reorder Failed', 'Unable to save the new scene order. Please try again.');
     }
 };
 
@@ -236,7 +301,10 @@ const closeContextMenu = () => {
             <div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-4">
-                        <Link href="/dashboard" class="flex items-center gap-2 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
+                        <Link
+                            href="/dashboard"
+                            class="flex items-center gap-2 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                        >
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
                             </svg>
@@ -251,12 +319,7 @@ const closeContextMenu = () => {
                             <span>{{ totalSceneCount }} scenes</span>
                             <span>{{ totalWordCount.toLocaleString() }} words</span>
                         </div>
-                        <Link
-                            :href="`/novels/${novel.id}/write`"
-                            class="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-violet-700 active:scale-95"
-                        >
-                            Open Editor
-                        </Link>
+                        <Button :href="`/novels/${novel.id}/write`" as="a">Open Editor</Button>
                     </div>
                 </div>
 
@@ -309,20 +372,39 @@ const closeContextMenu = () => {
                     <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                         {{ filterState.query || filterState.status || filterState.labelIds.length > 0 ? 'Try adjusting your filters' : 'Create your first chapter and scene in the editor' }}
                     </p>
-                    <Link
-                        :href="`/novels/${novel.id}/write`"
-                        class="mt-4 inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-violet-700 active:scale-95"
-                    >
+                    <Button :href="`/novels/${novel.id}/write`" as="a" class="mt-4">
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                         </svg>
                         Start Writing
-                    </Link>
+                    </Button>
                 </div>
             </div>
         </main>
 
         <!-- Context Menu -->
         <ContextMenu :items="contextMenu.items" :position="contextMenu.position" @close="closeContextMenu" />
+
+        <!-- Confirm Dialog -->
+        <ConfirmDialog
+            v-model="confirmDialog.show"
+            :title="confirmDialog.title"
+            :message="confirmDialog.message"
+            :variant="confirmDialog.variant"
+            :loading="confirmDialog.loading"
+            @confirm="confirmDialog.onConfirm"
+        />
+
+        <!-- Toast Notification -->
+        <Toast
+            v-if="toast.show"
+            :variant="toast.variant"
+            :title="toast.title"
+            :duration="5000"
+            position="top-right"
+            @close="toast.show = false"
+        >
+            {{ toast.message }}
+        </Toast>
     </div>
 </template>

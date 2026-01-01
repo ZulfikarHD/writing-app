@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import Badge from '@/components/ui/Badge.vue';
+import Button from '@/components/ui/Button.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import { router } from '@inertiajs/vue3';
 import { Motion } from 'motion-v';
 import { computed, ref } from 'vue';
@@ -21,23 +24,27 @@ const props = defineProps<{
 }>();
 
 const showMenu = ref(false);
+const showDeleteConfirm = ref(false);
+const isDeleting = ref(false);
 
-const statusColors = {
-    draft: 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300',
-    in_progress: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    completed: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-    archived: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+type StatusKey = 'draft' | 'in_progress' | 'completed' | 'archived';
+
+const statusVariants: Record<StatusKey, 'default' | 'info' | 'success' | 'warning'> = {
+    draft: 'default',
+    in_progress: 'info',
+    completed: 'success',
+    archived: 'warning',
 };
 
-const statusLabels = {
+const statusLabels: Record<StatusKey, string> = {
     draft: 'Draft',
     in_progress: 'In Progress',
     completed: 'Completed',
     archived: 'Archived',
 };
 
-const statusColor = computed(() => statusColors[props.novel.status as keyof typeof statusColors] || statusColors.draft);
-const statusLabel = computed(() => statusLabels[props.novel.status as keyof typeof statusLabels] || 'Draft');
+const statusVariant = computed(() => statusVariants[props.novel.status as StatusKey] || 'default');
+const statusLabel = computed(() => statusLabels[props.novel.status as StatusKey] || 'Draft');
 
 const formattedWordCount = computed(() => {
     if (props.novel.word_count >= 1000) {
@@ -60,11 +67,20 @@ const formattedDate = computed(() => {
     return date.toLocaleDateString('id-ID', { month: 'short', day: 'numeric' });
 });
 
-const deleteNovel = () => {
-    if (confirm(`Are you sure you want to delete "${props.novel.title}"? This action cannot be undone.`)) {
-        router.delete(`/novels/${props.novel.id}`);
-    }
+const handleDeleteClick = () => {
     showMenu.value = false;
+    showDeleteConfirm.value = true;
+};
+
+const deleteNovel = () => {
+    isDeleting.value = true;
+    router.delete(`/novels/${props.novel.id}`, {
+        preserveScroll: true,
+        onFinish: () => {
+            isDeleting.value = false;
+            showDeleteConfirm.value = false;
+        },
+    });
 };
 
 const openEditor = () => {
@@ -84,8 +100,8 @@ const openPlan = () => {
         class="group relative"
     >
         <div
-            @click="openEditor"
             class="relative h-full cursor-pointer overflow-hidden rounded-xl border border-zinc-200 bg-white p-5 shadow-sm transition-all hover:border-violet-300 hover:shadow-md active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-violet-700"
+            @click="openEditor"
         >
             <!-- Header -->
             <div class="mb-3 flex items-start justify-between">
@@ -101,8 +117,9 @@ const openPlan = () => {
                 <!-- Menu Button -->
                 <div class="relative">
                     <button
-                        @click.stop="showMenu = !showMenu"
+                        type="button"
                         class="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 opacity-0 transition-opacity hover:bg-zinc-100 hover:text-zinc-600 group-hover:opacity-100 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                        @click.stop="showMenu = !showMenu"
                     >
                         <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                             <circle cx="12" cy="6" r="2" />
@@ -121,12 +138,13 @@ const openPlan = () => {
                     >
                         <div
                             v-if="showMenu"
-                            @click.stop
                             class="absolute right-0 z-10 mt-1 w-40 origin-top-right rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+                            @click.stop
                         >
                             <button
-                                @click="openEditor"
+                                type="button"
                                 class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                                @click="openEditor"
                             >
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -134,8 +152,9 @@ const openPlan = () => {
                                 Open Editor
                             </button>
                             <button
-                                @click="openPlan"
+                                type="button"
                                 class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                                @click="openPlan"
                             >
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
@@ -144,8 +163,9 @@ const openPlan = () => {
                             </button>
                             <div class="my-1 border-t border-zinc-200 dark:border-zinc-700"></div>
                             <button
-                                @click="deleteNovel"
+                                type="button"
                                 class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                                @click="handleDeleteClick"
                             >
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -161,18 +181,16 @@ const openPlan = () => {
             <p v-if="novel.description" class="mb-4 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">
                 {{ novel.description }}
             </p>
-            <p v-else class="mb-4 text-sm italic text-zinc-400 dark:text-zinc-600">
-                No description
-            </p>
+            <p v-else class="mb-4 text-sm italic text-zinc-400 dark:text-zinc-600">No description</p>
 
             <!-- Meta Info -->
             <div class="flex flex-wrap items-center gap-2">
-                <span :class="statusColor" class="rounded-full px-2 py-0.5 text-xs font-medium">
+                <Badge :variant="statusVariant" size="sm">
                     {{ statusLabel }}
-                </span>
-                <span v-if="novel.genre" class="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">
+                </Badge>
+                <Badge v-if="novel.genre" variant="primary" size="sm">
                     {{ novel.genre }}
-                </span>
+                </Badge>
             </div>
 
             <!-- Footer Stats -->
@@ -194,29 +212,35 @@ const openPlan = () => {
                     </div>
                     <span class="text-xs text-zinc-400">{{ formattedDate }}</span>
                 </div>
-                
+
                 <!-- Quick Action Buttons -->
                 <div class="mt-2 flex gap-2">
-                    <button
-                        @click.stop="openEditor"
-                        class="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-violet-700 active:scale-[0.97]"
-                    >
+                    <Button size="xs" class="flex-1" @click.stop="openEditor">
                         <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                         Write
-                    </button>
-                    <button
-                        @click.stop="openPlan"
-                        class="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 active:scale-[0.97] dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
-                    >
+                    </Button>
+                    <Button size="xs" variant="outline" class="flex-1" @click.stop="openPlan">
                         <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
                         </svg>
                         Plan
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>
+
+        <!-- Delete Confirmation Dialog -->
+        <ConfirmDialog
+            v-model="showDeleteConfirm"
+            title="Delete Novel"
+            :message="`Are you sure you want to delete '${novel.title}'? This action cannot be undone and all chapters and scenes will be permanently deleted.`"
+            confirm-text="Delete Novel"
+            cancel-text="Cancel"
+            variant="danger"
+            :loading="isDeleting"
+            @confirm="deleteNovel"
+        />
     </Motion>
 </template>
