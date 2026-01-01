@@ -6,7 +6,7 @@ import Select from '@/components/ui/Select.vue';
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import { ref, computed } from 'vue';
-import CodexTypeIcon from './CodexTypeIcon.vue';
+import CodexTypeIcon from '../shared/CodexTypeIcon.vue';
 
 interface RelationEntry {
     id: number;

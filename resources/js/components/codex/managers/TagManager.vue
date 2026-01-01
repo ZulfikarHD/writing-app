@@ -50,7 +50,6 @@ watch(() => props.availableTags, (newTags) => {
 // UI state
 const isAdding = ref(false);
 const searchQuery = ref('');
-const newTagName = ref('');
 const newTagColor = ref('#8B5CF6');
 const loading = ref(false);
 const error = ref<string | null>(null);

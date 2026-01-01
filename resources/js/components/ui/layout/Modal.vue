@@ -11,6 +11,7 @@ interface Props {
     closeOnOverlay?: boolean;
     closeOnEscape?: boolean;
     persistent?: boolean;
+    scrollable?: boolean; // Enable scrollable body with max-height
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -21,6 +22,7 @@ const props = withDefaults(defineProps<Props>(), {
     closeOnOverlay: true,
     closeOnEscape: true,
     persistent: false,
+    scrollable: false,
 });
 
 const emit = defineEmits<{
@@ -60,8 +62,9 @@ const handleKeydown = (e: KeyboardEvent) => {
 
 const modalClasses = computed(() => {
     return [
-        'relative w-full transform overflow-hidden rounded-xl bg-white text-left shadow-xl transition-all dark:bg-zinc-900',
+        'relative w-full transform rounded-2xl bg-white text-left shadow-2xl ring-1 ring-zinc-900/5 transition-all dark:bg-zinc-900 dark:ring-white/10',
         sizeClasses[props.size],
+        props.scrollable ? 'flex max-h-[90vh] flex-col' : 'overflow-hidden',
     ].join(' ');
 });
 
@@ -128,21 +131,24 @@ onUnmounted(() => {
                         <div v-if="isOpen" :class="modalClasses">
                             <!-- Header -->
                             <div
-                                v-if="title || closable"
-                                class="flex items-start justify-between border-b border-zinc-200 p-4 dark:border-zinc-700 sm:p-6"
+                                v-if="title || $slots.header || closable"
+                                class="flex shrink-0 items-center justify-between gap-4 border-b border-zinc-200 bg-zinc-50/80 px-5 py-4 dark:border-zinc-700 dark:bg-zinc-800/50"
                             >
-                                <div v-if="title || description">
+                                <div v-if="$slots.header" class="min-w-0 flex-1">
+                                    <slot name="header" />
+                                </div>
+                                <div v-else-if="title || description" class="min-w-0 flex-1">
                                     <h3 v-if="title" class="text-lg font-semibold text-zinc-900 dark:text-white">
                                         {{ title }}
                                     </h3>
-                                    <p v-if="description" class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                                    <p v-if="description" class="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
                                         {{ description }}
                                     </p>
                                 </div>
                                 <button
                                     v-if="closable"
                                     type="button"
-                                    class="-mr-1 -mt-1 ml-auto flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-zinc-400 transition-all hover:bg-zinc-200 hover:text-zinc-600 active:scale-95 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
                                     @click="close"
                                 >
                                     <span class="sr-only">Close</span>
@@ -158,14 +164,17 @@ onUnmounted(() => {
                             </div>
 
                             <!-- Body -->
-                            <div class="p-4 sm:p-6">
+                            <div :class="[
+                                'p-5',
+                                scrollable ? 'flex-1 overflow-y-auto' : ''
+                            ]">
                                 <slot />
                             </div>
 
                             <!-- Footer -->
                             <div
                                 v-if="$slots.footer"
-                                class="flex items-center justify-end gap-3 border-t border-zinc-200 p-4 dark:border-zinc-700 sm:p-6"
+                                class="flex shrink-0 items-center justify-end gap-3 border-t border-zinc-200 bg-zinc-50/80 px-5 py-4 dark:border-zinc-700 dark:bg-zinc-800/50"
                             >
                                 <slot name="footer" />
                             </div>

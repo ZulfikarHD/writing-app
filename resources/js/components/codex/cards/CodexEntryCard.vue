@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import CodexTypeBadge from './CodexTypeBadge.vue';
-import CodexTypeIcon from './CodexTypeIcon.vue';
+import CodexTypeBadge from '../shared/CodexTypeBadge.vue';
+import CodexTypeIcon from '../shared/CodexTypeIcon.vue';
 
 interface Category {
     id: number;

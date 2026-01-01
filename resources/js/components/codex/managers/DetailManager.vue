@@ -10,7 +10,7 @@
  */
 import Button from '@/components/ui/Button.vue';
 import Input from '@/components/ui/Input.vue';
-import AIVisibilityToggle from './AIVisibilityToggle.vue';
+import AIVisibilityToggle from '../shared/AIVisibilityToggle.vue';
 import axios from 'axios';
 import { ref, computed } from 'vue';
 
@@ -234,14 +234,6 @@ const handleKeydown = (e: KeyboardEvent) => {
     }
 };
 
-const getAiVisibilityIcon = (visibility: AIVisibility): string => {
-    switch (visibility) {
-        case 'always': return '👁️';
-        case 'never': return '🔒';
-        case 'nsfw_only': return '🔞';
-        default: return '👁️';
-    }
-};
 </script>
 
 <template>

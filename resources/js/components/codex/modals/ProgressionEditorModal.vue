@@ -18,9 +18,9 @@ import Button from '@/components/ui/Button.vue';
 import Input from '@/components/ui/Input.vue';
 import Modal from '@/components/ui/Modal.vue';
 import Textarea from '@/components/ui/Textarea.vue';
-import CodexTypeIcon from './CodexTypeIcon.vue';
+import CodexTypeIcon from '../shared/CodexTypeIcon.vue';
 import axios from 'axios';
-import { ref, watch, computed, onMounted } from 'vue';
+import { ref, watch, computed } from 'vue';
 
 interface CodexEntry {
     id: number;

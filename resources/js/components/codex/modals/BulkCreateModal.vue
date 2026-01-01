@@ -16,7 +16,7 @@
  */
 import Button from '@/components/ui/Button.vue';
 import Modal from '@/components/ui/Modal.vue';
-import CodexTypeIcon from './CodexTypeIcon.vue';
+import CodexTypeIcon from '../shared/CodexTypeIcon.vue';
 import axios from 'axios';
 import { ref, computed, watch } from 'vue';
 

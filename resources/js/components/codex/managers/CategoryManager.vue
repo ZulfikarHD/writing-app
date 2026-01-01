@@ -2,7 +2,6 @@
 import Button from '@/components/ui/Button.vue';
 import Input from '@/components/ui/Input.vue';
 import Modal from '@/components/ui/Modal.vue';
-import Select from '@/components/ui/Select.vue';
 import axios from 'axios';
 import { ref, computed, watch } from 'vue';
 

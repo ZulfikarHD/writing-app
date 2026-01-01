@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import Button from './Button.vue';
-import Modal from './Modal.vue';
+import Button from '../buttons/Button.vue';
+import Modal from '../layout/Modal.vue';
 
 interface Props {
     modelValue: boolean;

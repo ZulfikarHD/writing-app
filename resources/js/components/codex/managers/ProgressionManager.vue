@@ -3,7 +3,7 @@ import Button from '@/components/ui/Button.vue';
 import Input from '@/components/ui/Input.vue';
 import Modal from '@/components/ui/Modal.vue';
 import Textarea from '@/components/ui/Textarea.vue';
-import ProgressionTimeline from './ProgressionTimeline.vue';
+import ProgressionTimeline from '../shared/ProgressionTimeline.vue';
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import { ref } from 'vue';
