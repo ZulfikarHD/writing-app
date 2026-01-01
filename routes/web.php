@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\ChapterController;
@@ -7,8 +8,10 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EditorController;
 use App\Http\Controllers\NovelController;
 use App\Http\Controllers\OnboardingController;
+use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SceneController;
+use App\Http\Controllers\SceneLabelController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -40,6 +43,10 @@ Route::middleware('auth')->group(function () {
     Route::get('novels/{novel}/write', [EditorController::class, 'show'])->name('editor.show');
     Route::get('novels/{novel}/write/{scene}', [EditorController::class, 'show'])->name('editor.scene');
 
+    // Plan routes
+    Route::get('novels/{novel}/plan', [PlanController::class, 'show'])->name('plan.show');
+    Route::get('api/novels/{novel}/scenes/search', [PlanController::class, 'search'])->name('scenes.search');
+
     // Chapter API routes
     Route::get('api/novels/{novel}/chapters', [ChapterController::class, 'index'])->name('chapters.index');
     Route::post('api/novels/{novel}/chapters', [ChapterController::class, 'store'])->name('chapters.store');
@@ -61,6 +68,23 @@ Route::middleware('auth')->group(function () {
     Route::get('api/scenes/{scene}/revisions', [SceneController::class, 'revisions'])->name('scenes.revisions');
     Route::post('api/scenes/{scene}/revisions', [SceneController::class, 'createRevision'])->name('scenes.revisions.create');
     Route::post('api/scenes/{scene}/revisions/{revisionId}/restore', [SceneController::class, 'restoreRevision'])->name('scenes.revisions.restore');
+
+    // Scene duplicate
+    Route::post('api/scenes/{scene}/duplicate', [SceneController::class, 'duplicate'])->name('scenes.duplicate');
+
+    // Acts API routes
+    Route::get('api/novels/{novel}/acts', [ActController::class, 'index'])->name('acts.index');
+    Route::post('api/novels/{novel}/acts', [ActController::class, 'store'])->name('acts.store');
+    Route::patch('api/acts/{act}', [ActController::class, 'update'])->name('acts.update');
+    Route::delete('api/acts/{act}', [ActController::class, 'destroy'])->name('acts.destroy');
+    Route::post('api/novels/{novel}/acts/reorder', [ActController::class, 'reorder'])->name('acts.reorder');
+
+    // Scene Labels API routes
+    Route::get('api/novels/{novel}/labels', [SceneLabelController::class, 'index'])->name('labels.index');
+    Route::post('api/novels/{novel}/labels', [SceneLabelController::class, 'store'])->name('labels.store');
+    Route::patch('api/labels/{label}', [SceneLabelController::class, 'update'])->name('labels.update');
+    Route::delete('api/labels/{label}', [SceneLabelController::class, 'destroy'])->name('labels.destroy');
+    Route::post('api/scenes/{scene}/labels', [SceneLabelController::class, 'assignToScene'])->name('scenes.labels');
 
     // Profile routes
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');

@@ -7,17 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Chapter extends Model
+class Act extends Model
 {
-    /** @use HasFactory<\Database\Factories\ChapterFactory> */
+    /** @use HasFactory<\Database\Factories\ActFactory> */
     use HasFactory;
 
     protected $fillable = [
         'novel_id',
-        'act_id',
         'title',
         'position',
-        'settings',
     ];
 
     /**
@@ -27,7 +25,6 @@ class Chapter extends Model
     {
         return [
             'position' => 'integer',
-            'settings' => 'array',
         ];
     }
 
@@ -40,26 +37,18 @@ class Chapter extends Model
     }
 
     /**
-     * @return BelongsTo<Act, $this>
+     * @return HasMany<Chapter, $this>
      */
-    public function act(): BelongsTo
+    public function chapters(): HasMany
     {
-        return $this->belongsTo(Act::class);
+        return $this->hasMany(Chapter::class)->orderBy('position');
     }
 
     /**
-     * @return HasMany<Scene, $this>
-     */
-    public function scenes(): HasMany
-    {
-        return $this->hasMany(Scene::class)->orderBy('position');
-    }
-
-    /**
-     * Get total word count for this chapter.
+     * Get total word count for this act.
      */
     public function getWordCountAttribute(): int
     {
-        return $this->scenes->sum('word_count');
+        return $this->chapters->sum('word_count');
     }
 }

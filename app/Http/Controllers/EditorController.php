@@ -18,10 +18,15 @@ class EditorController extends Controller
             abort(403);
         }
 
-        // Load chapters with their scenes
-        $novel->load(['chapters.scenes' => function ($query) {
-            $query->active()->orderBy('position');
-        }]);
+        // Load chapters with their scenes and labels
+        $novel->load([
+            'chapters.scenes' => function ($query) {
+                $query->active()->orderBy('position');
+            },
+            'labels' => function ($query) {
+                $query->orderBy('position');
+            },
+        ]);
 
         // If no scene is specified, get the first one or create a default chapter/scene
         $activeScene = $scene;
@@ -65,7 +70,18 @@ class EditorController extends Controller
                 'subtitle' => $activeScene->subtitle,
                 'notes' => $activeScene->notes,
                 'pov_character_id' => $activeScene->pov_character_id,
+                'exclude_from_ai' => $activeScene->exclude_from_ai,
+                'labels' => $activeScene->labels->map(fn ($label) => [
+                    'id' => $label->id,
+                    'name' => $label->name,
+                    'color' => $label->color,
+                ]),
             ] : null,
+            'labels' => $novel->labels->map(fn ($label) => [
+                'id' => $label->id,
+                'name' => $label->name,
+                'color' => $label->color,
+            ]),
         ]);
     }
 

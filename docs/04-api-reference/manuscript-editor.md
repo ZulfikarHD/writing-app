@@ -826,11 +826,368 @@ Content MUST be valid TipTap JSON:
 
 ---
 
+## Acts (Phase 2)
+
+### List Acts
+
+**GET** `/api/novels/{novel}/acts`
+
+List semua acts untuk novel dengan ordering by position.
+
+**Response:**
+```json
+{
+  "acts": [
+    {
+      "id": 1,
+      "title": "Act 1: Setup",
+      "position": 0
+    },
+    {
+      "id": 2,
+      "title": "Act 2: Confrontation",
+      "position": 1
+    }
+  ]
+}
+```
+
+### Create Act
+
+**POST** `/api/novels/{novel}/acts`
+
+Create act baru dalam novel.
+
+**Request:**
+```json
+{
+  "title": "Act 1: Setup",
+  "position": 0  // Optional, auto-increment if not provided
+}
+```
+
+**Response:** `201 Created`
+```json
+{
+  "act": {
+    "id": 1,
+    "title": "Act 1: Setup",
+    "position": 0
+  }
+}
+```
+
+### Update Act
+
+**PATCH** `/api/acts/{act}`
+
+Update act title atau position.
+
+**Request:**
+```json
+{
+  "title": "Act 1: The Beginning",
+  "position": 0
+}
+```
+
+**Response:** `200 OK`
+
+### Delete Act
+
+**DELETE** `/api/acts/{act}`
+
+Delete act. **Note:** Chapters yang belong to act ini akan memiliki `act_id` set to `null` (tidak ikut terhapus).
+
+**Response:** `200 OK`
+```json
+{
+  "success": true
+}
+```
+
+### Reorder Acts
+
+**POST** `/api/novels/{novel}/acts/reorder`
+
+Batch update position untuk multiple acts.
+
+**Request:**
+```json
+{
+  "acts": [
+    { "id": 2, "position": 0 },
+    { "id": 1, "position": 1 },
+    { "id": 3, "position": 2 }
+  ]
+}
+```
+
+**Response:** `200 OK`
+
+---
+
+## Scene Labels (Phase 2)
+
+### List Labels
+
+**GET** `/api/novels/{novel}/labels`
+
+List semua scene labels untuk novel.
+
+**Response:**
+```json
+{
+  "labels": [
+    {
+      "id": 1,
+      "name": "Action",
+      "color": "#EF4444",
+      "position": 0
+    },
+    {
+      "id": 2,
+      "name": "Romance",
+      "color": "#EC4899",
+      "position": 1
+    }
+  ]
+}
+```
+
+### Create Label
+
+**POST** `/api/novels/{novel}/labels`
+
+Create scene label baru dengan custom color.
+
+**Request:**
+```json
+{
+  "name": "Important",
+  "color": "#F59E0B",  // Optional, defaults to #6B7280
+  "position": 0  // Optional, auto-increment if not provided
+}
+```
+
+**Validation:**
+- `name`: required, max 100 chars
+- `color`: optional, must be valid hex (#RRGGBB format)
+
+**Response:** `201 Created`
+```json
+{
+  "label": {
+    "id": 3,
+    "name": "Important",
+    "color": "#F59E0B",
+    "position": 0
+  }
+}
+```
+
+### Update Label
+
+**PATCH** `/api/labels/{label}`
+
+Update label name, color, atau position.
+
+**Request:**
+```json
+{
+  "name": "Very Important",
+  "color": "#FF0000"
+}
+```
+
+**Response:** `200 OK`
+
+### Delete Label
+
+**DELETE** `/api/labels/{label}`
+
+Delete label. Pivot relationships otomatis terhapus (CASCADE).
+
+**Response:** `200 OK`
+```json
+{
+  "success": true
+}
+```
+
+### Assign Labels to Scene
+
+**POST** `/api/scenes/{scene}/labels`
+
+Assign labels ke scene. **Note:** Ini **replace** existing labels (sync, bukan append).
+
+**Request:**
+```json
+{
+  "label_ids": [1, 2, 3]  // Array of label IDs
+}
+```
+
+**Business Rules:**
+- Labels MUST belong to same novel as scene
+- Labels dari novel lain akan di-filter out
+- Empty array = remove all labels
+
+**Response:** `200 OK`
+```json
+{
+  "labels": [
+    {
+      "id": 1,
+      "name": "Action",
+      "color": "#EF4444"
+    },
+    {
+      "id": 2,
+      "name": "Romance",
+      "color": "#EC4899"
+    }
+  ]
+}
+```
+
+---
+
+## Plan View (Phase 2)
+
+### Show Plan Page
+
+**GET** `/novels/{novel}/plan`
+
+Load Plan page dengan complete data: chapters, scenes, acts, labels.
+
+**Response:** Inertia page `Plan/Index` dengan props:
+```javascript
+{
+  novel: {
+    id: 1,
+    title: "My Novel",
+    word_count: 50000
+  },
+  chapters: [
+    {
+      id: 1,
+      title: "Chapter 1",
+      position: 0,
+      act_id: 1,
+      word_count: 5000,
+      scenes: [
+        {
+          id: 1,
+          chapter_id: 1,
+          title: "Opening Scene",
+          summary: "Hero meets mentor",
+          position: 0,
+          status: "completed",
+          word_count: 1200,
+          pov_character_id: null,
+          subtitle: "The Meeting",
+          labels: [
+            { id: 1, name: "Action", color: "#EF4444" }
+          ]
+        }
+      ]
+    }
+  ],
+  acts: [
+    { id: 1, title: "Act 1", position: 0 }
+  ],
+  labels: [
+    { id: 1, name: "Action", color: "#EF4444", position: 0 }
+  ]
+}
+```
+
+**Business Rules:**
+- Only loads **active** (non-archived) scenes
+- Scenes eager loaded dengan labels
+- Chapters ordered by position
+- Acts ordered by position
+
+### Search Scenes
+
+**GET** `/api/novels/{novel}/scenes/search`
+
+Search dan filter scenes by title, summary, status, atau labels.
+
+**Query Parameters:**
+- `q` (string, optional): Search term untuk title/summary
+- `status` (string, optional): Filter by status (`draft`, `in_progress`, `completed`, `needs_revision`)
+- `label_ids[]` (array, optional): Filter by label IDs
+
+**Example:**
+```
+GET /api/novels/1/scenes/search?q=dragon&status=completed&label_ids[]=1&label_ids[]=3
+```
+
+**Response:** `200 OK`
+```json
+{
+  "scenes": [
+    {
+      "id": 5,
+      "chapter_id": 2,
+      "chapter_title": "Chapter 2",
+      "title": "The Dragon Fight",
+      "summary": "Epic battle scene",
+      "position": 0,
+      "status": "completed",
+      "word_count": 2500,
+      "labels": [
+        { "id": 1, "name": "Action", "color": "#EF4444" },
+        { "id": 3, "name": "Important", "color": "#F59E0B" }
+      ]
+    }
+  ]
+}
+```
+
+**Business Rules:**
+- Only searches **active** (non-archived) scenes
+- Search is case-insensitive dengan LIKE `%term%`
+- Labels filter uses `whereIn()` dengan labels relationship
+- Results ordered by position
+
+---
+
+## Duplicate Scene
+
+**POST** `/api/scenes/{scene}/duplicate`
+
+Duplicate scene dengan semua metadata dan labels.
+
+**Response:** `201 Created`
+```json
+{
+  "scene": {
+    "id": 10,
+    "chapter_id": 2,
+    "title": "Original Scene (Copy)",
+    "position": 5,
+    "status": "draft",
+    "word_count": 1200
+  }
+}
+```
+
+**Business Rules:**
+- Title ditambah suffix "(Copy)"
+- Position = max position + 1 di chapter yang sama
+- Labels ikut ter-copy (attach)
+- `archived_at` di-reset ke `null`
+- Content (TipTap JSON) di-copy
+
+---
+
 ## Related Documentation
 
-- **Sprint Documentation:** [Sprint 01 - Foundation & Core Editor](../10-sprints/sprint-01-foundation.md)
+- **Sprint Documentation:** [Sprint 02 - Manuscript Editor (Extended)](../10-sprints/sprint-02-manuscript-editor.md)
 - **Testing Guide:** [Manuscript Editor Testing](../06-testing/manuscript-editor-testing.md)
-- **User Journeys:** Coming soon
 
 ---
 

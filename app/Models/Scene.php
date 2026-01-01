@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Scene extends Model
@@ -57,6 +58,14 @@ class Scene extends Model
     public function revisions(): HasMany
     {
         return $this->hasMany(SceneRevision::class)->orderByDesc('created_at');
+    }
+
+    /**
+     * @return BelongsToMany<SceneLabel, $this>
+     */
+    public function labels(): BelongsToMany
+    {
+        return $this->belongsToMany(SceneLabel::class, 'scene_label');
     }
 
     /**

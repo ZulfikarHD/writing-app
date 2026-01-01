@@ -263,4 +263,38 @@ class SceneController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Duplicate a scene.
+     */
+    public function duplicate(Request $request, Scene $scene): JsonResponse
+    {
+        // Ensure user owns this scene's novel
+        if ($scene->chapter->novel->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        // Get the next position
+        $nextPosition = $scene->chapter->scenes()->max('position') + 1;
+
+        // Create the duplicate
+        $duplicate = $scene->replicate(['archived_at']);
+        $duplicate->title = ($scene->title ?? 'Untitled').' (Copy)';
+        $duplicate->position = $nextPosition;
+        $duplicate->save();
+
+        // Copy labels
+        $duplicate->labels()->attach($scene->labels->pluck('id'));
+
+        return response()->json([
+            'scene' => [
+                'id' => $duplicate->id,
+                'chapter_id' => $duplicate->chapter_id,
+                'title' => $duplicate->title,
+                'position' => $duplicate->position,
+                'status' => $duplicate->status,
+                'word_count' => $duplicate->word_count,
+            ],
+        ], 201);
+    }
 }

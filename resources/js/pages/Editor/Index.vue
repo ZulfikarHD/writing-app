@@ -5,16 +5,29 @@ import TipTapEditor from '@/components/editor/TipTapEditor.vue';
 import EditorToolbar from '@/components/editor/EditorToolbar.vue';
 import EditorSidebar from '@/components/editor/EditorSidebar.vue';
 import EditorSettingsPanel from '@/components/editor/EditorSettingsPanel.vue';
+import SceneMetadataPanel from '@/components/editor/SceneMetadataPanel.vue';
 import { useAutoSave } from '@/composables/useAutoSave';
 import { useEditorSettings } from '@/composables/useEditorSettings';
+
+interface Label {
+    id: number;
+    name: string;
+    color: string;
+}
 
 interface Scene {
     id: number;
     chapter_id: number;
     title: string | null;
     content: object | null;
+    summary: string | null;
     status: string;
     word_count: number;
+    subtitle: string | null;
+    notes: string | null;
+    pov_character_id: number | null;
+    exclude_from_ai: boolean;
+    labels?: Label[];
 }
 
 interface ChapterScene {
@@ -41,13 +54,16 @@ const props = defineProps<{
     novel: Novel;
     chapters: Chapter[];
     activeScene: Scene | null;
+    labels?: Label[];
 }>();
 
 const editorRef = ref<InstanceType<typeof TipTapEditor> | null>(null);
 const sidebarOpen = ref(true);
 const settingsPanelOpen = ref(false);
+const metadataPanelOpen = ref(false);
 const content = ref(props.activeScene?.content || null);
 const wordCount = ref(props.activeScene?.word_count || 0);
+const currentScene = ref<Scene | null>(props.activeScene);
 
 const { settings, editorStyles } = useEditorSettings();
 
@@ -79,6 +95,11 @@ const handleKeyDown = (e: KeyboardEvent) => {
             const newContent = editorRef.value.editor?.getJSON();
             if (newContent) forceSave(newContent);
         }
+    }
+    // Open metadata panel with 'i' key
+    if (e.key === 'i' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        metadataPanelOpen.value = !metadataPanelOpen.value;
     }
 };
 
@@ -113,6 +134,20 @@ const openSettings = () => {
 
 const closeSettings = () => {
     settingsPanelOpen.value = false;
+};
+
+const openMetadata = () => {
+    metadataPanelOpen.value = true;
+};
+
+const closeMetadata = () => {
+    metadataPanelOpen.value = false;
+};
+
+const handleMetadataUpdated = (updated: Partial<Scene>) => {
+    if (currentScene.value) {
+        currentScene.value = { ...currentScene.value, ...updated };
+    }
 };
 
 // Compute editor width class
@@ -190,6 +225,7 @@ const editorWidthClass = computed(() => {
                 @ordered-list="editorRef.toggleOrderedList"
                 @align="handleAlign"
                 @open-settings="openSettings"
+                @open-info="openMetadata"
             />
 
             <main class="flex-1 overflow-y-auto">
@@ -201,5 +237,15 @@ const editorWidthClass = computed(() => {
 
         <!-- Settings Panel -->
         <EditorSettingsPanel :open="settingsPanelOpen" @close="closeSettings" />
+
+        <!-- Metadata Panel -->
+        <SceneMetadataPanel
+            :open="metadataPanelOpen"
+            :scene="currentScene"
+            :novel-id="novel.id"
+            :available-labels="labels"
+            @close="closeMetadata"
+            @updated="handleMetadataUpdated"
+        />
     </div>
 </template>

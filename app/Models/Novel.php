@@ -65,6 +65,22 @@ class Novel extends Model
     }
 
     /**
+     * @return HasMany<Act, $this>
+     */
+    public function acts(): HasMany
+    {
+        return $this->hasMany(Act::class)->orderBy('position');
+    }
+
+    /**
+     * @return HasMany<SceneLabel, $this>
+     */
+    public function labels(): HasMany
+    {
+        return $this->hasMany(SceneLabel::class)->orderBy('position');
+    }
+
+    /**
      * @return HasManyThrough<Scene, Chapter, $this>
      */
     public function scenes(): HasManyThrough

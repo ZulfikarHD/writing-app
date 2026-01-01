@@ -35,6 +35,7 @@ const emit = defineEmits<{
     (e: 'orderedList'): void;
     (e: 'align', alignment: 'left' | 'center' | 'right' | 'justify'): void;
     (e: 'openSettings'): void;
+    (e: 'openInfo'): void;
 }>();
 
 const headingDropdownOpen = ref(false);
@@ -374,6 +375,18 @@ const closeDropdowns = () => {
                 </svg>
                 {{ saveStatusText }}
             </span>
+
+            <!-- Info button -->
+            <button
+                type="button"
+                class="rounded-md p-1.5 text-zinc-600 transition-all hover:bg-zinc-100 active:scale-95 dark:text-zinc-400 dark:hover:bg-zinc-800 sm:p-2"
+                title="Scene Info (Ctrl+I)"
+                @click="emit('openInfo')"
+            >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </button>
 
             <!-- Settings button -->
             <button
