@@ -30,7 +30,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Sprint 13 - Codex V2: Auto-Mentions & Research](./10-sprints/sprint-13-codex-v2-enhancements.md) ✅ Complete
 - [Sprint 14 - Codex V2: Tags & Enhanced Details](./10-sprints/sprint-14-codex-tags-details.md) ✅ Complete
 - [Sprint 15 - Codex V2: Batch Operations & QoL](./10-sprints/sprint-15-codex-enhancements.md) ✅ Complete
-- [Sprint 16 - Codex V2: Polish & Integration](./10-sprints/sprint-16-codex-enhancements.md) ✅ Complete ✨ NEW
+- [Sprint 16 - Codex V2: Polish & Integration](./10-sprints/sprint-16-codex-enhancements.md) ✅ Complete
+- [Sprint 17 - Unified Workspace & Codex UX](./10-sprints/sprint-17-workspace-codex-ux.md) ✅ Complete ✨ NEW
 
 ### API Reference
 - [Authentication API](./04-api-reference/authentication.md)
@@ -47,7 +48,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [AI Connections Testing Guide](./06-testing/ai-connections-testing.md)
 - [Codex System Testing Guide](./06-testing/codex-testing.md)
 - [Sprint 15 Testing Guide](./06-testing/sprint-15-testing.md)
-- [Sprint 16 Testing Guide](./06-testing/codex-sprint16-testing.md) ✨ NEW
+- [Sprint 16 Testing Guide](./06-testing/codex-sprint16-testing.md)
+- [Sprint 17 Testing Guide](./06-testing/sprint-17-testing.md) ✨ NEW
 
 ### User Journeys
 - [Authentication Flow](./07-user-journeys/authentication/user-auth-flow.md)
@@ -74,6 +76,7 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 | **Codex V2 - Tags & Enhanced Details** | ✅ Complete | [Sprint 14](./10-sprints/sprint-14-codex-tags-details.md) | [Link](./04-api-reference/codex.md) | [Link](./06-testing/codex-testing.md) |
 | **Codex V2 - Batch Operations & QoL** | ✅ Complete | [Sprint 15](./10-sprints/sprint-15-codex-enhancements.md) | [Link](./04-api-reference/codex.md) | [Link](./06-testing/sprint-15-testing.md) |
 | **Codex V2 - Polish & Integration** | ✅ Complete | [Sprint 16](./10-sprints/sprint-16-codex-enhancements.md) | [Link](./04-api-reference/codex.md) | [Link](./06-testing/codex-sprint16-testing.md) |
+| **Unified Workspace & Codex UX** | ✅ Complete | [Sprint 17](./10-sprints/sprint-17-workspace-codex-ux.md) | N/A | [Link](./06-testing/sprint-17-testing.md) |
 
 ---
 
@@ -283,5 +286,65 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 
 ---
 
-*Last Updated: 2026-01-01*  
-*Latest Features: Sprint 16 (Category Tag Integration, Summary Mention Tracking)*
+---
+
+## 🔗 Sprint 17 - Unified Workspace & Codex UX Enhancements
+
+### Features Delivered
+
+#### Unified Workspace Layout
+- **Single-Page Workspace**: Novelcrafter-style integration dengan mode switching (Write/Plan/Codex)
+- **No Context Switching**: Create codex, switch modes, access planning tanpa leave page
+- **Persistent State**: localStorage-backed state untuk sidebar collapse, mode preferences
+- **Lazy Loading**: Panels load on-demand untuk better performance
+- **WorkspaceController**: New unified controller untuk workspace access dengan scene support
+
+#### CodexEntryModal Redesign
+- **6-Tab Organization**: Details, Organize, Relations, Timeline, Mentions, Research
+- **AI Context Clarity**: Separate Details (sent to AI) dari Organize (personal, not sent to AI)
+- **Improved Layout**: Two-column grids, section cards dengan icons, proper spacing
+- **Mobile-Optimized**: Scrollable tabs, responsive grids, better touch targets
+- **Footer Actions**: Separated danger (Archive/Delete) dari primary (Duplicate/Edit/Close)
+
+#### CodexCreateModal
+- **Quick Entry Creation**: Lightweight modal dengan essential fields only (name, type, description, AI mode)
+- **Type Selection Cards**: Visual cards dengan icons dan descriptions
+- **Event-Driven**: Flexible integration via `created` event emission
+- **No Page Navigation**: Stay in writing flow, modal closes after creation
+
+#### Sidebar Hierarchy Visual Improvements
+- **Clear Indentation**: Chapters ml-0, Scenes ml-6 + pl-3 dengan tree lines
+- **Visual Distinction**: Folder icons (📁📂), bold weight untuk chapters, lighter untuk scenes
+- **Tree Structure**: Border-left visual connectors untuk parent-child relationship
+- **No Confusion**: Users clearly see chapter vs scene levels
+
+#### Modal Component Enhancements
+- **Slots Support**: Header, body, footer slots untuk flexible layouts
+- **Size Variants**: sm, md, lg, xl, full options
+- **Scrollable Option**: Enable max-height scrolling untuk long content
+- **Close Behaviors**: Overlay click, ESC key support, customizable
+
+### Stats
+- **5 New Components**: WorkspaceSidebar, ModeNavigation, Write/Plan/Codex Panels, CodexCreateModal
+- **1 New Controller**: WorkspaceController
+- **1 New Composable**: useWorkspaceState untuk state management
+- **1013 Lines**: CodexEntryModal complete redesign
+- **2 Routes**: workspace.show, workspace.scene
+
+### User Experience Impact
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| Context Switches untuk Add Codex | 3-4 clicks | 0 (modal in-place) | **100% reduction** |
+| Codex Modal Clarity | Mixed content | Clear tabs | Better organization |
+| Sidebar Visual Hierarchy | Confusing levels | Clear indentation | No confusion |
+| Mode Switching | Navigate pages | In-place switch | Seamless flow |
+
+### Quick Links
+- [Sprint 17 Documentation](./10-sprints/sprint-17-workspace-codex-ux.md)
+- [Sprint 17 Testing Guide](./06-testing/sprint-17-testing.md)
+- [Codex API Documentation](./04-api-reference/codex.md)
+
+---
+
+*Last Updated: 2026-01-02*  
+*Latest Features: Sprint 17 (Unified Workspace, Codex Modal Redesign, Quick Create Modal)*
