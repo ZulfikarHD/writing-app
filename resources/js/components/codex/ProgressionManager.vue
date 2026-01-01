@@ -239,7 +239,7 @@ const deleteProgression = async (id: number) => {
         </p>
 
         <!-- Add Progression Modal -->
-        <Modal :show="showAddModal" title="Add Progression" @close="closeModal">
+        <Modal v-model="showAddModal" title="Add Progression" @close="closeModal">
             <div class="space-y-4">
                 <Textarea
                     v-model="formNote"

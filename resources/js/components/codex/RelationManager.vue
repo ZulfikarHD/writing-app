@@ -262,7 +262,7 @@ const getRelationLabel = (relation: Relation) => {
         </p>
 
         <!-- Add Relation Modal -->
-        <Modal :show="showAddModal" title="Add Relation" @close="closeModal">
+        <Modal v-model="showAddModal" title="Add Relation" @close="closeModal">
             <div class="space-y-4">
                 <!-- Entry Selection -->
                 <div>

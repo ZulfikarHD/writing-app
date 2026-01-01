@@ -314,7 +314,7 @@ const flatCategories = computed(() => {
         </Button>
 
         <!-- Category Selection Modal -->
-        <Modal :show="showModal" title="Manage Categories" @close="showModal = false">
+        <Modal v-model="showModal" title="Manage Categories" @close="showModal = false">
             <div class="space-y-4">
                 <!-- Error -->
                 <div v-if="error" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-900/20 dark:text-red-400">
@@ -426,7 +426,7 @@ const flatCategories = computed(() => {
         </Modal>
 
         <!-- Create Category Modal -->
-        <Modal :show="showCreateModal" title="Create Category" @close="showCreateModal = false">
+        <Modal v-model="showCreateModal" title="Create Category" @close="showCreateModal = false">
             <div class="space-y-4">
                 <Input
                     v-model="newCategoryName"
@@ -541,7 +541,7 @@ const flatCategories = computed(() => {
         </Modal>
 
         <!-- Sprint 16: Edit Category Modal -->
-        <Modal :show="showEditModal" title="Edit Category" @close="showEditModal = false">
+        <Modal v-model="showEditModal" title="Edit Category" @close="showEditModal = false">
             <div class="space-y-4">
                 <Input
                     v-model="editName"

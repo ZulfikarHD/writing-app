@@ -2,7 +2,8 @@
 import { computed, onMounted, onUnmounted, watch } from 'vue';
 
 interface Props {
-    modelValue: boolean;
+    modelValue?: boolean;
+    show?: boolean; // Alias for modelValue (backwards compatibility)
     title?: string;
     description?: string;
     size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
@@ -13,6 +14,8 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+    modelValue: undefined,
+    show: undefined,
     size: 'md',
     closable: true,
     closeOnOverlay: true,
@@ -24,6 +27,9 @@ const emit = defineEmits<{
     'update:modelValue': [value: boolean];
     close: [];
 }>();
+
+// Support both :show and v-model
+const isOpen = computed(() => props.modelValue ?? props.show ?? false);
 
 const sizeClasses = {
     sm: 'max-w-sm',
@@ -61,9 +67,9 @@ const modalClasses = computed(() => {
 
 // Prevent body scroll when modal is open
 watch(
-    () => props.modelValue,
-    (isOpen) => {
-        if (isOpen) {
+    isOpen,
+    (open) => {
+        if (open) {
             document.body.style.overflow = 'hidden';
             document.addEventListener('keydown', handleKeydown);
         } else {
@@ -75,7 +81,7 @@ watch(
 );
 
 onMounted(() => {
-    if (props.modelValue) {
+    if (isOpen.value) {
         document.body.style.overflow = 'hidden';
         document.addEventListener('keydown', handleKeydown);
     }
@@ -98,7 +104,7 @@ onUnmounted(() => {
             leave-to-class="opacity-0"
         >
             <div
-                v-if="modelValue"
+                v-if="isOpen"
                 class="fixed inset-0 z-50 overflow-y-auto"
                 aria-modal="true"
                 role="dialog"
@@ -119,7 +125,7 @@ onUnmounted(() => {
                         leave-from-class="opacity-100 scale-100 translate-y-0"
                         leave-to-class="opacity-0 scale-95 translate-y-4"
                     >
-                        <div v-if="modelValue" :class="modalClasses">
+                        <div v-if="isOpen" :class="modalClasses">
                             <!-- Header -->
                             <div
                                 v-if="title || closable"
