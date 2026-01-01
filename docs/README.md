@@ -31,7 +31,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Sprint 14 - Codex V2: Tags & Enhanced Details](./10-sprints/sprint-14-codex-tags-details.md) ✅ Complete
 - [Sprint 15 - Codex V2: Batch Operations & QoL](./10-sprints/sprint-15-codex-enhancements.md) ✅ Complete
 - [Sprint 16 - Codex V2: Polish & Integration](./10-sprints/sprint-16-codex-enhancements.md) ✅ Complete
-- [Sprint 17 - Unified Workspace & Codex UX](./10-sprints/sprint-17-workspace-codex-ux.md) ✅ Complete ✨ NEW
+- [Sprint 17 - Unified Workspace & Codex UX](./10-sprints/sprint-17-workspace-codex-ux.md) ✅ Complete
+- [Sprint 18 - Story Planning System](./10-sprints/sprint-18-story-planning.md) ✅ Complete ✨ NEW
 
 ### API Reference
 - [Authentication API](./04-api-reference/authentication.md)
@@ -39,8 +40,9 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Profile API](./04-api-reference/profile.md)
 - [Manuscript Editor API](./04-api-reference/manuscript-editor.md)
 - [AI Connections API](./04-api-reference/ai-connections.md)
-- [Codex API](./04-api-reference/codex.md) ✨ NEW
-- [Series API](./04-api-reference/series.md) ✨ NEW
+- [Codex API](./04-api-reference/codex.md)
+- [Series API](./04-api-reference/series.md)
+- [Story Planning API](./04-api-reference/story-planning.md) ✨ NEW
 
 ### Testing
 - [Foundation Testing Guide](./06-testing/foundation-testing.md)
@@ -50,12 +52,14 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Sprint 15 Testing Guide](./06-testing/sprint-15-testing.md)
 - [Sprint 16 Testing Guide](./06-testing/codex-sprint16-testing.md)
 - [Sprint 17 Testing Guide](./06-testing/sprint-17-testing.md)
+- [Story Planning Testing Guide](./06-testing/story-planning-testing.md) ✨ NEW
 
 ### Design & Polish
 - [Design System Refinement (2026-01-02)](./bug-fixes/2026-01-02-design-system-refinement.md) ✨ NEW
 
 ### User Journeys
 - [Authentication Flow](./07-user-journeys/authentication/user-auth-flow.md)
+- [Story Planning Flows](./07-user-journeys/story-planning/plan-views-flow.md) ✨ NEW
 
 ---
 
@@ -80,6 +84,7 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 | **Codex V2 - Batch Operations & QoL** | ✅ Complete | [Sprint 15](./10-sprints/sprint-15-codex-enhancements.md) | [Link](./04-api-reference/codex.md) | [Link](./06-testing/sprint-15-testing.md) |
 | **Codex V2 - Polish & Integration** | ✅ Complete | [Sprint 16](./10-sprints/sprint-16-codex-enhancements.md) | [Link](./04-api-reference/codex.md) | [Link](./06-testing/codex-sprint16-testing.md) |
 | **Unified Workspace & Codex UX** | ✅ Complete | [Sprint 17](./10-sprints/sprint-17-workspace-codex-ux.md) | N/A | [Link](./06-testing/sprint-17-testing.md) |
+| **Story Planning System** | ✅ Complete | [Sprint 18](./10-sprints/sprint-18-story-planning.md) | [Link](./04-api-reference/story-planning.md) | [Link](./06-testing/story-planning-testing.md) |
 
 ---
 
@@ -349,9 +354,56 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 
 ---
 
+## 🔗 Sprint 18 - Story Planning System
+
+### Features Delivered
+
+#### Plan Interface (Novelcrafter-style)
+- **Grid View**: Scene cards dalam grid layout, grouped by Chapter/Act
+- **Matrix View**: Scenes vs Codex entries/POV/Labels dengan click-to-assign
+- **Outline View**: Hierarchical list dengan inline summary editing
+- **View Switcher**: Toggle antar views dengan state persistence
+
+#### Scene Cards
+- **Rich Display**: Title, summary, word count, POV, labels, codex mentions
+- **Context Menu**: Set POV, Add Labels, Duplicate, Archive, Delete
+- **Drag & Drop**: Reorder scenes, move between chapters
+- **Customizable Appearance**: Card size, visible elements, grid axis
+
+#### Structure Creation
+- **Create from Outline**: Parse text outline ke acts/chapters/scenes
+- **8 Story Templates**: Three Act, Save the Cat, Hero's Journey, dan lainnya
+- **Add Acts/Chapters/Scenes**: Quick creation dengan auto-positioning
+
+#### Matrix Modes
+- **Entries Mode**: Track codex entries across scenes
+- **POV Mode**: Quick POV assignment dengan click
+- **Labels Mode**: Toggle status labels per scene
+- **Custom Mode**: Select specific entries untuk tracking
+
+### Stats
+- **11 New Components**: ActGroup, MatrixView, OutlineView, CreateFromOutline, dll
+- **2 New Services**: MatrixDataBuilder, OutlineParser
+- **26+ API Endpoints**: Full CRUD untuk acts, chapters, scenes, labels
+- **8 Story Templates**: Built-in frameworks untuk structure creation
+
+### Quick Links
+- [Sprint 18 Documentation](./10-sprints/sprint-18-story-planning.md)
+- [Story Planning API Reference](./04-api-reference/story-planning.md)
+- [Story Planning Testing Guide](./06-testing/story-planning-testing.md)
+- [User Journeys](./07-user-journeys/story-planning/plan-views-flow.md)
+
+---
+
 ## 🎨 Recent Updates
 
 ### January 2, 2026
+- ✅ **Sprint 18 Completed**: Story Planning System dengan Grid/Matrix/Outline views
+- ✅ **Create from Outline**: 8 story templates + custom outline parsing
+- ✅ **Matrix View**: Track characters, POV, labels across scenes
+- ✅ **Drag & Drop**: Full scene/chapter/act reordering
+
+### Previous Updates
 - ✅ **Sprint 17 Completed**: Unified Workspace dengan mode switching (Write/Plan/Codex)
 - ✅ **CodexEntryModal Redesigned**: 6-tab organization dengan AI context clarity
 - ✅ **Design System Refined**: iOS design principles implementation (spring physics, press feedback)
@@ -360,4 +412,4 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 ---
 
 *Last Updated: 2026-01-02*  
-*Latest Features: Sprint 17 (Unified Workspace) + Design System Refinement (iOS Principles)*
+*Latest Features: Sprint 18 (Story Planning) + Sprint 17 (Unified Workspace)*
