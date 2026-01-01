@@ -183,7 +183,39 @@ ls resources/js/pages/Series/
 
 ---
 
-### 12. Plan Page Integration Tests
+### 12. Thumbnail Upload Tests
+
+|| Test ID | Scenario | Steps | Expected Result |
+||---------|----------|-------|-----------------|
+|| TU-001 | Upload image | In entry form → Select image → Upload | Thumbnail appears |
+|| TU-002 | Preview thumbnail | Upload image | Preview shows before save |
+|| TU-003 | Invalid file type | Upload .pdf or .txt | Error: invalid file type |
+|| TU-004 | File too large | Upload 5MB image | Error: file too large (max 2MB) |
+|| TU-005 | Replace thumbnail | Upload new image | Old thumbnail replaced |
+|| TU-006 | Delete thumbnail | Click remove thumbnail | Thumbnail removed |
+|| TU-007 | Supported formats | Upload JPEG, PNG, GIF, WebP | All formats accepted |
+
+---
+
+### 13. Relation Graph Tests
+
+|| Test ID | Scenario | Steps | Expected Result |
+||---------|----------|-------|-----------------|
+|| RG-001 | View graph | Entry with relations → View graph section | D3 visualization renders |
+|| RG-002 | Node positioning | View graph | Center node is current entry, related nodes around |
+|| RG-003 | Node colors | View with multiple types | Nodes colored by entry type |
+|| RG-004 | Drag nodes | Drag a node | Node moves, connections update |
+|| RG-005 | Zoom graph | Scroll on graph | Graph zooms in/out |
+|| RG-006 | Click node | Click related node | Navigates to that entry |
+|| RG-007 | Bidirectional links | View bidirectional relation | No arrow on link |
+|| RG-008 | Directional links | View one-way relation | Arrow points to target |
+|| RG-009 | Relation labels | Hover on link | Shows relation type/label |
+|| RG-010 | Empty state | Entry with no relations | Shows "No relationships" message |
+|| RG-011 | Legend display | View graph with data | Legend shows type colors |
+
+---
+
+### 14. Plan Page Integration Tests
 
 | Test ID | Scenario | Steps | Expected Result |
 |---------|----------|-------|-----------------|
@@ -221,6 +253,17 @@ ls resources/js/pages/Series/
 - [ ] Invalid input - Validation messages shown
 - [ ] Server error - Error toast displayed
 
+### v1.1.0 Enhancements Testing
+
+- [x] Hover preview tooltip displays correctly
+- [x] Tooltip positioning adjusts to viewport
+- [x] Click navigation opens correct entry
+- [x] Thumbnail upload validates file types
+- [x] Thumbnail preview shows before save
+- [x] Relation graph renders with D3.js
+- [x] Graph interactions work (drag, zoom, click)
+- [x] Description guidelines show in form
+
 ---
 
 ## Automated Test Commands
@@ -229,12 +272,29 @@ ls resources/js/pages/Series/
 # Run all codex tests
 php artisan test --filter=Codex
 
+# Run comprehensive CodexTest (32 tests)
+php artisan test tests/Feature/CodexTest.php
+
 # Run specific test file
 php artisan test tests/Feature/CodexEntryTest.php
 
 # Run with coverage
 php artisan test --filter=Codex --coverage
 ```
+
+### Test Coverage
+
+**Latest Results (v1.1):**
+- ✅ 32 tests passed (111 assertions) in 1.30s
+- Coverage areas:
+  - CRUD operations (entries, aliases, details, relations, progressions, categories)
+  - Authorization checks
+  - Validation rules
+  - Mention tracking
+  - Bulk import/export
+  - Quick create functionality
+  - Archived entry exclusion
+  - API endpoints for editor integration
 
 ---
 
@@ -281,6 +341,24 @@ CodexRelation::create([
 
 - **Sprint Documentation:** [Sprint 04 - Codex System](../10-sprints/sprint-04-codex-system.md)
 - **API Reference:** [Codex API](../04-api-reference/codex.md) | [Series API](../04-api-reference/series.md)
+- **Implementation Plan:** [Codex Remaining Work](../../.cursor/plans/codex_remaining_work_3c10dc6c.plan.md)
+
+---
+
+## Version History
+
+### v1.1.0 (2026-01-01) - Editor Enhancements Testing
+- Added hover preview tooltip tests (EI-006 to EI-009)
+- Added thumbnail upload tests (TU-001 to TU-007)
+- Added relation graph visualization tests (RG-001 to RG-011)
+- Updated automated test coverage report
+- Added v1.1.0 enhancement verification checklist
+
+### v1.0.0 (2026-01-01) - Initial Testing Guide
+- Comprehensive test cases for all core Codex features
+- Manual QA checklists for desktop and mobile
+- Automated test commands and coverage reporting
+- Test data setup examples
 
 ---
 

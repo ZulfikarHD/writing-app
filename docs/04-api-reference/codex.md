@@ -739,11 +739,77 @@ Response: `200 OK`
 
 ---
 
+### Thumbnail Management
+
+#### Upload Thumbnail
+
+**`POST /api/codex/{entry}/thumbnail`**
+
+Request: Multipart form data dengan file image.
+
+```
+thumbnail: (binary file)
+```
+
+|| Field | Type | Required | Validation |
+||-------|------|----------|------------|
+|| thumbnail | file | Yes | image, mimes:jpeg,jpg,png,gif,webp, max:2048KB |
+
+Response: `200 OK`
+```json
+{
+  "success": true,
+  "thumbnail_path": "codex/1/thumbnails/abc123.jpg",
+  "thumbnail_url": "https://example.com/storage/codex/1/thumbnails/abc123.jpg"
+}
+```
+
+---
+
+#### Delete Thumbnail
+
+**`DELETE /api/codex/{entry}/thumbnail`**
+
+Response: `200 OK`
+```json
+{
+  "success": true
+}
+```
+
+---
+
 ### Editor Integration
+
+#### Get Entry Details for Hover Tooltip
+
+**`GET /api/codex/{entry}`**
+
+Response: `200 OK`
+```json
+{
+  "entry": {
+    "id": 1,
+    "type": "character",
+    "name": "John Doe",
+    "description": "Main protagonist...",
+    "thumbnail_url": "https://example.com/storage/codex/1/thumbnails/abc123.jpg",
+    "aliases": ["Johnny", "JD"],
+    "details": [
+      { "id": 1, "key_name": "Age", "value": "25" },
+      { "id": 2, "key_name": "Occupation", "value": "Detective" }
+    ],
+    "outgoing_relations": [...],
+    "incoming_relations": [...]
+  }
+}
+```
+
+---
 
 #### Get Entries for Editor
 
-**`GET /api/novels/{novel}/codex/entries`**
+**`GET /api/novels/{novel}/codex/editor`**
 
 Response: `200 OK`
 ```json
@@ -810,6 +876,22 @@ Response: `201 Created`
 
 - **Sprint Documentation:** [Sprint 04 - Codex System](../10-sprints/sprint-04-codex-system.md)
 - **Testing Guide:** [Codex Testing](../06-testing/codex-testing.md)
+
+---
+
+## Version History
+
+### v1.1.0 (2026-01-01)
+- Added thumbnail upload/delete endpoints
+- Added API endpoint for hover tooltip integration (`GET /api/codex/{entry}`)
+- Enhanced editor integration with mention hover preview
+- Added D3.js relation graph visualization support
+
+### v1.0.0 (2026-01-01)
+- Initial Codex API implementation
+- Full CRUD for entries, aliases, details, relations, progressions, categories
+- Bulk import/export functionality
+- Mention tracking system
 
 ---
 

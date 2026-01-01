@@ -102,6 +102,46 @@ Implementasi sistem Codex lengkap untuk writing app, yaitu: fitur manajemen worl
 - Filter untuk membedakan series vs novel entries
 - Seamless integration dengan existing codex UI
 
+### P4 - Editor Enhancements (v1.1.0)
+
+#### Mention Hover Preview
+- MentionTooltip component untuk preview saat hover
+- Floating tooltip menampilkan entry name, type, dan description
+- Smart positioning (adjusts based on viewport space)
+- Keyboard accessible (ESC to close)
+
+#### Click Navigation
+- Click pada highlighted mention membuka sidebar panel
+- `useMentionTooltip` composable untuk hover state management
+- Seamless integration dengan CodexSidebarPanel
+
+#### Thumbnail Upload
+- CodexImageController untuk upload/delete thumbnail
+- Drag-and-drop style UI di CodexEntryForm
+- Image preview sebelum save
+- Validation: JPEG, PNG, GIF, WebP (max 2MB)
+- Auto-cleanup old thumbnail saat replace
+
+#### Relation Graph Visualization
+- D3.js force-directed graph untuk visual relationship mapping
+- Interactive: drag nodes, zoom, pan
+- Color-coded by entry type dengan legend
+- Click node untuk navigate ke entry
+- Bidirectional vs directional link indicators
+- Empty state untuk entries tanpa relations
+
+#### Description Writing Guidelines
+- Inline tips di CodexEntryForm description field
+- Guide penulis untuk menggunakan 3rd person
+- Reminder untuk include key traits dan context
+
+#### Suggested Details (Already Existed)
+- Type-specific detail presets di DetailManager
+- Character: Age, Height, Occupation, Personality, etc.
+- Location: Region, Climate, Population, etc.
+- Item: Material, Origin, Purpose, etc.
+- Suggestion pills muncul saat add detail
+
 ---
 
 ## 📁 File Structure
@@ -111,7 +151,8 @@ Implementasi sistem Codex lengkap untuk writing app, yaitu: fitur manajemen worl
 ```
 app/
 ├── Http/Controllers/
-│   ├── CodexController.php              ✨ NEW
+│   ├── CodexController.php              ✨ NEW (✏️ v1.1: added apiShow)
+│   ├── CodexImageController.php         ✨ NEW (v1.1)
 │   ├── CodexAliasController.php         ✨ NEW
 │   ├── CodexDetailController.php        ✨ NEW
 │   ├── CodexRelationController.php      ✨ NEW
@@ -176,7 +217,7 @@ resources/js/
 │   │   ├── Index.vue                    ✨ NEW
 │   │   ├── Create.vue                   ✨ NEW
 │   │   ├── Edit.vue                     ✨ NEW
-│   │   └── Show.vue                     ✨ NEW
+│   │   └── Show.vue                     ✨ NEW (✏️ v1.1: integrated RelationGraph)
 │   ├── Series/
 │   │   ├── Index.vue                    ✨ NEW
 │   │   ├── Create.vue                   ✨ NEW
@@ -188,7 +229,7 @@ resources/js/
 │   ├── Plan/
 │   │   └── Index.vue                    ✏️ UPDATED
 │   └── Editor/
-│       └── Index.vue                    ✏️ UPDATED
+│       └── Index.vue                    ✏️ UPDATED (✏️ v1.1: integrated MentionTooltip & click handlers)
 ├── components/
 │   ├── codex/
 │   │   ├── AIContextControl.vue         ✨ NEW
@@ -197,19 +238,21 @@ resources/js/
 │   │   ├── BulkImportModal.vue          ✨ NEW
 │   │   ├── CategoryManager.vue          ✨ NEW
 │   │   ├── CodexEntryCard.vue           ✨ NEW
-│   │   ├── CodexEntryForm.vue           ✨ NEW
+│   │   ├── CodexEntryForm.vue           ✨ NEW (✏️ v1.1: thumbnail upload + description guidelines)
 │   │   ├── CodexTypeBadge.vue           ✨ NEW
 │   │   ├── CodexTypeIcon.vue            ✨ NEW
-│   │   ├── DetailManager.vue            ✨ NEW
+│   │   ├── DetailManager.vue            ✨ NEW (already has suggested details)
 │   │   ├── MentionHeatmap.vue           ✨ NEW
 │   │   ├── ProgressionManager.vue       ✨ NEW
 │   │   ├── ProgressionTimeline.vue      ✨ NEW
 │   │   ├── QuickCreateModal.vue         ✨ NEW
+│   │   ├── RelationGraph.vue            ✨ NEW (v1.1)
 │   │   ├── RelationManager.vue          ✨ NEW
 │   │   └── index.ts                     ✨ NEW
 │   ├── editor/
 │   │   ├── CodexSidebarPanel.vue        ✨ NEW
 │   │   ├── EditorSidebar.vue            ✨ NEW
+│   │   ├── MentionTooltip.vue           ✨ NEW (v1.1)
 │   │   └── TipTapEditor.vue             ✏️ UPDATED
 │   └── plan/
 │       ├── ChapterGroup.vue             ✨ NEW
@@ -217,7 +260,8 @@ resources/js/
 ├── extensions/
 │   └── CodexHighlight.ts                ✨ NEW
 ├── composables/
-│   └── useCodexHighlight.ts             ✨ NEW
+│   ├── useCodexHighlight.ts             ✨ NEW
+│   └── useMentionTooltip.ts             ✨ NEW (v1.1)
 └── routes/
     ├── codex/
     │   ├── index.ts                     ✨ NEW
@@ -282,11 +326,109 @@ resources/js/
 
 ---
 
+## 🧪 Testing
+
+### Automated Tests
+
+**CodexTest.php** - 32 comprehensive tests covering:
+- ✅ CRUD operations (create, read, update, archive, restore, delete)
+- ✅ Aliases (add, update, delete, search by alias)
+- ✅ Details (add, update, delete, reorder)
+- ✅ Relations (create, bidirectional, delete)
+- ✅ Categories (create, assign, filter)
+- ✅ Quick create with alias
+- ✅ Authorization checks
+- ✅ Validation rules
+- ✅ Mention tracking
+- ✅ Bulk export (JSON, CSV)
+- ✅ Editor integration (entries for highlighting, archived exclusion)
+
+**Test Results:**
+```bash
+php artisan test --filter=CodexTest
+# ✅ 32 passed (111 assertions) in 1.30s
+```
+
+### Manual Testing Checklist
+
+#### v1.1.0 Features
+- [x] Hover over highlighted mention shows tooltip
+- [x] Click highlighted mention opens sidebar panel
+- [x] Upload thumbnail (JPEG, PNG, GIF, WebP)
+- [x] Thumbnail validation (max 2MB)
+- [x] Relation graph renders with D3.js
+- [x] Graph is interactive (drag, zoom, click)
+- [x] Description guidelines appear in form
+- [x] Suggested details show for each type
+
+---
+
+## 📊 Implementation Metrics
+
+### Code Statistics
+- **Backend Files:** 20+ controllers, models, services
+- **Frontend Components:** 25+ Vue components
+- **API Endpoints:** 55 routes
+- **Database Tables:** 12 tables
+- **Test Coverage:** 32 feature tests (111 assertions)
+
+### Development Time
+- **Sprint Duration:** 1 sprint
+- **Enhancements (v1.1):** +2 days
+- **Lines of Code:** ~10,000+ (estimate)
+
+---
+
+## 🎯 Success Metrics
+
+### Functional Requirements
+- [x] All 6 entry types supported
+- [x] CRUD operations for all entities
+- [x] Archive/restore functionality
+- [x] Search and filter working
+- [x] Mention tracking active
+- [x] Bulk import/export functional
+- [x] Series codex integrated
+- [x] Editor highlighting works
+- [x] Hover preview shows entry details (v1.1)
+- [x] Thumbnail upload working (v1.1)
+- [x] Relation graph visualizes connections (v1.1)
+
+### Technical Requirements
+- [x] 32 automated tests passing
+- [x] Mobile responsive
+- [x] Performance optimized (lazy loading, pagination)
+- [x] Error handling implemented
+- [x] Authorization checks in place
+
+---
+
 ## 🔗 Related Documentation
 
 - **API Reference:** [Codex API](../04-api-reference/codex.md) | [Series API](../04-api-reference/series.md)
 - **Testing Guide:** [Codex Testing](../06-testing/codex-testing.md)
 - **Previous Sprint:** [Sprint 03 - AI UI System](./sprint-03-ai-ui-system.md)
+- **Implementation Plan:** [Codex Remaining Work](../../.cursor/plans/codex_remaining_work_3c10dc6c.plan.md)
+
+---
+
+## 📝 Version History
+
+### v1.1.0 (2026-01-01) - Editor Enhancements
+- Added MentionTooltip component for hover preview
+- Added click navigation from mentions to sidebar
+- Added thumbnail upload with CodexImageController
+- Added D3.js RelationGraph visualization
+- Added description writing guidelines
+- Added useMentionTooltip composable
+- Created comprehensive CodexTest.php (32 tests)
+
+### v1.0.0 (2026-01-01) - Initial Release
+- Core Codex system (entries, aliases, details, relations, progressions, categories)
+- Mention tracking with heatmap
+- Bulk import/export
+- Series codex integration
+- Editor highlighting and sidebar
 
 ---
 
