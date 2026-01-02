@@ -116,11 +116,17 @@ const localChapters = ref<Chapter[]>([...props.chapters]);
 // Sidebar states
 const scenesSidebarOpen = ref(true); // Scenes sidebar (right) - open by default
 const detailsSidebarOpen = ref(false); // Scene details sidebar
+const pinnedChatOpen = ref(false); // Pinned chat panel (beside editor in Write mode)
 
 // Modal states
 const quickCreateOpen = ref(false);
 const quickCreateSelectedText = ref('');
 const codexCreateOpen = ref(false);
+
+// Toggle pinned chat panel
+const togglePinnedChat = () => {
+    pinnedChatOpen.value = !pinnedChatOpen.value;
+};
 
 // Toggle scenes sidebar (chapters & scenes tree)
 const toggleScenesSidebar = () => {
@@ -250,6 +256,23 @@ const handleCodexCreated = () => {
     }
 };
 
+// Handle chat with scene - opens pinned chat panel with scene context
+const handleChatWithScene = async (sceneId: number) => {
+    // Store scene context ID for the chat panel
+    pendingSceneContext.value = sceneId;
+
+    // Open the pinned chat panel instead of switching modes
+    pinnedChatOpen.value = true;
+};
+
+// Pending scene context to pass to pinned chat
+const pendingSceneContext = ref<number | null>(null);
+
+// Clear pending scene context after it's been used
+const clearPendingSceneContext = () => {
+    pendingSceneContext.value = null;
+};
+
 // Keyboard shortcuts
 const handleKeyDown = (e: KeyboardEvent) => {
     // Ctrl+Shift+C - Quick create codex
@@ -377,6 +400,25 @@ onBeforeUnmount(() => {
                         <span class="hidden lg:inline">Scenes</span>
                     </button>
 
+                    <!-- Pinned Chat Toggle (Write Mode only) -->
+                    <button
+                        v-if="isWriteMode"
+                        type="button"
+                        :class="[
+                            'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all active:scale-95',
+                            pinnedChatOpen
+                                ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300'
+                                : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800',
+                        ]"
+                        title="Toggle AI chat panel"
+                        @click="togglePinnedChat"
+                    >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <span class="hidden lg:inline">Chat</span>
+                    </button>
+
                     <!-- Scene Details Toggle (Write Mode only) -->
                     <button
                         v-if="isWriteMode && currentScene"
@@ -407,17 +449,55 @@ onBeforeUnmount(() => {
             </header>
 
             <!-- Main Panel (Mode-specific content) -->
-            <main class="flex-1 overflow-hidden">
-                <!-- Write Mode -->
-                <WritePanel
-                    v-if="isWriteMode"
-                    :novel="novel"
-                    :scene="currentScene"
-                    :labels="labels"
-                    @word-count-update="handleWordCountUpdate"
-                    @open-quick-create="openQuickCreate"
-                    @open-codex-entry="openCodexEntry"
-                />
+            <main class="flex flex-1 overflow-hidden">
+                <!-- Write Mode with optional Pinned Chat -->
+                <div v-if="isWriteMode" class="flex flex-1 overflow-hidden">
+                    <!-- Editor Panel -->
+                    <div :class="['flex-1 overflow-hidden transition-all duration-300', pinnedChatOpen ? 'w-1/2' : 'w-full']">
+                        <WritePanel
+                            :novel="novel"
+                            :scene="currentScene"
+                            :labels="labels"
+                            @word-count-update="handleWordCountUpdate"
+                            @open-quick-create="openQuickCreate"
+                            @open-codex-entry="openCodexEntry"
+                            @chat-with-scene="handleChatWithScene"
+                        />
+                    </div>
+
+                    <!-- Pinned Chat Panel -->
+                    <Transition
+                        enter-active-class="transition-all duration-300 ease-out"
+                        enter-from-class="w-0 opacity-0"
+                        enter-to-class="w-1/2 opacity-100"
+                        leave-active-class="transition-all duration-200 ease-in"
+                        leave-from-class="w-1/2 opacity-100"
+                        leave-to-class="w-0 opacity-0"
+                    >
+                        <div
+                            v-if="pinnedChatOpen"
+                            class="relative flex w-1/2 flex-col border-l border-zinc-200 dark:border-zinc-700"
+                        >
+                            <!-- Pin/Close Button -->
+                            <button
+                                type="button"
+                                class="absolute left-2 top-2 z-10 rounded-md p-1.5 text-zinc-500 transition-all hover:bg-zinc-100 hover:text-zinc-700 active:scale-95 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                                title="Close pinned chat"
+                                @click="pinnedChatOpen = false"
+                            >
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+
+                            <ChatPanel
+                                :novel="novel"
+                                :initial-scene-context="pendingSceneContext"
+                                @context-used="clearPendingSceneContext"
+                            />
+                        </div>
+                    </Transition>
+                </div>
 
                 <!-- Plan Mode -->
                 <PlanPanel

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, onMounted } from 'vue';
-import { animate, spring, stagger } from 'motion';
+import { animate } from 'motion';
 import ChatMessage from './ChatMessage.vue';
 
 interface Message {
@@ -93,10 +93,10 @@ const animateMessages = () => {
                 try {
                     animate(
                         el,
-                        { opacity: [0, 1], y: [10, 0] },
+                        { opacity: [0, 1], transform: ['translateY(10px)', 'translateY(0)'] },
                         {
                             duration: 0.3,
-                            easing: spring({ stiffness: 300, damping: 25 })
+                            easing: [0.16, 1, 0.3, 1] // Smooth ease-out curve
                         }
                     );
                 } catch (error) {

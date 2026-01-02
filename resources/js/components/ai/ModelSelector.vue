@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { animate, spring, stagger } from 'motion';
+import { animate, stagger } from 'motion';
 import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 
 export interface AIModel {
@@ -187,7 +187,7 @@ const toggleDropdown = () => {
                 animate(
                     dropdownRef.value,
                     { opacity: [0, 1], transform: ['scale(0.95) translateY(10px)', 'scale(1) translateY(0)'] },
-                    { duration: 0.2, easing: spring({ stiffness: 400, damping: 30 }) }
+                    { duration: 0.2, easing: [0.16, 1, 0.3, 1] }
                 );
                 // Stagger animate model items
                 const items = dropdownRef.value.querySelectorAll('.model-item');
@@ -195,7 +195,7 @@ const toggleDropdown = () => {
                     animate(
                         items,
                         { opacity: [0, 1], transform: ['translateX(-10px)', 'translateX(0)'] },
-                        { duration: 0.3, delay: stagger(0.03), easing: spring({ stiffness: 300, damping: 25 }) }
+                        { duration: 0.3, delay: stagger(0.03), easing: [0.16, 1, 0.3, 1] }
                     );
                 }
             }

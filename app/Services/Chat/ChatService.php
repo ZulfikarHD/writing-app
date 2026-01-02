@@ -34,11 +34,15 @@ class ChatService
         // Build messages array for the API
         $messages = $this->buildMessagesArray($thread, $userMessage);
 
+        // Build context snapshot for this message
+        $contextSnapshot = $this->buildContextSnapshot($thread);
+
         // Create the user message record
         $userMessageRecord = ChatMessage::create([
             'thread_id' => $thread->id,
             'role' => 'user',
             'content' => $userMessage,
+            'context_snapshot' => $contextSnapshot,
         ]);
 
         yield ['type' => 'user_message', 'message_id' => $userMessageRecord->id];
@@ -75,6 +79,7 @@ class ChatService
                 'model_used' => $modelToUse,
                 'tokens_input' => $tokensInput,
                 'tokens_output' => $tokensOutput,
+                'context_snapshot' => $contextSnapshot,
             ]);
 
             // Update thread's updated_at timestamp
@@ -297,20 +302,109 @@ class ChatService
             }
         }
 
-        // Add active context items
-        foreach ($thread->activeContextItems as $contextItem) {
-            $content = $contextItem->content;
-            if ($content) {
-                $parts[] = match ($contextItem->context_type) {
-                    'scene' => "Scene context: {$content}",
-                    'codex' => "Character/World info: {$content}",
-                    'outline' => "Story outline: {$content}",
-                    default => $content,
-                };
+        // Group context items by type for better organization
+        $contextByType = $this->groupContextByType($thread);
+
+        // Add scene contexts
+        if (! empty($contextByType['scene'])) {
+            $parts[] = "\n\n=== SCENE CONTEXT ===";
+            foreach ($contextByType['scene'] as $content) {
+                $parts[] = $content;
             }
         }
 
-        return implode(' ', $parts);
+        // Add codex/character contexts
+        if (! empty($contextByType['codex'])) {
+            $parts[] = "\n\n=== CHARACTER & WORLD INFO ===";
+            foreach ($contextByType['codex'] as $content) {
+                $parts[] = $content;
+            }
+        }
+
+        // Add outline contexts
+        if (! empty($contextByType['outline'])) {
+            $parts[] = "\n\n=== STORY OUTLINE ===";
+            foreach ($contextByType['outline'] as $content) {
+                $parts[] = $content;
+            }
+        }
+
+        // Add custom contexts
+        if (! empty($contextByType['custom'])) {
+            $parts[] = "\n\n=== ADDITIONAL CONTEXT ===";
+            foreach ($contextByType['custom'] as $content) {
+                $parts[] = $content;
+            }
+        }
+
+        return implode("\n", $parts);
+    }
+
+    /**
+     * Group active context items by type.
+     *
+     * @return array<string, array<string>>
+     */
+    protected function groupContextByType(ChatThread $thread): array
+    {
+        $grouped = [
+            'scene' => [],
+            'codex' => [],
+            'outline' => [],
+            'summary' => [],
+            'custom' => [],
+        ];
+
+        foreach ($thread->activeContextItems as $contextItem) {
+            $content = $contextItem->content;
+            if (! $content) {
+                continue;
+            }
+
+            // Respect AI context mode for codex entries
+            if ($contextItem->context_type === 'codex' && $contextItem->codexEntry) {
+                $entry = $contextItem->codexEntry;
+                if ($entry->ai_context_mode === 'hidden') {
+                    continue;
+                }
+            }
+
+            $grouped[$contextItem->context_type][] = $content;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * Build context snapshot for storing with messages.
+     *
+     * @return array<string, mixed>
+     */
+    public function buildContextSnapshot(ChatThread $thread): array
+    {
+        $items = [];
+
+        foreach ($thread->activeContextItems as $contextItem) {
+            $items[] = [
+                'id' => $contextItem->id,
+                'type' => $contextItem->context_type,
+                'reference_id' => $contextItem->reference_id,
+                'name' => match ($contextItem->context_type) {
+                    'scene' => $contextItem->scene?->title ?? 'Untitled Scene',
+                    'codex' => $contextItem->codexEntry?->name ?? 'Unknown Entry',
+                    'summary' => 'Novel Summary',
+                    'outline' => 'Story Outline',
+                    'custom' => 'Custom Context',
+                    default => 'Context Item',
+                },
+            ];
+        }
+
+        return [
+            'items' => $items,
+            'linked_scene_id' => $thread->linked_scene_id,
+            'timestamp' => now()->toISOString(),
+        ];
     }
 
     /**

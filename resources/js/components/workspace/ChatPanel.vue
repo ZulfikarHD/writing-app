@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
-import { animate, spring } from 'motion';
+import { animate } from 'motion';
 import ChatThreadList from '@/components/chat/ChatThreadList.vue';
 import ChatWindow from '@/components/chat/ChatWindow.vue';
 import ChatInput from '@/components/chat/ChatInput.vue';
@@ -516,7 +516,7 @@ const panelRef = ref<HTMLElement | null>(null);
 
 onMounted(() => {
     if (panelRef.value) {
-        animate(panelRef.value, { opacity: [0, 1], transform: ['translateY(10px)', 'translateY(0)'] }, { duration: 0.3, easing: spring({ stiffness: 300, damping: 30 }) });
+        animate(panelRef.value, { opacity: [0, 1], transform: ['translateY(10px)', 'translateY(0)'] }, { duration: 0.3, easing: [0.16, 1, 0.3, 1] });
     }
 });
 </script>

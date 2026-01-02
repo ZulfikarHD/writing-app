@@ -49,6 +49,7 @@ const emit = defineEmits<{
     (e: 'wordCountUpdate', wordCount: number): void;
     (e: 'openQuickCreate', selectedText?: string): void;
     (e: 'openCodexEntry', entryId: number): void;
+    (e: 'chatWithScene', sceneId: number): void;
 }>();
 
 const editorRef = ref<InstanceType<typeof TipTapEditor> | null>(null);
@@ -239,6 +240,13 @@ const closeMetadata = () => {
     metadataPanelOpen.value = false;
 };
 
+// Chat with scene handler
+const handleChatWithScene = () => {
+    if (currentScene.value?.id) {
+        emit('chatWithScene', currentScene.value.id);
+    }
+};
+
 const handleMetadataUpdated = (updated: Partial<Scene>) => {
     if (currentScene.value) {
         currentScene.value = { ...currentScene.value, ...updated };
@@ -286,6 +294,7 @@ const editorWidthClass = computed(() => {
             @align="handleAlign"
             @open-settings="openSettings"
             @open-info="openMetadata"
+            @chat-with-scene="handleChatWithScene"
         />
 
         <!-- Editor Content -->

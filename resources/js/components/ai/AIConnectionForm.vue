@@ -7,7 +7,7 @@ import Input from '@/components/ui/forms/Input.vue';
 import { useToast } from '@/composables/useToast';
 import type { AIConnection, Provider } from '@/pages/Settings/AIConnections.vue';
 import { router } from '@inertiajs/vue3';
-import { animate, spring } from 'motion';
+import { animate } from 'motion';
 import axios from 'axios';
 import { computed, reactive, ref, watch } from 'vue';
 
@@ -123,7 +123,7 @@ const onEnter = (el: Element) => {
     animate(
         el,
         { opacity: [0, 1], transform: ['translateY(10px)', 'translateY(0)'] },
-        { duration: 0.4, easing: spring({ stiffness: 300, damping: 25 }) }
+        { duration: 0.4, easing: [0.16, 1, 0.3, 1] }
     );
 };
 
@@ -131,7 +131,7 @@ const onLeave = (el: Element, done: () => void) => {
     animate(
         el,
         { opacity: [1, 0], transform: ['translateY(0)', 'translateY(-10px)'] },
-        { duration: 0.3, easing: spring({ stiffness: 400, damping: 30 }) }
+        { duration: 0.3, easing: [0.16, 1, 0.3, 1] }
     ).finished.then(done);
 };
 </script>
