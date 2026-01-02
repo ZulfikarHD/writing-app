@@ -592,6 +592,471 @@ Menghapus individual message dari thread.
 
 ---
 
+## Context Management Endpoints
+
+### List Context Items
+
+Mengambil daftar context items yang attached ke thread beserta token information dan limit warnings.
+
+**Endpoint:** `GET /api/chat/threads/{thread}/context`
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| thread | integer | Chat Thread ID |
+
+**Response:** `200 OK`
+
+```json
+{
+  "items": [
+    {
+      "id": 10,
+      "thread_id": 1,
+      "context_type": "scene",
+      "reference_id": 45,
+      "is_active": true,
+      "tokens": 1250,
+      "preview": "Scene content preview truncated to 200 chars...",
+      "created_at": "2026-01-02T10:30:00Z",
+      "reference": {
+        "id": 45,
+        "title": "Chapter 3 - The Discovery",
+        "word_count": 2500
+      }
+    },
+    {
+      "id": 11,
+      "thread_id": 1,
+      "context_type": "codex",
+      "reference_id": 12,
+      "is_active": true,
+      "tokens": 580,
+      "preview": "Character: John Smith - A mysterious detective...",
+      "created_at": "2026-01-02T10:35:00Z",
+      "reference": {
+        "id": 12,
+        "name": "John Smith",
+        "type": "character"
+      }
+    },
+    {
+      "id": 12,
+      "thread_id": 1,
+      "context_type": "custom",
+      "reference_id": null,
+      "is_active": false,
+      "tokens": 125,
+      "preview": "Remember to focus on emotional depth...",
+      "created_at": "2026-01-02T11:00:00Z",
+      "custom_content": "Remember to focus on emotional depth and character development."
+    }
+  ],
+  "tokens": {
+    "total": 2150,
+    "base_tokens": 45,
+    "items": [
+      { "id": 10, "type": "scene", "name": "Chapter 3 - The Discovery", "tokens": 1250 },
+      { "id": 11, "type": "codex", "name": "John Smith", "tokens": 580 },
+      { "id": 12, "type": "custom", "name": "Custom Context", "tokens": 125 }
+    ]
+  },
+  "limit": {
+    "within_limit": true,
+    "usage_percentage": 2.1,
+    "tokens_used": 2150,
+    "limit": 96000,
+    "model_limit": 128000
+  }
+}
+```
+
+**Authorization:**
+- User must own the novel (via thread)
+- User must own the thread
+
+---
+
+### Add Context Item
+
+Menambahkan context item baru ke thread (scene, codex entry, summary, outline, atau custom text).
+
+**Endpoint:** `POST /api/chat/threads/{thread}/context`
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| thread | integer | Chat Thread ID |
+
+**Request Body:**
+
+```json
+{
+  "context_type": "scene",
+  "reference_id": 45,
+  "is_active": true
+}
+```
+
+**For custom context:**
+```json
+{
+  "context_type": "custom",
+  "custom_content": "Remember to focus on the protagonist's internal conflict.",
+  "is_active": true
+}
+```
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| context_type | string | Yes | Enum: scene, codex, summary, outline, custom |
+| reference_id | integer | Conditional | Required for scene/codex types |
+| custom_content | string | Conditional | Required for custom type, max 100000 chars |
+| is_active | boolean | No | Default: true |
+
+**Response:** `201 Created`
+
+```json
+{
+  "item": {
+    "id": 13,
+    "thread_id": 1,
+    "context_type": "scene",
+    "reference_id": 45,
+    "is_active": true,
+    "tokens": 1250,
+    "preview": "Scene content preview...",
+    "created_at": "2026-01-02T12:00:00Z",
+    "reference": {
+      "id": 45,
+      "title": "Chapter 3 - The Discovery",
+      "word_count": 2500
+    }
+  },
+  "tokens": {
+    "total": 3400,
+    "base_tokens": 45,
+    "items": [...]
+  },
+  "limit": {
+    "within_limit": true,
+    "usage_percentage": 3.5,
+    "tokens_used": 3400,
+    "limit": 96000,
+    "model_limit": 128000
+  }
+}
+```
+
+**Error Response:** `404 Not Found`
+
+```json
+{
+  "message": "The specified scene was not found."
+}
+```
+
+**Authorization:**
+- User must own the novel
+- User must own the thread
+- Referenced scene/codex must belong to the novel
+
+**Business Logic:**
+- Jika context item yang sama sudah ada (same type + reference_id), akan di-reactivate instead of creating duplicate
+- System validates bahwa scene/codex belongs to the novel
+- Token count automatically calculated dan limit checked
+
+---
+
+### Update Context Item
+
+Update context item untuk toggle active/inactive atau edit custom content.
+
+**Endpoint:** `PATCH /api/chat/context/{item}`
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| item | integer | Chat Context Item ID |
+
+**Request Body:**
+
+```json
+{
+  "is_active": false
+}
+```
+
+**Or for custom context:**
+```json
+{
+  "custom_content": "Updated instruction for AI..."
+}
+```
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| is_active | boolean | No | Toggle context on/off |
+| custom_content | string | No | Max 100000 chars (for custom type only) |
+
+**Response:** `200 OK`
+
+```json
+{
+  "item": {
+    "id": 13,
+    "thread_id": 1,
+    "context_type": "scene",
+    "reference_id": 45,
+    "is_active": false,
+    "tokens": 1250,
+    "preview": "Scene content preview...",
+    "created_at": "2026-01-02T12:00:00Z",
+    "reference": {...}
+  },
+  "tokens": {
+    "total": 2150,
+    "items": [...]
+  },
+  "limit": {...}
+}
+```
+
+**Authorization:**
+- User must own the novel (via thread)
+- User must own the thread
+
+**Business Logic:**
+- Inactive context items tidak included dalam AI prompt
+- Token count recalculated setelah update
+
+---
+
+### Delete Context Item
+
+Menghapus context item dari thread (permanent deletion).
+
+**Endpoint:** `DELETE /api/chat/context/{item}`
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| item | integer | Chat Context Item ID |
+
+**Response:** `200 OK`
+
+```json
+{
+  "message": "Context item removed.",
+  "tokens": {
+    "total": 900,
+    "items": [...]
+  },
+  "limit": {
+    "within_limit": true,
+    "usage_percentage": 0.9,
+    "tokens_used": 900,
+    "limit": 96000,
+    "model_limit": 128000
+  }
+}
+```
+
+**Authorization:**
+- User must own the novel (via thread)
+- User must own the thread
+
+---
+
+### Get Context Preview
+
+Mengambil full context preview dengan actual text yang akan di-inject ke AI prompt.
+
+**Endpoint:** `GET /api/chat/threads/{thread}/context/preview`
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| thread | integer | Chat Thread ID |
+
+**Response:** `200 OK`
+
+```json
+{
+  "preview": {
+    "text": "=== Chapter 3 - The Discovery (scene) ===\n[Full scene content...]\n\n=== John Smith (codex) ===\n[Full codex entry...]\n\n",
+    "tokens": 2150,
+    "items": [
+      {
+        "name": "Chapter 3 - The Discovery",
+        "type": "scene",
+        "content": "[full content...]",
+        "tokens": 1250
+      },
+      {
+        "name": "John Smith",
+        "type": "codex",
+        "content": "[full codex entry...]",
+        "tokens": 580
+      }
+    ]
+  },
+  "limit": {
+    "within_limit": true,
+    "usage_percentage": 2.1,
+    "tokens_used": 2150,
+    "limit": 96000,
+    "model_limit": 128000
+  }
+}
+```
+
+**Authorization:**
+- User must own the novel (via thread)
+- User must own the thread
+
+**Use Case:** 
+- Debugging context injection
+- Showing user exactly what AI will see
+- Token usage estimation before sending message
+
+---
+
+### Bulk Add Context Items
+
+Menambahkan multiple context items sekaligus (useful untuk "Add all scenes" atau batch operations).
+
+**Endpoint:** `POST /api/chat/threads/{thread}/context/bulk`
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| thread | integer | Chat Thread ID |
+
+**Request Body:**
+
+```json
+{
+  "items": [
+    {
+      "context_type": "scene",
+      "reference_id": 45
+    },
+    {
+      "context_type": "scene",
+      "reference_id": 46
+    },
+    {
+      "context_type": "codex",
+      "reference_id": 12
+    }
+  ]
+}
+```
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| items | array | Yes | Min 1, Max 50 items |
+| items.*.context_type | string | Yes | Enum: scene, codex, summary, outline, custom |
+| items.*.reference_id | integer | Conditional | Required for scene/codex |
+| items.*.custom_content | string | Conditional | Required for custom type |
+
+**Response:** `201 Created`
+
+```json
+{
+  "items": [
+    {
+      "id": 14,
+      "thread_id": 1,
+      "context_type": "scene",
+      "reference_id": 45,
+      "is_active": true,
+      "tokens": 1250,
+      "preview": "...",
+      "created_at": "2026-01-02T13:00:00Z",
+      "reference": {...}
+    },
+    {
+      "id": 15,
+      "thread_id": 1,
+      "context_type": "scene",
+      "reference_id": 46,
+      "is_active": true,
+      "tokens": 1100,
+      "preview": "...",
+      "created_at": "2026-01-02T13:00:00Z",
+      "reference": {...}
+    }
+  ],
+  "tokens": {
+    "total": 5500,
+    "items": [...]
+  },
+  "limit": {
+    "within_limit": true,
+    "usage_percentage": 5.7,
+    "tokens_used": 5500,
+    "limit": 96000,
+    "model_limit": 128000
+  }
+}
+```
+
+**Authorization:**
+- User must own the novel
+- User must own the thread
+
+**Business Logic:**
+- Invalid references di-skip (tidak abort entire request)
+- Duplicate items di-skip (tidak create duplicate)
+- Existing items di-reactivate jika inactive
+
+---
+
+### Clear All Context
+
+Menghapus semua context items dari thread sekaligus.
+
+**Endpoint:** `DELETE /api/chat/threads/{thread}/context/clear`
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| thread | integer | Chat Thread ID |
+
+**Response:** `200 OK`
+
+```json
+{
+  "message": "All context items cleared.",
+  "tokens": {
+    "total": 0,
+    "items": []
+  },
+  "limit": {
+    "within_limit": true,
+    "usage_percentage": 0.0,
+    "tokens_used": 0,
+    "limit": 96000,
+    "model_limit": 128000
+  }
+}
+```
+
+**Authorization:**
+- User must own the novel (via thread)
+- User must own the thread
+
+---
+
 ## Error Codes
 
 | Code | HTTP Status | Description |

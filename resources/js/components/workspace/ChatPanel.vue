@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { animate, spring } from 'motion';
 import ChatThreadList from '@/components/chat/ChatThreadList.vue';
 import ChatWindow from '@/components/chat/ChatWindow.vue';
 import ChatInput from '@/components/chat/ChatInput.vue';
 import ChatHeader from '@/components/chat/ChatHeader.vue';
+import ContextPreview from '@/components/chat/ContextPreview.vue';
+import { useChatContext } from '@/composables/useChatContext';
 
 interface Novel {
     id: number;
@@ -37,6 +39,11 @@ interface Thread {
 
 const props = defineProps<{
     novel: Novel;
+    initialSceneContext?: number | null;
+}>();
+
+const emit = defineEmits<{
+    contextUsed: [];
 }>();
 
 // State
@@ -49,6 +56,35 @@ const isStreaming = ref(false);
 const streamingContent = ref('');
 const threadListOpen = ref(true);
 const error = ref<string | null>(null);
+const contextPreviewOpen = ref(false);
+
+// Context management
+const {
+    contextItems,
+    tokenInfo,
+    limitInfo,
+    sources,
+    isLoadingSources,
+    fetchContext,
+    addContext,
+    toggleContext,
+    removeContext,
+    clearContext,
+    fetchSources,
+    resetContext,
+} = useChatContext(props.novel.id);
+
+// Fetch context when active thread changes
+watch(
+    () => activeThread.value?.id,
+    async (threadId) => {
+        if (threadId) {
+            await fetchContext(threadId);
+        } else {
+            resetContext();
+        }
+    }
+);
 
 // Fetch threads
 const fetchThreads = async () => {
@@ -394,9 +430,86 @@ const canRegenerate = computed(() => {
     return messages.value.length > 0 && messages.value[messages.value.length - 1]?.role === 'assistant' && !isStreaming.value;
 });
 
-onMounted(() => {
-    fetchThreads();
+// Context handlers
+const handleAddContext = async (
+    type: 'scene' | 'codex' | 'summary' | 'outline' | 'custom',
+    referenceId?: number,
+    customContent?: string
+) => {
+    // Create thread if none exists
+    if (!activeThread.value) {
+        await createThread();
+    }
+    if (!activeThread.value) return;
+
+    await addContext(activeThread.value.id, type, referenceId, customContent);
+};
+
+const handleToggleContext = async (itemId: number) => {
+    await toggleContext(itemId);
+};
+
+const handleRemoveContext = async (itemId: number) => {
+    await removeContext(itemId);
+};
+
+const handleClearContext = async () => {
+    if (!activeThread.value) return;
+    await clearContext(activeThread.value.id);
+};
+
+onMounted(async () => {
+    await fetchThreads();
+
+    // Check for scene_context parameter (from "Chat with scene" via URL)
+    const url = new URL(window.location.href);
+    const sceneContextId = url.searchParams.get('scene_context');
+
+    if (sceneContextId) {
+        // Create a new thread and add the scene as context
+        await createThread();
+        if (activeThread.value) {
+            await addContext(activeThread.value.id, 'scene', parseInt(sceneContextId));
+        }
+
+        // Clean up the URL parameter
+        url.searchParams.delete('scene_context');
+        window.history.replaceState({}, '', url.toString());
+    }
+
+    // Handle initial scene context from prop (from pinned panel)
+    if (props.initialSceneContext) {
+        await handleInitialSceneContext(props.initialSceneContext);
+    }
 });
+
+// Handle initial scene context (for pinned panel)
+const handleInitialSceneContext = async (sceneId: number) => {
+    // Create a new thread and add the scene as context
+    await createThread();
+    if (activeThread.value) {
+        await addContext(activeThread.value.id, 'scene', sceneId);
+    }
+    emit('contextUsed');
+};
+
+// Watch for changes to initialSceneContext prop
+watch(
+    () => props.initialSceneContext,
+    async (newSceneId) => {
+        if (newSceneId) {
+            await handleInitialSceneContext(newSceneId);
+        }
+    }
+);
+
+// Chat input ref for setting message from prompts
+const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null);
+
+// Handle prompt selection from ChatWindow
+const handlePromptSelect = (prompt: string) => {
+    chatInputRef.value?.setMessage(prompt);
+};
 
 // Animation for panel entrance
 const panelRef = ref<HTMLElement | null>(null);
@@ -443,10 +556,38 @@ onMounted(() => {
                 :can-regenerate="canRegenerate"
                 @regenerate="regenerateResponse"
                 @dismiss-error="error = null"
+                @select-prompt="handlePromptSelect"
             />
 
             <!-- Input Area -->
-            <ChatInput :is-streaming="isStreaming" :disabled="!activeThread && threads.length === 0" @send="sendMessage" @create-thread="createThread" />
+            <ChatInput
+                ref="chatInputRef"
+                :is-streaming="isStreaming"
+                :disabled="!activeThread && threads.length === 0"
+                :thread-id="activeThread?.id"
+                :novel-id="novel.id"
+                :context-items="contextItems"
+                :sources="sources"
+                :is-loading-sources="isLoadingSources"
+                :limit-info="limitInfo"
+                @send="sendMessage"
+                @create-thread="createThread"
+                @add-context="handleAddContext"
+                @fetch-sources="fetchSources"
+                @open-context-preview="contextPreviewOpen = true"
+            />
         </div>
+
+        <!-- Context Preview Modal -->
+        <ContextPreview
+            :show="contextPreviewOpen"
+            :context-items="contextItems"
+            :token-info="tokenInfo"
+            :limit-info="limitInfo"
+            @close="contextPreviewOpen = false"
+            @toggle="handleToggleContext"
+            @remove="handleRemoveContext"
+            @clear="handleClearContext"
+        />
     </div>
 </template>

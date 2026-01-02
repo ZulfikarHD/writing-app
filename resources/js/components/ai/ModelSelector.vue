@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { animate, spring, stagger } from 'motion';
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 
 export interface AIModel {
     id: string;
@@ -45,6 +45,53 @@ const connections = ref<Connection[]>([]);
 const models = ref<AIModel[]>([]);
 const loading = ref(false);
 const selectedConnectionId = ref<number | null>(props.connectionId || null);
+const triggerRef = ref<HTMLButtonElement | null>(null);
+const dropdownRef = ref<HTMLElement | null>(null);
+const dropdownPosition = ref({ top: '0px', left: '0px' });
+
+// Close dropdown function
+const closeDropdown = () => {
+    isOpen.value = false;
+    searchQuery.value = '';
+};
+
+// Handle click outside
+const handleClickOutside = (event: MouseEvent) => {
+    if (!isOpen.value) return;
+
+    const target = event.target as HTMLElement;
+
+    // Check if click is on the trigger button
+    if (triggerRef.value?.contains(target)) return;
+
+    // Check if click is on the dropdown
+    if (dropdownRef.value?.contains(target)) return;
+
+    // Close the dropdown
+    closeDropdown();
+};
+
+// Handle escape key
+const handleEscapeKey = (event: KeyboardEvent) => {
+    if (event.key === 'Escape' && isOpen.value) {
+        closeDropdown();
+    }
+};
+
+// Setup and cleanup event listeners
+onMounted(() => {
+    fetchConnections();
+    document.addEventListener('click', handleClickOutside, true);
+    document.addEventListener('keydown', handleEscapeKey);
+});
+
+onBeforeUnmount(() => {
+    // Clean up event listeners
+    document.removeEventListener('click', handleClickOutside, true);
+    document.removeEventListener('keydown', handleEscapeKey);
+    // Ensure dropdown is closed
+    isOpen.value = false;
+});
 
 // Fetch user's active connections
 const fetchConnections = async () => {
@@ -88,10 +135,6 @@ watch(selectedConnectionId, () => {
     emit('update:connectionId', selectedConnectionId.value!);
 });
 
-onMounted(() => {
-    fetchConnections();
-});
-
 const selectedConnection = computed(() => {
     return connections.value.find((c) => c.id === selectedConnectionId.value);
 });
@@ -108,8 +151,7 @@ const filteredModels = computed(() => {
 
 const selectModel = (model: AIModel) => {
     emit('update:modelValue', model.id);
-    isOpen.value = false;
-    searchQuery.value = '';
+    closeDropdown();
 };
 
 const sizeClasses = computed(() => {
@@ -120,36 +162,47 @@ const hasNoConnections = computed(() => {
     return connections.value.length === 0;
 });
 
-// Dropdown animation
-const dropdownRef = ref<HTMLElement | null>(null);
+// Calculate dropdown position (opens upward)
+const updateDropdownPosition = () => {
+    if (!triggerRef.value) return;
 
-const onDropdownEnter = async (el: Element) => {
-    await nextTick();
-    
-    // Animate dropdown entrance
-    animate(
-        el,
-        { opacity: [0, 1], transform: ['scale(0.95)', 'scale(1)'] },
-        { duration: 0.2, easing: spring({ stiffness: 400, damping: 30 }) }
-    );
-    
-    // Stagger animate model items
-    const items = el.querySelectorAll('.model-item');
-    if (items.length > 0) {
-        animate(
-            items,
-            { opacity: [0, 1], transform: ['translateX(-10px)', 'translateX(0)'] },
-            { duration: 0.3, delay: stagger(0.03), easing: spring({ stiffness: 300, damping: 25 }) }
-        );
-    }
+    const rect = triggerRef.value.getBoundingClientRect();
+    const dropdownHeight = 320; // max-h-80 = 20rem = 320px
+
+    // Position above the trigger button
+    dropdownPosition.value = {
+        top: `${Math.max(8, rect.top - dropdownHeight - 4)}px`,
+        left: `${Math.max(8, rect.right - 288)}px`, // w-72 = 18rem = 288px, align right edge
+    };
 };
 
-const onDropdownLeave = (el: Element, done: () => void) => {
-    animate(
-        el,
-        { opacity: [1, 0], transform: ['scale(1)', 'scale(0.95)'] },
-        { duration: 0.15, easing: spring({ stiffness: 500, damping: 35 }) }
-    ).finished.then(done);
+// Toggle dropdown with position update
+const toggleDropdown = () => {
+    if (!isOpen.value) {
+        updateDropdownPosition();
+        isOpen.value = true;
+        // Animate on next tick
+        nextTick(() => {
+            if (dropdownRef.value) {
+                animate(
+                    dropdownRef.value,
+                    { opacity: [0, 1], transform: ['scale(0.95) translateY(10px)', 'scale(1) translateY(0)'] },
+                    { duration: 0.2, easing: spring({ stiffness: 400, damping: 30 }) }
+                );
+                // Stagger animate model items
+                const items = dropdownRef.value.querySelectorAll('.model-item');
+                if (items.length > 0) {
+                    animate(
+                        items,
+                        { opacity: [0, 1], transform: ['translateX(-10px)', 'translateX(0)'] },
+                        { duration: 0.3, delay: stagger(0.03), easing: spring({ stiffness: 300, damping: 25 }) }
+                    );
+                }
+            }
+        });
+    } else {
+        closeDropdown();
+    }
 };
 </script>
 
@@ -171,10 +224,11 @@ const onDropdownLeave = (el: Element, done: () => void) => {
         <div v-else>
             <!-- Trigger Button -->
             <button
+                ref="triggerRef"
                 type="button"
                 :class="sizeClasses"
                 class="inline-flex w-full items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-white text-left transition-all hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-1 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 active:scale-[0.97]"
-                @click="isOpen = !isOpen"
+                @click="toggleDropdown"
             >
                 <div class="flex items-center gap-2 overflow-hidden">
                     <span v-if="selectedModel" class="truncate text-zinc-900 dark:text-white">
@@ -193,58 +247,54 @@ const onDropdownLeave = (el: Element, done: () => void) => {
                 </svg>
             </button>
 
-            <!-- Dropdown -->
-            <Transition
-                @enter="onDropdownEnter"
-                @leave="onDropdownLeave"
-                :css="false"
+            <!-- Dropdown (opens upward to avoid overflow) -->
+            <div
+                v-show="isOpen"
+                ref="dropdownRef"
+                :style="dropdownPosition"
+                class="fixed z-[9999] max-h-80 w-72 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
             >
-                <div
-                    v-if="isOpen"
-                    ref="dropdownRef"
-                    class="absolute left-0 z-50 mt-1 max-h-80 w-72 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
-                >
-                    <!-- Connection Selector -->
-                    <div v-if="connections.length > 1" class="border-b border-zinc-200 p-2 dark:border-zinc-700">
-                        <select
-                            v-model="selectedConnectionId"
-                            class="w-full rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-sm dark:border-zinc-600 dark:bg-zinc-700"
-                        >
-                            <option v-for="conn in connections" :key="conn.id" :value="conn.id">
-                                {{ conn.name }} ({{ conn.provider_name }})
-                            </option>
-                        </select>
+                <!-- Connection Selector -->
+                <div v-if="connections.length > 1" class="border-b border-zinc-200 p-2 dark:border-zinc-700">
+                    <select
+                        v-model="selectedConnectionId"
+                        class="w-full rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-sm text-zinc-900 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"
+                    >
+                        <option v-for="conn in connections" :key="conn.id" :value="conn.id">
+                            {{ conn.name }} ({{ conn.provider_name }})
+                        </option>
+                    </select>
+                </div>
+
+                <!-- Search -->
+                <div class="border-b border-zinc-200 p-2 dark:border-zinc-700">
+                    <input
+                        v-model="searchQuery"
+                        type="text"
+                        placeholder="Search models..."
+                        class="w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-sm placeholder-zinc-400 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 dark:border-zinc-600 dark:bg-zinc-700 dark:placeholder-zinc-500 dark:text-white"
+                    />
+                </div>
+
+                <!-- Models List -->
+                <div class="max-h-56 overflow-y-auto">
+                    <div v-if="loading" class="flex items-center justify-center py-8">
+                        <svg class="h-5 w-5 animate-spin text-violet-600" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path
+                                class="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                        </svg>
                     </div>
 
-                    <!-- Search -->
-                    <div class="border-b border-zinc-200 p-2 dark:border-zinc-700">
-                        <input
-                            v-model="searchQuery"
-                            type="text"
-                            placeholder="Search models..."
-                            class="w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-sm placeholder-zinc-400 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 dark:border-zinc-600 dark:bg-zinc-700 dark:placeholder-zinc-500"
-                        />
+                    <div v-else-if="filteredModels.length === 0" class="py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                        No models found
                     </div>
 
-                    <!-- Models List -->
-                    <div class="max-h-56 overflow-y-auto">
-                        <div v-if="loading" class="flex items-center justify-center py-8">
-                            <svg class="h-5 w-5 animate-spin text-violet-600" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path
-                                    class="opacity-75"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                ></path>
-                            </svg>
-                        </div>
-
-                        <div v-else-if="filteredModels.length === 0" class="py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
-                            No models found
-                        </div>
-
+                    <template v-else>
                         <button
-                            v-else
                             v-for="model in filteredModels"
                             :key="model.id"
                             type="button"
@@ -270,19 +320,16 @@ const onDropdownLeave = (el: Element, done: () => void) => {
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                             </svg>
                         </button>
-                    </div>
-
-                    <!-- Connection Info -->
-                    <div v-if="selectedConnection" class="border-t border-zinc-200 px-3 py-2 dark:border-zinc-700">
-                        <p class="text-xs text-zinc-500 dark:text-zinc-400">
-                            via {{ selectedConnection.name }}
-                        </p>
-                    </div>
+                    </template>
                 </div>
-            </Transition>
 
-            <!-- Backdrop to close dropdown -->
-            <div v-if="isOpen" class="fixed inset-0 z-40" @click="isOpen = false"></div>
+                <!-- Connection Info -->
+                <div v-if="selectedConnection" class="border-t border-zinc-200 px-3 py-2 dark:border-zinc-700">
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                        via {{ selectedConnection.name }}
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
 </template>

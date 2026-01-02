@@ -26,7 +26,15 @@ const props = defineProps<{
 const emit = defineEmits<{
     regenerate: [];
     dismissError: [];
+    selectPrompt: [prompt: string];
 }>();
+
+// Quick prompt suggestions
+const quickPrompts = [
+    'Help me brainstorm ideas for this story',
+    'Suggest a plot twist',
+    'Describe a character in detail',
+];
 
 const scrollContainer = ref<HTMLElement | null>(null);
 
@@ -64,15 +72,43 @@ onMounted(() => {
 
 // Animate messages on load
 const animateMessages = () => {
-    if (scrollContainer.value) {
-        const messages = scrollContainer.value.querySelectorAll('.message-item');
-        if (messages.length > 0) {
-            animate(
-                messages,
-                { opacity: [0, 1], transform: ['translateY(10px)', 'translateY(0)'] },
-                { duration: 0.3, delay: stagger(0.05), easing: spring({ stiffness: 300, damping: 25 }) }
-            );
-        }
+    if (!scrollContainer.value) {
+        return;
+    }
+    
+    const messages = scrollContainer.value.querySelectorAll('.message-item');
+    if (messages.length === 0) {
+        return;
+    }
+    
+    try {
+        // Set initial state
+        messages.forEach((el) => {
+            if (el instanceof HTMLElement) {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(10px)';
+            }
+        });
+        
+        // Animate with motion
+        animate(
+            messages,
+            { opacity: 1, transform: 'translateY(0)' },
+            { 
+                duration: 0.3, 
+                delay: stagger(0.05), 
+                easing: spring({ stiffness: 300, damping: 25 }) 
+            }
+        );
+    } catch (error) {
+        console.warn('Animation error:', error);
+        // Fallback: just show the messages
+        messages.forEach((el) => {
+            if (el instanceof HTMLElement) {
+                el.style.opacity = '1';
+                el.style.transform = 'translateY(0)';
+            }
+        });
     }
 };
 
@@ -113,10 +149,11 @@ watch(
             <!-- Quick prompts -->
             <div class="mt-6 flex flex-wrap justify-center gap-2">
                 <button
-                    v-for="prompt in ['Help me brainstorm', 'Suggest a plot twist', 'Describe a character']"
+                    v-for="prompt in quickPrompts"
                     :key="prompt"
                     type="button"
                     class="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-700 transition-all hover:border-violet-300 hover:bg-violet-50 active:scale-95 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-violet-600 dark:hover:bg-violet-900/20"
+                    @click="emit('selectPrompt', prompt)"
                 >
                     {{ prompt }}
                 </button>
@@ -124,7 +161,7 @@ watch(
         </div>
 
         <!-- Messages -->
-        <div v-else class="mx-auto max-w-3xl space-y-4">
+        <div v-else class="w-full space-y-4">
             <ChatMessage
                 v-for="message in messages"
                 :key="message.id"
@@ -150,12 +187,24 @@ watch(
             />
 
             <!-- Streaming Indicator (no content yet) -->
-            <div v-else-if="isStreaming" class="flex justify-start">
+            <div v-else-if="isStreaming" class="flex items-start gap-3">
+                <!-- Avatar -->
+                <div class="shrink-0">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 dark:bg-violet-900/30">
+                        <svg class="h-5 w-5 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                </div>
+                <!-- Thinking indicator -->
                 <div class="rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-3 dark:bg-zinc-800">
-                    <div class="flex items-center gap-1">
-                        <div class="h-2 w-2 animate-bounce rounded-full bg-violet-500" style="animation-delay: 0ms"></div>
-                        <div class="h-2 w-2 animate-bounce rounded-full bg-violet-500" style="animation-delay: 150ms"></div>
-                        <div class="h-2 w-2 animate-bounce rounded-full bg-violet-500" style="animation-delay: 300ms"></div>
+                    <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-1">
+                            <div class="h-2 w-2 animate-bounce rounded-full bg-violet-500" style="animation-delay: 0ms"></div>
+                            <div class="h-2 w-2 animate-bounce rounded-full bg-violet-500" style="animation-delay: 150ms"></div>
+                            <div class="h-2 w-2 animate-bounce rounded-full bg-violet-500" style="animation-delay: 300ms"></div>
+                        </div>
+                        <span class="text-sm text-zinc-500 dark:text-zinc-400">Thinking...</span>
                     </div>
                 </div>
             </div>

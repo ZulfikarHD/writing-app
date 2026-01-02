@@ -34,7 +34,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Sprint 17 - Unified Workspace & Codex UX](./10-sprints/sprint-17-workspace-codex-ux.md) ✅ Complete
 - [Sprint 18 - Story Planning System](./10-sprints/sprint-18-story-planning.md) ✅ Complete
 - [Sprint 19 - Performance Mode System](./10-sprints/sprint-19-performance-mode.md) ✅ Complete
-- [Sprint 20 - Chat Interface Core (Workshop)](./10-sprints/sprint-20-chat-interface-core.md) ✅ Complete ✨ NEW
+- [Sprint 20 - Chat Interface Core (Workshop)](./10-sprints/sprint-20-chat-interface-core.md) ✅ Complete
+- [Sprint 21 - Chat Context Integration (FG-04.2)](./10-sprints/sprint-21-chat-context-integration.md) ✅ Complete ✨ NEW
 
 ### API Reference
 - [Authentication API](./04-api-reference/authentication.md)
@@ -56,7 +57,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Sprint 16 Testing Guide](./06-testing/codex-sprint16-testing.md)
 - [Sprint 17 Testing Guide](./06-testing/sprint-17-testing.md)
 - [Story Planning Testing Guide](./06-testing/story-planning-testing.md)
-- [Chat Testing Guide](./06-testing/chat-testing.md) ✨ NEW
+- [Chat Testing Guide](./06-testing/chat-testing.md)
+- [Chat Context Testing Guide](./06-testing/chat-context-testing.md) ✨ NEW
 
 ### Developer Guides
 - [Performance Mode Guide](./performance-mode.md) ✨ NEW
@@ -71,7 +73,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 
 ### User Journeys
 - [Authentication Flow](./07-user-journeys/authentication/user-auth-flow.md)
-- [Story Planning Flows](./07-user-journeys/story-planning/plan-views-flow.md) ✨ NEW
+- [Story Planning Flows](./07-user-journeys/story-planning/plan-views-flow.md)
+- [Chat Context Integration Flow](./07-user-journeys/chat-context/context-integration-flow.md) ✨ NEW
 
 ---
 
@@ -98,6 +101,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 | **Unified Workspace & Codex UX** | ✅ Complete | [Sprint 17](./10-sprints/sprint-17-workspace-codex-ux.md) | N/A | [Link](./06-testing/sprint-17-testing.md) |
 | **Story Planning System** | ✅ Complete | [Sprint 18](./10-sprints/sprint-18-story-planning.md) | [Link](./04-api-reference/story-planning.md) | [Link](./06-testing/story-planning-testing.md) |
 | **Performance Mode System** | ✅ Complete | [Sprint 19](./10-sprints/sprint-19-performance-mode.md) | N/A | N/A |
+| **Chat Interface Core** | ✅ Complete | [Sprint 20](./10-sprints/sprint-20-chat-interface-core.md) | [Link](./04-api-reference/chat.md) | [Link](./06-testing/chat-testing.md) |
+| **Chat Context Integration** | ✅ Complete | [Sprint 21](./10-sprints/sprint-21-chat-context-integration.md) | [Link](./04-api-reference/chat.md#context-management-endpoints) | [Link](./06-testing/chat-context-testing.md) |
 
 ---
 
@@ -411,6 +416,7 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 ## 🎨 Recent Updates
 
 ### January 2, 2026
+- ✅ **Sprint 21 Completed**: Chat Context Integration (FG-04.2) - Novel context injection ke AI conversations
 - ✅ **Sprint 20 Completed**: Chat Interface Core (Workshop) - AI-powered chat dengan real-time streaming
 - ✅ **Sprint 19 Completed**: Performance Mode System untuk optimize animations pada low-spec devices
 - ✅ **Theme System Fixed**: Dark/Light/System theme toggle sekarang berfungsi dengan sempurna
@@ -499,4 +505,4 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 ---
 
 *Last Updated: 2026-01-02*  
-*Latest Features: Sprint 20 (Chat Interface) + Sprint 19 (Performance Mode) + Sprint 18 (Story Planning)*
+*Latest Features: Sprint 21 (Chat Context Integration) + Sprint 20 (Chat Interface) + Sprint 19 (Performance Mode)*
