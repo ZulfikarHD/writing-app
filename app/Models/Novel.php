@@ -145,6 +145,26 @@ class Novel extends Model
     }
 
     /**
+     * Chat threads for this novel.
+     *
+     * @return HasMany<ChatThread, $this>
+     */
+    public function chatThreads(): HasMany
+    {
+        return $this->hasMany(ChatThread::class)->orderByDesc('updated_at');
+    }
+
+    /**
+     * Active (non-archived) chat threads.
+     *
+     * @return HasMany<ChatThread, $this>
+     */
+    public function activeChatThreads(): HasMany
+    {
+        return $this->chatThreads()->whereNull('archived_at');
+    }
+
+    /**
      * Recalculate and update word count from all scenes.
      */
     public function recalculateWordCount(): void

@@ -33,7 +33,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Sprint 16 - Codex V2: Polish & Integration](./10-sprints/sprint-16-codex-enhancements.md) ✅ Complete
 - [Sprint 17 - Unified Workspace & Codex UX](./10-sprints/sprint-17-workspace-codex-ux.md) ✅ Complete
 - [Sprint 18 - Story Planning System](./10-sprints/sprint-18-story-planning.md) ✅ Complete
-- [Sprint 19 - Performance Mode System](./10-sprints/sprint-19-performance-mode.md) ✅ Complete ✨ NEW
+- [Sprint 19 - Performance Mode System](./10-sprints/sprint-19-performance-mode.md) ✅ Complete
+- [Sprint 20 - Chat Interface Core (Workshop)](./10-sprints/sprint-20-chat-interface-core.md) ✅ Complete ✨ NEW
 
 ### API Reference
 - [Authentication API](./04-api-reference/authentication.md)
@@ -43,7 +44,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [AI Connections API](./04-api-reference/ai-connections.md)
 - [Codex API](./04-api-reference/codex.md)
 - [Series API](./04-api-reference/series.md)
-- [Story Planning API](./04-api-reference/story-planning.md) ✨ NEW
+- [Story Planning API](./04-api-reference/story-planning.md)
+- [Chat API](./04-api-reference/chat.md) ✨ NEW
 
 ### Testing
 - [Foundation Testing Guide](./06-testing/foundation-testing.md)
@@ -53,7 +55,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Sprint 15 Testing Guide](./06-testing/sprint-15-testing.md)
 - [Sprint 16 Testing Guide](./06-testing/codex-sprint16-testing.md)
 - [Sprint 17 Testing Guide](./06-testing/sprint-17-testing.md)
-- [Story Planning Testing Guide](./06-testing/story-planning-testing.md) ✨ NEW
+- [Story Planning Testing Guide](./06-testing/story-planning-testing.md)
+- [Chat Testing Guide](./06-testing/chat-testing.md) ✨ NEW
 
 ### Developer Guides
 - [Performance Mode Guide](./performance-mode.md) ✨ NEW
@@ -408,6 +411,7 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 ## 🎨 Recent Updates
 
 ### January 2, 2026
+- ✅ **Sprint 20 Completed**: Chat Interface Core (Workshop) - AI-powered chat dengan real-time streaming
 - ✅ **Sprint 19 Completed**: Performance Mode System untuk optimize animations pada low-spec devices
 - ✅ **Theme System Fixed**: Dark/Light/System theme toggle sekarang berfungsi dengan sempurna
 - ✅ **Scene Navigation Fixed**: Scene selection di workspace sekarang berfungsi dengan benar
@@ -495,4 +499,4 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 ---
 
 *Last Updated: 2026-01-02*  
-*Latest Features: Sprint 19 (Performance Mode) + Sprint 18 (Story Planning) + Sprint 17 (Unified Workspace)*
+*Latest Features: Sprint 20 (Chat Interface) + Sprint 19 (Performance Mode) + Sprint 18 (Story Planning)*

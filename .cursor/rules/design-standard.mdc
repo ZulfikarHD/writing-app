@@ -1,11 +1,10 @@
 ---
-name: design-guide
-description: design-guide for the app
+alwaysApply: true
 ---
 
 # Overview
 
-- App Design is clean and compact app 
+- App Design is clean and compact app
 - Just Focus on Full Dekstop Experience, tough dont forget mobile experience
 - use motion-v
 - always run yarn run build in the end

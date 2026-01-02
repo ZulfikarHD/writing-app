@@ -12,6 +12,7 @@ import { useEditorSettings } from '@/composables/useEditorSettings';
 const WritePanel = defineAsyncComponent(() => import('@/components/workspace/WritePanel.vue'));
 const PlanPanel = defineAsyncComponent(() => import('@/components/workspace/PlanPanel.vue'));
 const CodexPanel = defineAsyncComponent(() => import('@/components/workspace/CodexPanel.vue'));
+const ChatPanel = defineAsyncComponent(() => import('@/components/workspace/ChatPanel.vue'));
 
 // Lazy load modals
 const CodexEntryModal = defineAsyncComponent(() => import('@/components/codex/modals/CodexEntryModal.vue'));
@@ -97,6 +98,7 @@ const {
     isWriteMode,
     isPlanMode,
     isCodexMode,
+    isChatMode,
     sidebarCollapsed,
     setMode,
     toggleSidebar,
@@ -270,6 +272,11 @@ const handleKeyDown = (e: KeyboardEvent) => {
         e.preventDefault();
         handleModeChange('codex');
     }
+    // Ctrl+4 - Chat mode
+    if ((e.ctrlKey || e.metaKey) && e.key === '4') {
+        e.preventDefault();
+        handleModeChange('chat');
+    }
     // Ctrl+B - Toggle sidebar
     if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
         e.preventDefault();
@@ -429,6 +436,12 @@ onBeforeUnmount(() => {
                     :novel="novel"
                     @entry-click="openCodexEntry"
                     @create-entry="openCodexCreate"
+                />
+
+                <!-- Chat Mode -->
+                <ChatPanel
+                    v-else-if="isChatMode"
+                    :novel="novel"
                 />
             </main>
         </div>

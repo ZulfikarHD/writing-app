@@ -1,6 +1,6 @@
 import { ref, computed, watch, onMounted } from 'vue';
 
-export type WorkspaceMode = 'write' | 'plan' | 'codex';
+export type WorkspaceMode = 'write' | 'plan' | 'codex' | 'chat';
 
 export type SidebarTool = 'scenes' | 'codex' | 'notes';
 
@@ -79,6 +79,7 @@ export function useWorkspaceState(initialMode?: WorkspaceMode) {
     const isWriteMode = computed(() => state.value.mode === 'write');
     const isPlanMode = computed(() => state.value.mode === 'plan');
     const isCodexMode = computed(() => state.value.mode === 'codex');
+    const isChatMode = computed(() => state.value.mode === 'chat');
 
     // Sidebar state
     const sidebarCollapsed = computed(() => state.value.sidebarCollapsed);
@@ -161,6 +162,7 @@ export function useWorkspaceState(initialMode?: WorkspaceMode) {
         isWriteMode,
         isPlanMode,
         isCodexMode,
+        isChatMode,
         sidebarCollapsed,
         expandedTools,
         pinnedTools,

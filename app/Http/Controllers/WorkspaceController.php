@@ -58,7 +58,7 @@ class WorkspaceController extends Controller
 
         // Determine initial mode from query parameter
         $mode = $request->query('mode', 'write');
-        if (! in_array($mode, ['write', 'plan', 'codex'])) {
+        if (! in_array($mode, ['write', 'plan', 'codex', 'chat'])) {
             $mode = 'write';
         }
 
