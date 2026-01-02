@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Motion, AnimatePresence } from 'motion-v';
+import { usePerformanceMode } from '@/composables/usePerformanceMode';
 
 interface Label {
     id: number;
@@ -36,6 +37,9 @@ const emit = defineEmits<{
     (e: 'openCodexEntry', entryId: number): void;
 }>();
 
+// Performance mode
+const { isReducedMotion, sidebarSpringConfig, backdropBlurClass, buttonTransitionClass, scaleActiveClass } = usePerformanceMode();
+
 const statusLabels: Record<string, { label: string; color: string; bgColor: string }> = {
     draft: { label: 'Draft', color: 'text-zinc-600 dark:text-zinc-400', bgColor: 'bg-zinc-100 dark:bg-zinc-700' },
     in_progress: { label: 'In Progress', color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
@@ -62,18 +66,18 @@ const currentStatus = computed(() => {
     <AnimatePresence>
         <Motion
             v-if="scene"
-            :initial="{ x: '100%', opacity: 0 }"
-            :animate="{ x: 0, opacity: 1 }"
-            :exit="{ x: '100%', opacity: 0 }"
-            :transition="{ type: 'spring', stiffness: 350, damping: 35 }"
-            class="flex h-full w-72 flex-col border-l border-zinc-200 bg-zinc-50/80 backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-800/60"
+            :initial="isReducedMotion ? { x: '100%' } : { x: '100%', opacity: 0 }"
+            :animate="isReducedMotion ? { x: 0 } : { x: 0, opacity: 1 }"
+            :exit="isReducedMotion ? { x: '100%' } : { x: '100%', opacity: 0 }"
+            :transition="sidebarSpringConfig"
+            :class="['flex h-full w-72 flex-col border-l border-zinc-200 bg-zinc-50/80 dark:border-zinc-700 dark:bg-zinc-800/60', backdropBlurClass]"
         >
             <!-- Header -->
             <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
                 <h3 class="text-sm font-semibold text-zinc-900 dark:text-white">Scene Details</h3>
                 <button
                     type="button"
-                    class="rounded-lg p-1.5 text-zinc-400 transition-all hover:bg-zinc-200 hover:text-zinc-600 active:scale-95 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+                    :class="['rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300', buttonTransitionClass, scaleActiveClass]"
                     @click="emit('close')"
                 >
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -188,7 +192,7 @@ const currentStatus = computed(() => {
             <div class="border-t border-zinc-200 px-4 py-3 dark:border-zinc-700">
                 <button
                     type="button"
-                    class="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-600 transition-all hover:bg-zinc-100 active:scale-[0.98] dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                    :class="['flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-700', buttonTransitionClass, scaleActiveClass]"
                 >
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />

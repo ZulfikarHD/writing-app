@@ -180,9 +180,9 @@
   integrity sha512-sRdU18mcKf7F+YgheI/zGf5alZatMUTKj/jNS6l744f9u3WFu4v7twcUI9vu4mknF4Y9aDlblIie0IM+5xxaqQ==
 
 "@eslint-community/eslint-utils@^4.4.0", "@eslint-community/eslint-utils@^4.7.0", "@eslint-community/eslint-utils@^4.8.0":
-  version "4.9.0"
-  resolved "https://registry.yarnpkg.com/@eslint-community/eslint-utils/-/eslint-utils-4.9.0.tgz#7308df158e064f0dd8b8fdb58aa14fa2a7f913b3"
-  integrity sha512-ayVFHdtZ+hsq1t2Dy24wCmGXGe4q9Gu3smhLYALJrr473ZH27MsnSL+LKUlimp4BWJqMDMLmPpx/Q9R3OAlL4g==
+  version "4.9.1"
+  resolved "https://registry.yarnpkg.com/@eslint-community/eslint-utils/-/eslint-utils-4.9.1.tgz#4e90af67bc51ddee6cdef5284edf572ec376b595"
+  integrity sha512-phrYmNiYppR7znFEdqgfWHXR6NCkZEK7hwWDHZUjit/2/U0r6XvkDl0SYnoM51Hq7FhCGdLDT6zxCCOY1hexsQ==
   dependencies:
     eslint-visitor-keys "^3.4.3"
 
@@ -290,23 +290,23 @@
   resolved "https://registry.yarnpkg.com/@humanwhocodes/retry/-/retry-0.4.3.tgz#c2b9d2e374ee62c586d3adbea87199b1d7a7a6ba"
   integrity sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==
 
-"@inertiajs/core@2.3.4":
-  version "2.3.4"
-  resolved "https://registry.yarnpkg.com/@inertiajs/core/-/core-2.3.4.tgz#2b8700d30845b4e6c1c3842f7ae41d5b84c10eb0"
-  integrity sha512-wSkSLL/8+oZigUZIxyd0mizHKxu/C0V7hUyNz+siFeaVSeLkOUU51OxihqLr9Y9gtN9gFGSmhihNjdXkOedDTw==
+"@inertiajs/core@2.3.6":
+  version "2.3.6"
+  resolved "https://registry.yarnpkg.com/@inertiajs/core/-/core-2.3.6.tgz#526167ea8eab41f4ca736fc543dc6b792c5c975d"
+  integrity sha512-3JzJ04HBoGK/OlDZyzhD0WFB9jH3KNT32fQ45zWMFa4eGthm1kuSSF+BgPAKQQm8jS38whx2WuhMOsH+Ec++7A==
   dependencies:
     "@types/lodash-es" "^4.17.12"
     axios "^1.13.2"
     laravel-precognition "^1.0.0"
     lodash-es "^4.17.21"
-    qs "^6.14.0"
+    qs "^6.14.1"
 
 "@inertiajs/vue3@^2.0.0":
-  version "2.3.4"
-  resolved "https://registry.yarnpkg.com/@inertiajs/vue3/-/vue3-2.3.4.tgz#4ee414cc0bcb788236df32f2de258e41ad6921dc"
-  integrity sha512-yu+1HZh4JAcVPc0yOTepc3icripT3oCCjSfr/koke1o2DWT6Piqoofx/ETjysdzFn1aRCMEO4+YJYAiVR3SDBw==
+  version "2.3.6"
+  resolved "https://registry.yarnpkg.com/@inertiajs/vue3/-/vue3-2.3.6.tgz#dc187ec780a61bec458dad424eb36b5e2def1136"
+  integrity sha512-ror6FYq7P339ftZrVvr9DVw0NEzDgmrtVP1LmESXmtGCEexVn3RQJ6bXVpcFGJQ3z2qDc9kMG6GEnyM80sAYoQ==
   dependencies:
-    "@inertiajs/core" "2.3.4"
+    "@inertiajs/core" "2.3.6"
     "@types/lodash-es" "^4.17.12"
     laravel-precognition "^1.0.0"
     lodash-es "^4.17.21"
@@ -2033,9 +2033,9 @@ espree@^9.3.1:
     eslint-visitor-keys "^3.4.1"
 
 esquery@^1.4.0, esquery@^1.5.0, esquery@^1.6.0:
-  version "1.6.0"
-  resolved "https://registry.yarnpkg.com/esquery/-/esquery-1.6.0.tgz#91419234f804d852a82dceec3e16cdc22cf9dae7"
-  integrity sha512-ca9pw9fomFcKPvFLXhBKUK90ZvGibiGOvRJNbjljY7s7uq/5YO4BOzcYtJqExdx99rF6aAcnRxHmcUHcz6sQsg==
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/esquery/-/esquery-1.7.0.tgz#08d048f261f0ddedb5bae95f46809463d9c9496d"
+  integrity sha512-Ap6G0WQwcU/LHsvLwON1fAQX9Zp0A2Y6Y/cJBl9r/JbW90Zyg4/zbG6zzKa2OTALELarYHmKu0GhpM5EO+7T0g==
   dependencies:
     estraverse "^5.1.0"
 
@@ -2149,15 +2149,6 @@ form-data@^4.0.4:
     es-set-tostringtag "^2.1.0"
     hasown "^2.0.2"
     mime-types "^2.1.12"
-
-framer-motion@12.23.12:
-  version "12.23.12"
-  resolved "https://registry.yarnpkg.com/framer-motion/-/framer-motion-12.23.12.tgz#80cf6fd7c111073a0c558e336c85ca36cca80d3d"
-  integrity sha512-6e78rdVtnBvlEVgu6eFEAgG9v3wLnYEboM8I5O5EXvfKC8gxGQB8wXJdhkMy10iVcn05jl6CNw7/HTsTCfwcWg==
-  dependencies:
-    motion-dom "^12.23.12"
-    motion-utils "^12.23.6"
-    tslib "^2.4.0"
 
 framer-motion@^12.23.26:
   version "12.23.26"
@@ -2573,14 +2564,7 @@ minimatch@^9.0.3, minimatch@^9.0.4:
   dependencies:
     brace-expansion "^2.0.1"
 
-motion-dom@12.23.12:
-  version "12.23.12"
-  resolved "https://registry.yarnpkg.com/motion-dom/-/motion-dom-12.23.12.tgz#87974046e7e61bc4932f36d35e8eab6bb6f3e434"
-  integrity sha512-RcR4fvMCTESQBD/uKQe49D5RUeDOokkGRmz4ceaJKDBgHYtZtntC/s2vLvY38gqGaytinij/yi3hMcWVcEF5Kw==
-  dependencies:
-    motion-utils "^12.23.6"
-
-motion-dom@^12.23.12, motion-dom@^12.23.23:
+motion-dom@^12.23.23:
   version "12.23.23"
   resolved "https://registry.yarnpkg.com/motion-dom/-/motion-dom-12.23.23.tgz#8f874333ea1a04ee3a89eb928f518b463d589e0e"
   integrity sha512-n5yolOs0TQQBRUFImrRfs/+6X4p3Q4n1dUEqt/H58Vx7OW6RF+foWEgmTVDhIWJIMXOuNNL0apKH2S16en9eiA==
@@ -2593,13 +2577,12 @@ motion-utils@^12.23.6:
   integrity sha512-eAWoPgr4eFEOFfg2WjIsMoqJTW6Z8MTUCgn/GZ3VRpClWBdnbjryiA3ZSNLyxCTmCQx4RmYX6jX1iWHbenUPNQ==
 
 motion-v@^1.7.4:
-  version "1.7.4"
-  resolved "https://registry.yarnpkg.com/motion-v/-/motion-v-1.7.4.tgz#d0ef91da780733f297c91304feb92e232f922f27"
-  integrity sha512-YNDUAsany04wfI7YtHxQK3kxzNvh+OdFUk9GpA3+hMt7j6P+5WrVAAgr8kmPPoVza9EsJiAVhqoN3YYFN0Twrw==
+  version "1.7.5"
+  resolved "https://registry.yarnpkg.com/motion-v/-/motion-v-1.7.5.tgz#1c5f573e1053023bb89965eedf0da62968510483"
+  integrity sha512-xSqAWoMVAlh0RhdjMCnPMv62mr3yZ2bynXirj2Aq/rDFxiZ69JuIz63aSBCiK87A3wxVqwCZzZE2p4WN875k3Q==
   dependencies:
-    framer-motion "12.23.12"
     hey-listen "^1.0.8"
-    motion-dom "12.23.12"
+    motion-dom "^12.23.23"
 
 motion@^12.23.26:
   version "12.23.26"
@@ -2915,7 +2898,7 @@ punycode@^2.1.0:
   resolved "https://registry.yarnpkg.com/punycode/-/punycode-2.3.1.tgz#027422e2faec0b25e1549c3e1bd8309b9133b6e5"
   integrity sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==
 
-qs@^6.14.0:
+qs@^6.14.1:
   version "6.14.1"
   resolved "https://registry.yarnpkg.com/qs/-/qs-6.14.1.tgz#a41d85b9d3902f31d27861790506294881871159"
   integrity sha512-4EK3+xJl8Ts67nLYNwqw/dsFVnCf+qR7RgXSK9jEEm9unao3njwMDdmsdvoKBKHzxd7tCYz5e5M+SnMjdtXGQQ==

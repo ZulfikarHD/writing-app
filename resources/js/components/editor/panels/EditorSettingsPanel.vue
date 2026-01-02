@@ -2,6 +2,7 @@
 import { watch, onUnmounted } from 'vue';
 import { useEditorSettings, type FontFamily, type EditorWidth } from '@/composables/useEditorSettings';
 import { useTheme } from '@/composables/useTheme';
+import { usePerformanceMode } from '@/composables/usePerformanceMode';
 import { Motion, AnimatePresence } from 'motion-v';
 
 interface Props {
@@ -17,6 +18,8 @@ const { settings, setFontFamily, setFontSize, setLineHeight, setEditorWidth, res
     useEditorSettings();
 
 const { theme, setTheme } = useTheme();
+
+const { settings: perfSettings, setMode, backdropBlurClass } = usePerformanceMode();
 
 const themeOptions = [
     { value: 'light' as const, label: 'Light' },
@@ -68,7 +71,7 @@ onUnmounted(() => {
             :animate="{ opacity: 1 }"
             :exit="{ opacity: 0 }"
             :transition="{ duration: 0.2 }"
-            class="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm dark:bg-black/40"
+            :class="['fixed inset-0 z-40 bg-black/20 dark:bg-black/40', backdropBlurClass]"
             @click="emit('close')"
         />
     </AnimatePresence>
@@ -99,6 +102,46 @@ onUnmounted(() => {
 
             <!-- Content -->
             <div class="space-y-6 p-4">
+                <!-- Performance Mode -->
+                <div>
+                    <label class="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Performance</label>
+                    <p class="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
+                        Reduced mode disables heavy animations for better performance on lower-spec devices.
+                    </p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button
+                            type="button"
+                            :class="[
+                                'flex flex-col items-center gap-1 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors',
+                                perfSettings.mode === 'full'
+                                    ? 'border-violet-500 bg-violet-50 text-violet-700 dark:border-violet-400 dark:bg-violet-900/30 dark:text-violet-300'
+                                    : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700',
+                            ]"
+                            @click="setMode('full')"
+                        >
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                            </svg>
+                            <span>Full</span>
+                        </button>
+                        <button
+                            type="button"
+                            :class="[
+                                'flex flex-col items-center gap-1 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors',
+                                perfSettings.mode === 'reduced'
+                                    ? 'border-violet-500 bg-violet-50 text-violet-700 dark:border-violet-400 dark:bg-violet-900/30 dark:text-violet-300'
+                                    : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700',
+                            ]"
+                            @click="setMode('reduced')"
+                        >
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            <span>Reduced</span>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Theme -->
                 <div>
                     <label class="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Theme</label>

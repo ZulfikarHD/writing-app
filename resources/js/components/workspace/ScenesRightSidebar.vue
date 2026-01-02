@@ -4,6 +4,7 @@ import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import draggable from 'vuedraggable';
 import { Motion, AnimatePresence } from 'motion-v';
+import { usePerformanceMode } from '@/composables/usePerformanceMode';
 
 interface Label {
     id: number;
@@ -45,6 +46,9 @@ const emit = defineEmits<{
     (e: 'close'): void;
 }>();
 
+// Performance mode
+const { isReducedMotion, sidebarSpringConfig, springConfig, backdropBlurClass } = usePerformanceMode();
+
 // Local reactive copy of chapters for drag and drop
 const localChapters = ref<Chapter[]>([...props.chapters.map((c) => ({ ...c, scenes: [...c.scenes] }))]);
 const expandedChapters = ref<Set<number>>(new Set(props.chapters.map((c) => c.id)));
@@ -80,6 +84,16 @@ const toggleChapter = (id: number) => {
     } else {
         expandedChapters.value.add(id);
     }
+};
+
+const collapseAll = () => {
+    expandedChapters.value.clear();
+};
+
+const expandAll = () => {
+    localChapters.value.forEach((chapter) => {
+        expandedChapters.value.add(chapter.id);
+    });
 };
 
 const createChapter = async () => {
@@ -170,8 +184,8 @@ const sceneDragOptions = computed(() => ({
             :initial="{ x: '100%', opacity: 0 }"
             :animate="{ x: 0, opacity: 1 }"
             :exit="{ x: '100%', opacity: 0 }"
-            :transition="{ type: 'spring', stiffness: 400, damping: 40 }"
-            class="flex h-full w-72 flex-col border-l border-zinc-200 bg-zinc-50/95 backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-800/95"
+            :transition="sidebarSpringConfig"
+            :class="['flex h-full w-72 flex-col border-l border-zinc-200 bg-zinc-50/95 dark:border-zinc-700 dark:bg-zinc-800/95', backdropBlurClass]"
         >
             <!-- Header -->
             <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
@@ -181,15 +195,37 @@ const sceneDragOptions = computed(() => ({
                     </svg>
                     <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">Scenes</h2>
                 </div>
-                <button
-                    type="button"
-                    class="rounded-lg p-1.5 text-zinc-400 transition-all hover:bg-zinc-200 hover:text-zinc-600 active:scale-95 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
-                    @click="emit('close')"
-                >
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
+                <div class="flex items-center gap-1">
+                    <button
+                        type="button"
+                        class="rounded-lg p-1.5 text-zinc-400 transition-all hover:bg-zinc-200 hover:text-zinc-600 active:scale-95 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+                        title="Expand all chapters"
+                        @click="expandAll"
+                    >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <button
+                        type="button"
+                        class="rounded-lg p-1.5 text-zinc-400 transition-all hover:bg-zinc-200 hover:text-zinc-600 active:scale-95 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+                        title="Collapse all chapters"
+                        @click="collapseAll"
+                    >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+                        </svg>
+                    </button>
+                    <button
+                        type="button"
+                        class="rounded-lg p-1.5 text-zinc-400 transition-all hover:bg-zinc-200 hover:text-zinc-600 active:scale-95 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+                        @click="emit('close')"
+                    >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <!-- Stats Bar -->
@@ -251,7 +287,7 @@ const sceneDragOptions = computed(() => ({
                                 >
                                     <Motion
                                         :animate="{ rotate: expandedChapters.has(chapter.id) ? 90 : 0 }"
-                                        :transition="{ type: 'spring', stiffness: 500, damping: 30 }"
+                                        :transition="springConfig"
                                     >
                                         <svg class="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
@@ -282,10 +318,10 @@ const sceneDragOptions = computed(() => ({
                             <AnimatePresence>
                                 <Motion
                                     v-if="expandedChapters.has(chapter.id)"
-                                    :initial="{ opacity: 0, height: 0 }"
-                                    :animate="{ opacity: 1, height: 'auto' }"
-                                    :exit="{ opacity: 0, height: 0 }"
-                                    :transition="{ duration: 0.2 }"
+                                    :initial="isReducedMotion ? { height: 0 } : { opacity: 0, height: 0 }"
+                                    :animate="isReducedMotion ? { height: 'auto' } : { opacity: 1, height: 'auto' }"
+                                    :exit="isReducedMotion ? { height: 0 } : { opacity: 0, height: 0 }"
+                                    :transition="{ duration: isReducedMotion ? 0.15 : 0.2 }"
                                     class="overflow-hidden"
                                 >
                                     <div class="relative ml-5 border-l-2 border-zinc-200 pl-3 dark:border-zinc-700">
@@ -350,10 +386,10 @@ const sceneDragOptions = computed(() => ({
                 <AnimatePresence>
                     <Motion
                         v-if="isCreatingChapter"
-                        :initial="{ opacity: 0, y: 10 }"
-                        :animate="{ opacity: 1, y: 0 }"
-                        :exit="{ opacity: 0, y: 10 }"
-                        :transition="{ duration: 0.15 }"
+                        :initial="isReducedMotion ? { opacity: 0 } : { opacity: 0, y: 10 }"
+                        :animate="isReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }"
+                        :exit="isReducedMotion ? { opacity: 0 } : { opacity: 0, y: 10 }"
+                        :transition="{ duration: 0.1 }"
                     >
                         <input
                             v-model="newChapterTitle"

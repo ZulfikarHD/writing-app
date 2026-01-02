@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Motion } from 'motion-v';
 import { computed, onMounted, onUnmounted, watch } from 'vue';
+import { usePerformanceMode } from '@/composables/usePerformanceMode';
 
 interface Props {
     modelValue?: boolean;
@@ -30,6 +31,9 @@ const emit = defineEmits<{
     'update:modelValue': [value: boolean];
     close: [];
 }>();
+
+// Performance mode
+const { isReducedMotion, backdropBlurClass, springConfig } = usePerformanceMode();
 
 // Support both :show and v-model
 const isOpen = computed(() => props.modelValue ?? props.show ?? false);
@@ -115,17 +119,17 @@ onUnmounted(() => {
                 :animate="{ opacity: 1 }"
                 :exit="{ opacity: 0 }"
                 :transition="{ duration: 0.15 }"
-                class="fixed inset-0 bg-black/50 backdrop-blur-sm dark:bg-black/70"
+                :class="['fixed inset-0 bg-black/50 dark:bg-black/70', backdropBlurClass]"
                 @click="handleOverlayClick"
             />
 
             <!-- Modal Container -->
             <div class="flex min-h-full items-center justify-center p-4">
                 <Motion
-                    :initial="{ opacity: 0, scale: 0.97, y: 16 }"
-                    :animate="{ opacity: 1, scale: 1, y: 0 }"
-                    :exit="{ opacity: 0, scale: 0.97, y: 16 }"
-                    :transition="{ type: 'spring', stiffness: 400, damping: 30, duration: 0.25 }"
+                    :initial="isReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.97, y: 16 }"
+                    :animate="isReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }"
+                    :exit="isReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.97, y: 16 }"
+                    :transition="isReducedMotion ? { duration: 0.15 } : springConfig"
                     :class="modalClasses"
                 >
                             <!-- Header -->

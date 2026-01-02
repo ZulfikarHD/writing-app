@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, nextTick } from 'vue';
 import { Motion } from 'motion-v';
+import { usePerformanceMode } from '@/composables/usePerformanceMode';
 import Button from '../buttons/Button.vue';
 import Input from '../forms/Input.vue';
 
@@ -33,6 +34,9 @@ const emit = defineEmits<{
     submit: [value: string];
     cancel: [];
 }>();
+
+// Performance mode
+const { isReducedMotion, backdropBlurClass, springConfig } = usePerformanceMode();
 
 const inputValue = ref(props.initialValue);
 const inputRef = ref<InstanceType<typeof Input> | null>(null);
@@ -113,17 +117,17 @@ const iconColors = {
                 :animate="{ opacity: 1 }"
                 :exit="{ opacity: 0 }"
                 :transition="{ duration: 0.15 }"
-                class="fixed inset-0 bg-black/50 backdrop-blur-sm dark:bg-black/70"
+                :class="['fixed inset-0 bg-black/50 dark:bg-black/70', backdropBlurClass]"
                 @click="handleCancel"
             />
 
             <!-- Modal Container -->
             <div class="flex min-h-full items-center justify-center p-4">
                 <Motion
-                    :initial="{ opacity: 0, scale: 0.97, y: 16 }"
-                    :animate="{ opacity: 1, scale: 1, y: 0 }"
-                    :exit="{ opacity: 0, scale: 0.97, y: 16 }"
-                    :transition="{ type: 'spring', stiffness: 400, damping: 30, duration: 0.25 }"
+                    :initial="isReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.97, y: 16 }"
+                    :animate="isReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }"
+                    :exit="isReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.97, y: 16 }"
+                    :transition="isReducedMotion ? { duration: 0.15 } : springConfig"
                     class="relative w-full max-w-sm transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl ring-1 ring-zinc-900/5 dark:bg-zinc-900 dark:ring-white/10"
                 >
                     <!-- Header -->

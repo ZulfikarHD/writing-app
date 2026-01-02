@@ -1,11 +1,11 @@
-import { ref } from 'vue';
+import { ref, type Ref, unref } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
 import axios from 'axios';
 
 export type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'error';
 
 interface UseAutoSaveOptions {
-    sceneId: number;
+    sceneId: number | Ref<number>;
     debounceMs?: number;
     onSaved?: (wordCount: number, savedAt: string) => void;
     onError?: (error: unknown) => void;
@@ -23,7 +23,8 @@ export function useAutoSave(options: UseAutoSaveOptions) {
         saveStatus.value = 'saving';
 
         try {
-            const response = await axios.patch('/api/scenes/' + sceneId + '/content', { content });
+            const currentSceneId = unref(sceneId);
+            const response = await axios.patch('/api/scenes/' + currentSceneId + '/content', { content });
             saveStatus.value = 'saved';
             lastSavedAt.value = response.data.saved_at;
             if (onSaved) onSaved(response.data.word_count, response.data.saved_at);

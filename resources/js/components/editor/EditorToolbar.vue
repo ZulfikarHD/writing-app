@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Motion } from 'motion-v';
 import { ref, computed } from 'vue';
+import { usePerformanceMode } from '@/composables/usePerformanceMode';
 
 interface Props {
     canUndo: boolean;
@@ -38,6 +39,9 @@ const emit = defineEmits<{
     (e: 'openSettings'): void;
     (e: 'openInfo'): void;
 }>();
+
+// Performance mode
+const { backdropBlurClass } = usePerformanceMode();
 
 const headingDropdownOpen = ref(false);
 const alignDropdownOpen = ref(false);
@@ -109,7 +113,7 @@ const closeDropdowns = () => {
 
 <template>
     <div
-        class="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 bg-white/80 px-2 py-1.5 backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/80 sm:px-4 sm:py-2"
+        :class="['flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 bg-white/80 px-2 py-1.5 dark:border-zinc-700 dark:bg-zinc-900/80 sm:px-4 sm:py-2', backdropBlurClass]"
         @click.self="closeDropdowns"
     >
         <!-- Left side: formatting controls -->

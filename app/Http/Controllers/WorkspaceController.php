@@ -21,6 +21,14 @@ class WorkspaceController extends Controller
             abort(403);
         }
 
+        // If scene is provided, verify it belongs to this novel
+        if ($scene) {
+            $scene->load('chapter');
+            if ($scene->chapter->novel_id !== $novel->id) {
+                abort(404, 'Scene not found in this novel');
+            }
+        }
+
         // Load novel with all necessary relationships for the workspace
         $novel->load([
             'acts' => fn ($q) => $q->orderBy('position'),

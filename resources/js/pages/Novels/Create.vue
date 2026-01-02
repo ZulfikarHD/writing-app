@@ -2,7 +2,6 @@
 import Button from '@/components/ui/buttons/Button.vue';
 import Card from '@/components/ui/layout/Card.vue';
 import Input from '@/components/ui/forms/Input.vue';
-import Textarea from '@/components/ui/forms/Textarea.vue';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { Motion } from 'motion-v';

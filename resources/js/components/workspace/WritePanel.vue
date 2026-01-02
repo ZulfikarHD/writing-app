@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import TipTapEditor from '@/components/editor/TipTapEditor.vue';
 import EditorToolbar from '@/components/editor/EditorToolbar.vue';
 import EditorSettingsPanel from '@/components/editor/panels/EditorSettingsPanel.vue';
@@ -80,15 +80,42 @@ const {
     debounceMs: 200,
 });
 
-// Auto-save
+// Auto-save with reactive scene ID
+const currentSceneId = computed(() => currentScene.value?.id || 0);
 const { saveStatus, triggerSave, forceSave } = useAutoSave({
-    sceneId: props.scene?.id || 0,
+    sceneId: currentSceneId,
     debounceMs: 500,
     onSaved: (newWordCount) => {
         wordCount.value = newWordCount;
         emit('wordCountUpdate', newWordCount);
     },
 });
+
+// Watch for scene changes and update content
+watch(
+    () => props.scene?.id,
+    (newSceneId, oldSceneId) => {
+        // Only update if scene ID actually changed
+        if (newSceneId !== oldSceneId && props.scene) {
+            currentScene.value = props.scene;
+            content.value = props.scene.content || null;
+            wordCount.value = props.scene.word_count || 0;
+            
+            // Update editor content
+            if (editorRef.value?.editor) {
+                if (props.scene.content) {
+                    editorRef.value.editor.commands.setContent(props.scene.content);
+                } else {
+                    // Set empty content if scene has no content
+                    editorRef.value.editor.commands.setContent({
+                        type: 'doc',
+                        content: [{ type: 'paragraph' }],
+                    });
+                }
+            }
+        }
+    }
+);
 
 const handleEditorUpdate = () => {
     if (editorRef.value && props.scene) {
