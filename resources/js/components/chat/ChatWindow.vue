@@ -70,46 +70,44 @@ onMounted(() => {
     scrollToBottom();
 });
 
-// Animate messages on load
+// Animate messages on load with staggered effect
 const animateMessages = () => {
     if (!scrollContainer.value) {
         return;
     }
-    
+
     const messages = scrollContainer.value.querySelectorAll('.message-item');
     if (messages.length === 0) {
         return;
     }
-    
-    try {
-        // Set initial state
-        messages.forEach((el) => {
-            if (el instanceof HTMLElement) {
-                el.style.opacity = '0';
-                el.style.transform = 'translateY(10px)';
-            }
-        });
-        
-        // Animate with motion
-        animate(
-            messages,
-            { opacity: 1, transform: 'translateY(0)' },
-            { 
-                duration: 0.3, 
-                delay: stagger(0.05), 
-                easing: spring({ stiffness: 300, damping: 25 }) 
-            }
-        );
-    } catch (error) {
-        console.warn('Animation error:', error);
-        // Fallback: just show the messages
-        messages.forEach((el) => {
-            if (el instanceof HTMLElement) {
-                el.style.opacity = '1';
-                el.style.transform = 'translateY(0)';
-            }
-        });
-    }
+
+    // Animate each message individually with delay
+    messages.forEach((el, index) => {
+        if (el instanceof HTMLElement) {
+            // Set initial state
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(10px)';
+
+            // Animate each element individually
+            setTimeout(() => {
+                try {
+                    animate(
+                        el,
+                        { opacity: [0, 1], y: [10, 0] },
+                        {
+                            duration: 0.3,
+                            easing: spring({ stiffness: 300, damping: 25 })
+                        }
+                    );
+                } catch (error) {
+                    // Fallback to CSS transition
+                    el.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    el.style.opacity = '1';
+                    el.style.transform = 'translateY(0)';
+                }
+            }, index * 50); // 50ms delay between each message
+        }
+    });
 };
 
 watch(
