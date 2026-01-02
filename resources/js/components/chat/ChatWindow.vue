@@ -1,7 +1,33 @@
 <script setup lang="ts">
-import { ref, watch, nextTick, onMounted } from 'vue';
+import { ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { animate } from 'motion';
 import ChatMessage from './ChatMessage.vue';
+import ModelSelector from '@/components/ai/ModelSelector.vue';
+
+interface CodexAliasEntry {
+    id: number;
+    name: string;
+    type: string;
+    alias?: string;
+    description?: string;
+}
+
+const props = withDefaults(
+    defineProps<{
+        messages: Message[];
+        isLoading: boolean;
+        isStreaming: boolean;
+        streamingContent: string;
+        error: string | null;
+        canRegenerate: boolean;
+        aliasLookup?: Record<string, CodexAliasEntry>;
+        enableAliasLinking?: boolean;
+    }>(),
+    {
+        aliasLookup: () => ({}),
+        enableAliasLinking: true,
+    }
+);
 
 interface Message {
     id: number;
@@ -14,20 +40,110 @@ interface Message {
     created_at: string;
 }
 
-const props = defineProps<{
-    messages: Message[];
-    isLoading: boolean;
-    isStreaming: boolean;
-    streamingContent: string;
-    error: string | null;
-    canRegenerate: boolean;
-}>();
-
 const emit = defineEmits<{
     regenerate: [];
+    regenerateWithModel: [model: string, connectionId: number];
     dismissError: [];
     selectPrompt: [prompt: string];
+    transfer: [message: Message];
+    extract: [message: Message];
+    codexClick: [entryId: number];
 }>();
+
+// Handle codex alias click from messages
+const handleCodexClick = (entryId: number) => {
+    emit('codexClick', entryId);
+};
+
+// Regenerate with model popover state
+const showModelPopover = ref(false);
+const regenerateModel = ref('');
+const regenerateConnectionId = ref<number | undefined>(undefined);
+const popoverRef = ref<HTMLElement | null>(null);
+const popoverTriggerRef = ref<HTMLElement | null>(null);
+const popoverPosition = ref({ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' });
+const modelSelectorKey = ref(0); // Key to force re-mount ModelSelector
+
+const updatePopoverPosition = () => {
+    if (!popoverTriggerRef.value) return;
+
+    const rect = popoverTriggerRef.value.getBoundingClientRect();
+    const popoverWidth = 320; // w-80 = 20rem = 320px
+    const popoverHeight = 200; // approximate height
+
+    // Position above the button, centered
+    let top = rect.top - popoverHeight - 8;
+    let left = rect.left + rect.width / 2 - popoverWidth / 2;
+
+    // If it would go off the top, position below instead
+    if (top < 8) {
+        top = rect.bottom + 8;
+    }
+
+    // Keep within horizontal bounds
+    left = Math.max(8, Math.min(left, window.innerWidth - popoverWidth - 8));
+
+    popoverPosition.value = {
+        top: `${top}px`,
+        left: `${left}px`,
+        transform: 'none',
+    };
+};
+
+const toggleModelPopover = () => {
+    if (!showModelPopover.value) {
+        // Reset state when opening
+        regenerateModel.value = '';
+        regenerateConnectionId.value = undefined;
+        modelSelectorKey.value++; // Force fresh ModelSelector instance
+        updatePopoverPosition();
+    }
+    showModelPopover.value = !showModelPopover.value;
+};
+
+const handleRegenerateWithModel = () => {
+    if (regenerateModel.value && regenerateConnectionId.value) {
+        emit('regenerateWithModel', regenerateModel.value, regenerateConnectionId.value);
+        showModelPopover.value = false;
+        regenerateModel.value = '';
+        regenerateConnectionId.value = undefined;
+    }
+};
+
+// Close popover on click outside
+const handleClickOutside = (event: MouseEvent) => {
+    if (!showModelPopover.value) return;
+    const target = event.target as HTMLElement;
+
+    // Don't close if clicking inside the popover or trigger
+    if (popoverRef.value?.contains(target) || popoverTriggerRef.value?.contains(target)) return;
+
+    // Don't close if clicking inside any ModelSelector's fixed dropdown (z-[9999])
+    // Check all such dropdowns since there might be multiple on the page
+    const modelSelectorDropdowns = document.querySelectorAll('.fixed.z-\\[9999\\]');
+    for (const dropdown of modelSelectorDropdowns) {
+        if (dropdown.contains(target)) return;
+    }
+
+    showModelPopover.value = false;
+};
+
+onMounted(() => {
+    document.addEventListener('click', handleClickOutside, true);
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener('click', handleClickOutside, true);
+});
+
+// Event handlers for message actions
+const handleTransfer = (message: Message) => {
+    emit('transfer', message);
+};
+
+const handleExtract = (message: Message) => {
+    emit('extract', message);
+};
 
 // Quick prompt suggestions
 const quickPrompts = [
@@ -99,7 +215,7 @@ const animateMessages = () => {
                             easing: [0.16, 1, 0.3, 1] // Smooth ease-out curve
                         }
                     );
-                } catch (error) {
+                } catch {
                     // Fallback to CSS transition
                     el.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
                     el.style.opacity = '1';
@@ -164,7 +280,12 @@ watch(
                 v-for="message in messages"
                 :key="message.id"
                 :message="message"
+                :alias-lookup="aliasLookup"
+                :enable-alias-linking="enableAliasLinking"
                 class="message-item"
+                @transfer="handleTransfer"
+                @extract="handleExtract"
+                @codex-click="handleCodexClick"
             />
 
             <!-- Streaming Message -->
@@ -181,6 +302,8 @@ watch(
                     created_at: new Date().toISOString(),
                 }"
                 :is-streaming="true"
+                :alias-lookup="aliasLookup"
+                :enable-alias-linking="enableAliasLinking"
                 class="message-item"
             />
 
@@ -207,23 +330,65 @@ watch(
                 </div>
             </div>
 
-            <!-- Regenerate Button -->
+            <!-- Regenerate Button Group -->
             <div v-if="canRegenerate" class="flex justify-center pt-2">
-                <button
-                    type="button"
-                    class="flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-600 transition-all hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700 active:scale-95 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-violet-600 dark:hover:bg-violet-900/20 dark:hover:text-violet-300"
-                    @click="emit('regenerate')"
-                >
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                    </svg>
-                    Regenerate response
-                </button>
+                <div class="relative flex items-center">
+                    <!-- Main Regenerate Button -->
+                    <button
+                        type="button"
+                        class="flex items-center gap-1.5 rounded-l-full border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-600 transition-all hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700 active:scale-95 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-violet-600 dark:hover:bg-violet-900/20 dark:hover:text-violet-300"
+                        @click="emit('regenerate')"
+                    >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                            />
+                        </svg>
+                        Regenerate
+                    </button>
+                    <!-- Dropdown Trigger -->
+                    <button
+                        ref="popoverTriggerRef"
+                        type="button"
+                        class="flex items-center rounded-r-full border border-l-0 border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-600 transition-all hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700 active:scale-95 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-violet-600 dark:hover:bg-violet-900/20 dark:hover:text-violet-300"
+                        @click="toggleModelPopover"
+                    >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                </div>
             </div>
+
+            <!-- Model Selection Popover (moved outside for better positioning) -->
+            <Teleport to="body">
+                <div
+                    v-if="showModelPopover"
+                    ref="popoverRef"
+                    class="fixed z-[9998] w-80 rounded-lg border border-zinc-200 bg-white p-4 shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+                    :style="popoverPosition"
+                >
+                    <p class="mb-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">Regenerate with different model</p>
+                    <ModelSelector
+                        :key="modelSelectorKey"
+                        v-model="regenerateModel"
+                        :connection-id="regenerateConnectionId"
+                        placeholder="Select a model"
+                        size="sm"
+                        @update:connection-id="regenerateConnectionId = $event"
+                    />
+                    <button
+                        type="button"
+                        class="mt-4 w-full rounded-md bg-violet-600 px-3 py-2 text-sm font-medium text-white transition-all hover:bg-violet-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                        :disabled="!regenerateModel || !regenerateConnectionId"
+                        @click="handleRegenerateWithModel"
+                    >
+                        Regenerate with this model
+                    </button>
+                </div>
+            </Teleport>
         </div>
 
         <!-- Error Message -->

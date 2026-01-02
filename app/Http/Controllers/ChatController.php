@@ -3,10 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\SendChatMessageRequest;
+use App\Models\Chapter;
 use App\Models\ChatMessage;
 use App\Models\ChatThread;
+use App\Models\CodexEntry;
 use App\Models\Novel;
+use App\Models\Scene;
 use App\Services\Chat\ChatService;
+use App\Services\Chat\TransferService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\StreamedEvent;
@@ -15,7 +19,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class ChatController extends Controller
 {
     public function __construct(
-        protected ChatService $chatService
+        protected ChatService $chatService,
+        protected TransferService $transferService
     ) {}
 
     /**
@@ -231,8 +236,16 @@ class ChatController extends Controller
             abort(403, 'You do not have access to this thread.');
         }
 
-        return response()->eventStream(function () use ($thread) {
-            foreach ($this->chatService->regenerateLastResponse($thread) as $chunk) {
+        $validated = $request->validate([
+            'model' => ['nullable', 'string', 'max:255'],
+            'connection_id' => ['nullable', 'integer', 'exists:ai_connections,id'],
+        ]);
+
+        $model = $validated['model'] ?? null;
+        $connectionId = $validated['connection_id'] ?? null;
+
+        return response()->eventStream(function () use ($thread, $model, $connectionId) {
+            foreach ($this->chatService->regenerateLastResponse($thread, $model, $connectionId) as $chunk) {
                 yield new StreamedEvent(
                     event: $chunk['type'],
                     data: $chunk,
@@ -288,5 +301,112 @@ class ChatController extends Controller
                 'total' => $messages->total(),
             ],
         ]);
+    }
+
+    /**
+     * Transfer message content to a scene.
+     */
+    public function transfer(Request $request, ChatMessage $message): JsonResponse
+    {
+        $thread = $message->thread;
+
+        if ($thread->novel->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        if ($thread->user_id !== $request->user()->id) {
+            abort(403, 'You do not have access to this message.');
+        }
+
+        $validated = $request->validate([
+            'target_type' => ['required', 'string', 'in:scene,new_scene'],
+            'scene_id' => ['required_if:target_type,scene', 'nullable', 'integer', 'exists:scenes,id'],
+            'chapter_id' => ['required_if:target_type,new_scene', 'nullable', 'integer', 'exists:chapters,id'],
+            'title' => ['required_if:target_type,new_scene', 'nullable', 'string', 'max:255'],
+            'position' => ['nullable', 'string', 'in:end,cursor'],
+            'content' => ['nullable', 'string'], // Optional edited content
+        ]);
+
+        $content = $validated['content'] ?? $message->content;
+        $position = $validated['position'] ?? 'end';
+
+        if ($validated['target_type'] === 'scene') {
+            $scene = Scene::findOrFail($validated['scene_id']);
+
+            // Verify user owns the scene via chapter -> novel
+            if ($scene->chapter->novel->user_id !== $request->user()->id) {
+                abort(403, 'You do not have access to this scene.');
+            }
+
+            $result = $this->transferService->transferToScene($scene, $content, $position);
+        } else {
+            $chapter = Chapter::findOrFail($validated['chapter_id']);
+
+            // Verify user owns the chapter via novel
+            if ($chapter->novel->user_id !== $request->user()->id) {
+                abort(403, 'You do not have access to this chapter.');
+            }
+
+            $result = $this->transferService->transferToNewScene(
+                $chapter,
+                $content,
+                $validated['title']
+            );
+        }
+
+        return response()->json([
+            'success' => true,
+            'scene_id' => $result['scene']->id,
+            'scene_title' => $result['scene']->title,
+            'word_count' => $result['scene']->word_count,
+        ]);
+    }
+
+    /**
+     * Extract content from a message to Codex entries.
+     */
+    public function extract(Request $request, ChatMessage $message): JsonResponse
+    {
+        $thread = $message->thread;
+
+        if ($thread->novel->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        if ($thread->user_id !== $request->user()->id) {
+            abort(403, 'You do not have access to this message.');
+        }
+
+        $validated = $request->validate([
+            'entries' => ['required', 'array', 'min:1'],
+            'entries.*.type' => ['required', 'string', 'in:'.implode(',', CodexEntry::getTypes())],
+            'entries.*.name' => ['required', 'string', 'max:255'],
+            'entries.*.description' => ['nullable', 'string', 'max:10000'],
+        ]);
+
+        $novel = $thread->novel;
+        $createdEntries = [];
+
+        foreach ($validated['entries'] as $entryData) {
+            $entry = $novel->codexEntries()->create([
+                'type' => $entryData['type'],
+                'name' => $entryData['name'],
+                'description' => $entryData['description'] ?? null,
+                'ai_context_mode' => 'detected',
+                'sort_order' => $novel->codexEntries()->max('sort_order') + 1,
+            ]);
+
+            $createdEntries[] = [
+                'id' => $entry->id,
+                'type' => $entry->type,
+                'name' => $entry->name,
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'entries' => $createdEntries,
+            'count' => count($createdEntries),
+        ], 201);
     }
 }

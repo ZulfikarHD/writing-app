@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import ModelSelector from '@/components/ai/ModelSelector.vue';
 import ContextSelector from '@/components/chat/ContextSelector.vue';
 import type { ContextItem, ContextSources, ContextLimitInfo } from '@/composables/useChatContext';
+import { useCodexAliasDetection, type CodexAliasEntry } from '@/composables/useCodexAliasDetection';
 
 const props = defineProps<{
     isStreaming: boolean;
@@ -28,6 +29,67 @@ const selectedModel = ref<string>('');
 const selectedConnectionId = ref<number | undefined>();
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 
+// Alias detection
+const novelIdRef = computed(() => props.novelId ?? null);
+const { detectUniqueEntries } = useCodexAliasDetection({
+    novelId: novelIdRef,
+    enabled: true,
+});
+
+// Detected aliases in current message
+const detectedAliases = ref<CodexAliasEntry[]>([]);
+const dismissedAliasIds = ref<Set<number>>(new Set());
+
+// Debounce timer for alias detection
+let aliasDetectionTimer: ReturnType<typeof setTimeout> | null = null;
+
+// Watch message for alias detection (debounced)
+watch(message, (newMessage) => {
+    if (aliasDetectionTimer) {
+        clearTimeout(aliasDetectionTimer);
+    }
+
+    if (!newMessage.trim()) {
+        detectedAliases.value = [];
+        return;
+    }
+
+    aliasDetectionTimer = setTimeout(() => {
+        const detected = detectUniqueEntries(newMessage);
+        // Filter out already added context and dismissed aliases
+        const contextIds = new Set(
+            props.contextItems?.filter((c) => c.context_type === 'codex').map((c) => c.reference_id) ?? []
+        );
+        detectedAliases.value = detected.filter((entry) => !contextIds.has(entry.id) && !dismissedAliasIds.value.has(entry.id));
+    }, 300);
+});
+
+// Clear dismissed aliases when message is sent
+const clearDismissedOnSend = () => {
+    dismissedAliasIds.value.clear();
+};
+
+// Add detected alias as context
+const addAliasAsContext = (entry: CodexAliasEntry) => {
+    emit('addContext', 'codex', entry.id);
+    // Remove from detected list
+    detectedAliases.value = detectedAliases.value.filter((e) => e.id !== entry.id);
+};
+
+// Dismiss detected alias (don't show again for this message)
+const dismissAlias = (entry: CodexAliasEntry) => {
+    dismissedAliasIds.value.add(entry.id);
+    detectedAliases.value = detectedAliases.value.filter((e) => e.id !== entry.id);
+};
+
+// Add all detected aliases as context
+const addAllAliasesAsContext = () => {
+    for (const entry of detectedAliases.value) {
+        emit('addContext', 'codex', entry.id);
+    }
+    detectedAliases.value = [];
+};
+
 const canSend = computed(() => {
     return message.value.trim().length > 0 && !props.isStreaming && !props.disabled;
 });
@@ -45,11 +107,43 @@ const formatTokens = (tokens: number): string => {
     return tokens.toString();
 };
 
+// Get entry type icon
+const getTypeIcon = (type: string): string => {
+    const icons: Record<string, string> = {
+        character: '👤',
+        location: '📍',
+        item: '🎁',
+        event: '📅',
+        concept: '💡',
+        faction: '⚔️',
+        species: '🦋',
+        other: '📌',
+    };
+    return icons[type] || '📌';
+};
+
+// Get entry type color
+const getTypeColor = (type: string): string => {
+    const colors: Record<string, string> = {
+        character: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800',
+        location: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800',
+        item: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800',
+        event: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800',
+        concept: 'bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-900/30 dark:text-pink-300 dark:border-pink-800',
+        faction: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800',
+        species: 'bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-800',
+        other: 'bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700',
+    };
+    return colors[type] || colors.other;
+};
+
 const handleSend = () => {
     if (!canSend.value) return;
 
     emit('send', message.value.trim(), selectedModel.value || undefined, selectedConnectionId.value);
     message.value = '';
+    clearDismissedOnSend();
+    detectedAliases.value = [];
 
     // Reset textarea height
     if (textareaRef.value) {
@@ -100,6 +194,66 @@ defineExpose({
 <template>
     <div class="border-t border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
         <div class="w-full">
+            <!-- Detected Aliases Suggestions -->
+            <Transition
+                enter-active-class="transition-all duration-200 ease-out"
+                enter-from-class="opacity-0 -translate-y-2"
+                enter-to-class="opacity-100 translate-y-0"
+                leave-active-class="transition-all duration-150 ease-in"
+                leave-from-class="opacity-100 translate-y-0"
+                leave-to-class="opacity-0 -translate-y-2"
+            >
+                <div v-if="detectedAliases.length > 0" class="mb-2">
+                    <div class="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400 mb-1.5">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                        <span>Detected Codex entries:</span>
+                        <button
+                            v-if="detectedAliases.length > 1"
+                            type="button"
+                            class="text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 font-medium"
+                            @click="addAllAliasesAsContext"
+                        >
+                            Add all
+                        </button>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5">
+                        <div
+                            v-for="entry in detectedAliases"
+                            :key="entry.id"
+                            :class="[
+                                'group flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-all',
+                                getTypeColor(entry.type),
+                            ]"
+                        >
+                            <span class="text-sm">{{ getTypeIcon(entry.type) }}</span>
+                            <span class="font-medium">{{ entry.name }}</span>
+                            <button
+                                type="button"
+                                class="ml-0.5 rounded-full p-0.5 opacity-70 hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 transition-all active:scale-90"
+                                title="Add as context"
+                                @click="addAliasAsContext(entry)"
+                            >
+                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                </svg>
+                            </button>
+                            <button
+                                type="button"
+                                class="rounded-full p-0.5 opacity-50 hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 transition-all active:scale-90"
+                                title="Dismiss"
+                                @click="dismissAlias(entry)"
+                            >
+                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+
             <!-- Context Bar (shows when context is added) -->
             <div v-if="activeContextCount > 0" class="mb-2 flex items-center gap-2">
                 <button

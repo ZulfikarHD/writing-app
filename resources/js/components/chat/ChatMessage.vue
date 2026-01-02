@@ -55,20 +55,122 @@ interface Message {
     created_at: string;
 }
 
+interface CodexAliasEntry {
+    id: number;
+    name: string;
+    type: string;
+    alias?: string;
+    description?: string;
+}
+
 const props = withDefaults(
     defineProps<{
         message: Message;
         isStreaming?: boolean;
+        aliasLookup?: Record<string, CodexAliasEntry>;
+        enableAliasLinking?: boolean;
     }>(),
     {
         isStreaming: false,
+        aliasLookup: () => ({}),
+        enableAliasLinking: true,
     }
 );
 
+const emit = defineEmits<{
+    (e: 'transfer', message: Message): void;
+    (e: 'extract', message: Message): void;
+    (e: 'codex-click', entryId: number): void;
+}>();
+
 const copied = ref(false);
+const showActions = ref(false);
 
 const isUser = computed(() => props.message.role === 'user');
 const isAssistant = computed(() => props.message.role === 'assistant');
+
+// Sorted aliases for matching (longest first)
+const sortedAliases = computed(() => {
+    return Object.keys(props.aliasLookup).sort((a, b) => b.length - a.length);
+});
+
+// Get entry type badge color
+const getTypeBadgeClass = (type: string): string => {
+    const colors: Record<string, string> = {
+        character: 'codex-link-character',
+        location: 'codex-link-location',
+        item: 'codex-link-item',
+        event: 'codex-link-event',
+        concept: 'codex-link-concept',
+        faction: 'codex-link-faction',
+        species: 'codex-link-species',
+        other: 'codex-link-other',
+    };
+    return colors[type] || colors.other;
+};
+
+/**
+ * Link codex aliases in text content.
+ * Only links within plain text, avoiding HTML tags and code blocks.
+ */
+const linkAliasesInText = (text: string): string => {
+    if (!props.enableAliasLinking || sortedAliases.value.length === 0) {
+        return text;
+    }
+
+    // Track replacements to avoid double-processing
+    type Replacement = { start: number; end: number; html: string };
+    const replacements: Replacement[] = [];
+
+    for (const alias of sortedAliases.value) {
+        const entry = props.aliasLookup[alias];
+        if (!entry) continue;
+
+        const escapedAlias = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`\\b${escapedAlias}\\b`, 'gi');
+
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+            // Check if this range overlaps with any existing replacement
+            const overlaps = replacements.some(
+                (r) =>
+                    (match!.index >= r.start && match!.index < r.end) ||
+                    (match!.index + match![0].length > r.start && match!.index + match![0].length <= r.end)
+            );
+
+            if (!overlaps) {
+                const typeClass = getTypeBadgeClass(entry.type);
+                const html = `<a href="/codex/${entry.id}" class="codex-alias-link ${typeClass}" data-codex-id="${entry.id}" data-codex-type="${entry.type}" title="${entry.name}${entry.alias ? ` (alias: ${entry.alias})` : ''} - ${entry.type}">${match[0]}</a>`;
+
+                replacements.push({
+                    start: match.index,
+                    end: match.index + match[0].length,
+                    html,
+                });
+            }
+        }
+    }
+
+    // Sort replacements by position (descending) to replace from end to start
+    replacements.sort((a, b) => b.start - a.start);
+
+    // Apply replacements
+    let result = text;
+    for (const r of replacements) {
+        result = result.slice(0, r.start) + r.html + result.slice(r.end);
+    }
+
+    return result;
+};
+
+// Action handlers
+const handleTransfer = () => {
+    emit('transfer', props.message);
+};
+
+const handleExtract = () => {
+    emit('extract', props.message);
+};
 
 const formatTime = (dateStr: string): string => {
     const date = new Date(dateStr);
@@ -154,20 +256,62 @@ marked.setOptions({
     breaks: true,
 });
 
-// Format markdown content
+// Format markdown content with alias linking
 const formattedContent = computed(() => {
     if (isUser.value) {
         // For user messages, just escape HTML and preserve line breaks
-        return props.message.content
+        let content = props.message.content
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/\n/g, '<br>');
+            .replace(/>/g, '&gt;');
+        
+        // Apply alias linking to user messages too
+        content = linkAliasesInText(content);
+        
+        return content.replace(/\n/g, '<br>');
     }
     
-    // For assistant messages, parse markdown
+    // For assistant messages, parse markdown first
     try {
-        return marked.parse(props.message.content);
+        let html = marked.parse(props.message.content) as string;
+        
+        // Apply alias linking to text nodes only (not inside code blocks or HTML tags)
+        // We need to be careful not to link inside code blocks or existing links
+        if (props.enableAliasLinking && sortedAliases.value.length > 0) {
+            // Simple approach: link in text between tags
+            // Split by HTML tags and process only text parts
+            const parts = html.split(/(<[^>]+>)/g);
+            let inCode = false;
+            let inLink = false;
+            
+            html = parts.map(part => {
+                // Check if we're entering/leaving code or link elements
+                if (part.match(/<code[^>]*>/i) || part.match(/<pre[^>]*>/i)) {
+                    inCode = true;
+                } else if (part.match(/<\/code>/i) || part.match(/<\/pre>/i)) {
+                    inCode = false;
+                } else if (part.match(/<a[^>]*>/i)) {
+                    inLink = true;
+                } else if (part.match(/<\/a>/i)) {
+                    inLink = false;
+                }
+                
+                // If it's an HTML tag, return as-is
+                if (part.startsWith('<')) {
+                    return part;
+                }
+                
+                // If we're inside code or link, return as-is
+                if (inCode || inLink) {
+                    return part;
+                }
+                
+                // Otherwise, link aliases in this text part
+                return linkAliasesInText(part);
+            }).join('');
+        }
+        
+        return html;
     } catch (e) {
         console.error('Markdown parsing error:', e);
         return props.message.content.replace(/\n/g, '<br>');
@@ -207,7 +351,12 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="group flex gap-3" :class="[isUser ? 'justify-end' : 'justify-start']">
+    <div 
+        class="group flex gap-3" 
+        :class="[isUser ? 'justify-end' : 'justify-start']"
+        @mouseenter="showActions = true"
+        @mouseleave="showActions = false"
+    >
         <!-- Avatar for assistant -->
         <div v-if="isAssistant" class="shrink-0">
             <div class="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 dark:bg-violet-900/30">
@@ -218,53 +367,92 @@ onMounted(() => {
         </div>
 
         <!-- Message Content -->
-        <div
-            class="relative max-w-[85%] rounded-2xl px-4 py-3"
-            :class="[
-                isUser
-                    ? 'rounded-br-md bg-linear-to-br from-violet-600 to-violet-700 text-white shadow-md'
-                    : 'rounded-bl-md bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-zinc-700',
-            ]"
-        >
-            <!-- Message Text -->
-            <div 
-                class="message-content max-w-none" 
-                :class="[isUser ? 'user-content' : 'assistant-content']"
-                v-html="formattedContent"
-            ></div>
-            
-            <!-- Streaming cursor - typing animation -->
-            <span v-if="isStreaming" class="typing-cursor ml-0.5 inline-block h-4 w-0.5 animate-blink bg-violet-500 align-middle dark:bg-violet-400"></span>
-
-            <!-- Metadata -->
+        <div class="flex max-w-[85%] flex-col">
             <div
-                class="mt-2 flex items-center gap-2 text-xs"
-                :class="[isUser ? 'text-violet-200' : 'text-zinc-400 dark:text-zinc-500']"
+                class="relative rounded-2xl px-4 py-3"
+                :class="[
+                    isUser
+                        ? 'rounded-br-md bg-linear-to-br from-violet-600 to-violet-700 text-white shadow-md'
+                        : 'rounded-bl-md bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-zinc-700',
+                ]"
             >
-                <span>{{ formatTime(message.created_at) }}</span>
-                <span v-if="message.model_used" class="hidden sm:inline">• {{ message.model_used }}</span>
+                <!-- Message Text -->
+                <div 
+                    class="message-content max-w-none" 
+                    :class="[isUser ? 'user-content' : 'assistant-content']"
+                    v-html="formattedContent"
+                ></div>
+                
+                <!-- Streaming cursor - typing animation -->
+                <span v-if="isStreaming" class="typing-cursor ml-0.5 inline-block h-4 w-0.5 animate-blink bg-violet-500 align-middle dark:bg-violet-400"></span>
+
+                <!-- Metadata -->
+                <div
+                    class="mt-2 flex items-center gap-2 text-xs"
+                    :class="[isUser ? 'text-violet-200' : 'text-zinc-400 dark:text-zinc-500']"
+                >
+                    <span>{{ formatTime(message.created_at) }}</span>
+                    <span v-if="message.model_used" class="hidden sm:inline">• {{ message.model_used }}</span>
+                </div>
             </div>
 
-            <!-- Copy Button (Assistant only) -->
-            <button
-                v-if="isAssistant && !isStreaming"
-                type="button"
-                class="absolute -right-2 -top-2 rounded-full bg-white p-1.5 opacity-0 shadow-md ring-1 ring-zinc-200 transition-all hover:scale-110 group-hover:opacity-100 active:scale-95 dark:bg-zinc-700 dark:ring-zinc-600"
-                :class="[copied ? 'text-green-600' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200']"
-                :title="copied ? 'Copied!' : 'Copy'"
-                @click="copyToClipboard"
+            <!-- Action Bar (Assistant messages only) -->
+            <Transition
+                enter-active-class="transition-all duration-200 ease-out"
+                enter-from-class="opacity-0 -translate-y-1"
+                enter-to-class="opacity-100 translate-y-0"
+                leave-active-class="transition-all duration-150 ease-in"
+                leave-from-class="opacity-100 translate-y-0"
+                leave-to-class="opacity-0 -translate-y-1"
             >
-                <svg v-if="copied" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                    />
-                </svg>
-            </button>
+                <div 
+                    v-if="isAssistant && !isStreaming && showActions" 
+                    class="mt-1.5 flex items-center gap-1 pl-1"
+                >
+                    <!-- Copy Button -->
+                    <button
+                        type="button"
+                        class="action-btn"
+                        :class="[copied ? 'text-green-600 dark:text-green-400' : '']"
+                        :title="copied ? 'Copied!' : 'Copy message'"
+                        @click="copyToClipboard"
+                    >
+                        <svg v-if="copied" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <svg v-else class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <span class="text-xs">{{ copied ? 'Copied' : 'Copy' }}</span>
+                    </button>
+
+                    <!-- Transfer/Insert Button -->
+                    <button
+                        type="button"
+                        class="action-btn"
+                        title="Insert to scene"
+                        @click="handleTransfer"
+                    >
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        <span class="text-xs">Insert</span>
+                    </button>
+
+                    <!-- Extract Button -->
+                    <button
+                        type="button"
+                        class="action-btn"
+                        title="Extract to Codex"
+                        @click="handleExtract"
+                    >
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span class="text-xs">Extract</span>
+                    </button>
+                </div>
+            </Transition>
         </div>
 
         <!-- Avatar for user -->
@@ -633,5 +821,175 @@ onMounted(() => {
     height: auto;
     border-radius: 0.5rem;
     margin: 1em 0;
+}
+
+/* Action Buttons */
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: rgb(113 113 122);
+    background: rgb(250 250 250);
+    border: 1px solid rgb(228 228 231);
+    border-radius: 0.5rem;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.action-btn:hover {
+    color: rgb(82 82 91);
+    background: rgb(244 244 245);
+    border-color: rgb(212 212 216);
+    transform: scale(1.02);
+}
+
+.action-btn:active {
+    transform: scale(0.97);
+}
+
+:deep(.dark) .action-btn {
+    color: rgb(161 161 170);
+    background: rgb(39 39 42);
+    border-color: rgb(63 63 70);
+}
+
+:deep(.dark) .action-btn:hover {
+    color: rgb(212 212 216);
+    background: rgb(52 52 56);
+    border-color: rgb(82 82 91);
+}
+
+/* Codex Alias Links */
+.message-content :deep(.codex-alias-link) {
+    display: inline;
+    padding: 0.1em 0.4em;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.message-content :deep(.codex-alias-link:hover) {
+    filter: brightness(0.95);
+    transform: scale(1.02);
+}
+
+/* Character - Blue */
+.message-content :deep(.codex-link-character) {
+    background: rgb(219 234 254 / 0.7);
+    color: rgb(29 78 216);
+    border: 1px solid rgb(147 197 253 / 0.5);
+}
+
+:deep(.dark) .message-content :deep(.codex-link-character) {
+    background: rgb(30 58 138 / 0.3);
+    color: rgb(147 197 253);
+    border-color: rgb(59 130 246 / 0.3);
+}
+
+/* Location - Green */
+.message-content :deep(.codex-link-location) {
+    background: rgb(220 252 231 / 0.7);
+    color: rgb(21 128 61);
+    border: 1px solid rgb(134 239 172 / 0.5);
+}
+
+:deep(.dark) .message-content :deep(.codex-link-location) {
+    background: rgb(20 83 45 / 0.3);
+    color: rgb(134 239 172);
+    border-color: rgb(34 197 94 / 0.3);
+}
+
+/* Item - Amber */
+.message-content :deep(.codex-link-item) {
+    background: rgb(254 243 199 / 0.7);
+    color: rgb(180 83 9);
+    border: 1px solid rgb(252 211 77 / 0.5);
+}
+
+:deep(.dark) .message-content :deep(.codex-link-item) {
+    background: rgb(120 53 15 / 0.3);
+    color: rgb(252 211 77);
+    border-color: rgb(245 158 11 / 0.3);
+}
+
+/* Event - Purple */
+.message-content :deep(.codex-link-event) {
+    background: rgb(243 232 255 / 0.7);
+    color: rgb(126 34 206);
+    border: 1px solid rgb(216 180 254 / 0.5);
+}
+
+:deep(.dark) .message-content :deep(.codex-link-event) {
+    background: rgb(88 28 135 / 0.3);
+    color: rgb(216 180 254);
+    border-color: rgb(168 85 247 / 0.3);
+}
+
+/* Concept - Pink */
+.message-content :deep(.codex-link-concept) {
+    background: rgb(252 231 243 / 0.7);
+    color: rgb(190 24 93);
+    border: 1px solid rgb(249 168 212 / 0.5);
+}
+
+:deep(.dark) .message-content :deep(.codex-link-concept) {
+    background: rgb(131 24 67 / 0.3);
+    color: rgb(249 168 212);
+    border-color: rgb(236 72 153 / 0.3);
+}
+
+/* Faction - Red */
+.message-content :deep(.codex-link-faction) {
+    background: rgb(254 226 226 / 0.7);
+    color: rgb(185 28 28);
+    border: 1px solid rgb(252 165 165 / 0.5);
+}
+
+:deep(.dark) .message-content :deep(.codex-link-faction) {
+    background: rgb(127 29 29 / 0.3);
+    color: rgb(252 165 165);
+    border-color: rgb(239 68 68 / 0.3);
+}
+
+/* Species - Teal */
+.message-content :deep(.codex-link-species) {
+    background: rgb(204 251 241 / 0.7);
+    color: rgb(15 118 110);
+    border: 1px solid rgb(94 234 212 / 0.5);
+}
+
+:deep(.dark) .message-content :deep(.codex-link-species) {
+    background: rgb(19 78 74 / 0.3);
+    color: rgb(94 234 212);
+    border-color: rgb(20 184 166 / 0.3);
+}
+
+/* Other - Zinc */
+.message-content :deep(.codex-link-other) {
+    background: rgb(244 244 245 / 0.7);
+    color: rgb(63 63 70);
+    border: 1px solid rgb(212 212 216 / 0.5);
+}
+
+:deep(.dark) .message-content :deep(.codex-link-other) {
+    background: rgb(63 63 70 / 0.3);
+    color: rgb(212 212 216);
+    border-color: rgb(113 113 122 / 0.3);
+}
+
+/* User message codex links (lighter variant for dark background) */
+.user-content :deep(.codex-alias-link) {
+    background: rgb(255 255 255 / 0.2);
+    color: white;
+    border-color: rgb(255 255 255 / 0.3);
+}
+
+.user-content :deep(.codex-alias-link:hover) {
+    background: rgb(255 255 255 / 0.3);
 }
 </style>

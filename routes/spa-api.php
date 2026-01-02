@@ -89,6 +89,7 @@ Route::middleware('auth')->prefix('api')->group(function () {
     Route::prefix('novels/{novel}/codex')->group(function () {
         Route::get('/', [CodexController::class, 'apiIndex'])->name('codex.api.index');
         Route::get('editor', [CodexController::class, 'apiEntriesForEditor'])->name('codex.api.editor');
+        Route::get('alias-lookup', [CodexController::class, 'aliasLookup'])->name('codex.api.alias-lookup');
         Route::get('export/json', [CodexController::class, 'exportJson'])->name('codex.export.json');
         Route::get('export/csv', [CodexController::class, 'exportCsv'])->name('codex.export.csv');
         Route::post('import/preview', [CodexController::class, 'previewImport'])->name('codex.import.preview');
@@ -306,6 +307,10 @@ Route::middleware('auth')->prefix('api')->group(function () {
     });
 
     Route::delete('chat/messages/{message}', [ChatController::class, 'deleteMessage'])->name('chat.messages.destroy');
+
+    // Chat message actions (Transfer & Extract)
+    Route::post('chat/messages/{message}/transfer', [ChatController::class, 'transfer'])->name('chat.messages.transfer');
+    Route::post('chat/messages/{message}/extract', [ChatController::class, 'extract'])->name('chat.messages.extract');
 
     // ==================== Chat Context API ====================
     Route::prefix('chat/threads/{thread}/context')->group(function () {

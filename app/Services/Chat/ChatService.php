@@ -2,6 +2,8 @@
 
 namespace App\Services\Chat;
 
+use App\Events\ChatMessageCreated;
+use App\Events\ChatThreadUpdated;
 use App\Models\AIConnection;
 use App\Models\ChatMessage;
 use App\Models\ChatThread;
@@ -90,6 +92,15 @@ class ChatService
                 $thread->update(['title' => str($userMessage)->limit(50)->toString()]);
             }
 
+            // Broadcast events for real-time updates (Sprint 21 F4)
+            try {
+                ChatMessageCreated::dispatch($assistantMessage);
+                ChatThreadUpdated::dispatch($thread->fresh(), 'message_added');
+            } catch (\Exception $e) {
+                // Don't fail the request if broadcasting fails
+                Log::warning('Failed to broadcast chat event', ['error' => $e->getMessage()]);
+            }
+
             yield ['type' => 'done', 'message_id' => $assistantMessage->id];
 
         } catch (\Exception $e) {
@@ -106,7 +117,7 @@ class ChatService
      *
      * @return Generator<int, array{type: string, content?: string, error?: string}>
      */
-    public function regenerateLastResponse(ChatThread $thread): Generator
+    public function regenerateLastResponse(ChatThread $thread, ?string $model = null, ?int $connectionId = null): Generator
     {
         // Get the last assistant message
         $lastAssistantMessage = $thread->messages()
@@ -136,8 +147,8 @@ class ChatService
         // Delete the old assistant message
         $lastAssistantMessage->delete();
 
-        // Get connection
-        $connection = $this->resolveConnection($thread);
+        // Get connection - use provided connectionId, thread's connection, or user's default
+        $connection = $this->resolveConnection($thread, $connectionId);
 
         if (! $connection) {
             yield ['type' => 'error', 'error' => 'No AI connection available.'];
@@ -145,7 +156,8 @@ class ChatService
             return;
         }
 
-        $modelToUse = $thread->model ?? $this->getDefaultModel($connection);
+        // Resolve model - use provided model, thread's model, or default for connection
+        $modelToUse = $model ?? $thread->model ?? $this->getDefaultModel($connection);
 
         // Build messages (excluding the deleted assistant message)
         $messages = $this->buildMessagesArray($thread, null);
@@ -186,7 +198,16 @@ class ChatService
 
             $thread->touch();
 
-            yield ['type' => 'done', 'message_id' => $assistantMessage->id];
+            // Broadcast events for real-time updates (Sprint 21 F4)
+            try {
+                ChatMessageCreated::dispatch($assistantMessage);
+                ChatThreadUpdated::dispatch($thread->fresh(), 'message_regenerated');
+            } catch (\Exception $e) {
+                // Don't fail the request if broadcasting fails
+                Log::warning('Failed to broadcast chat event', ['error' => $e->getMessage()]);
+            }
+
+            yield ['type' => 'done', 'message_id' => $assistantMessage->id, 'model_used' => $modelToUse];
 
         } catch (\Exception $e) {
             Log::error('Chat regeneration error', [

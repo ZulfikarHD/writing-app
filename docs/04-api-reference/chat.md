@@ -1182,4 +1182,161 @@ System secara otomatis inject context ke AI prompt:
 
 ---
 
+## Real-time Broadcasting (WebSocket)
+
+Sprint 23 memperkenalkan real-time chat updates menggunakan Laravel Reverb WebSocket server.
+
+### Channel Configuration
+
+| Channel | Type | Purpose |
+|---------|------|---------|
+| `chat.thread.{threadId}` | Private | New messages dan thread updates |
+| `chat.novel.{novelId}` | Private | Thread list updates untuk novel |
+
+### Events
+
+#### ChatMessageCreated
+
+Broadcast saat assistant message berhasil di-create.
+
+**Event Name:** `message.created`
+
+**Payload:**
+```json
+{
+  "message": {
+    "id": 153,
+    "thread_id": 1,
+    "role": "assistant",
+    "content": "Here are some ideas for your protagonist...",
+    "model_used": "gpt-4o",
+    "tokens_input": 1250,
+    "tokens_output": 580,
+    "created_at": "2026-01-02T04:20:15Z"
+  }
+}
+```
+
+#### ChatThreadUpdated
+
+Broadcast saat thread di-update (title change, archive, message added, etc.)
+
+**Event Name:** `thread.updated`
+
+**Payload:**
+```json
+{
+  "thread": {
+    "id": 1,
+    "novel_id": 5,
+    "title": "Updated Title",
+    "model": "gpt-4o",
+    "is_pinned": false,
+    "archived_at": null,
+    "updated_at": "2026-01-02T11:00:00Z"
+  },
+  "update_type": "message_added"
+}
+```
+
+**Update Types:**
+- `updated` - General update (title, model, etc.)
+- `message_added` - New message in thread
+- `message_regenerated` - Last message regenerated
+- `deleted` - Thread deleted
+- `archived` - Thread archived
+- `restored` - Thread restored from archive
+
+### Client Implementation
+
+```typescript
+import Echo from 'laravel-echo';
+
+// Subscribe to thread channel
+window.Echo.private(`chat.thread.${threadId}`)
+  .listen('.message.created', (e) => {
+    console.log('New message:', e.message);
+    messages.value.push(e.message);
+  })
+  .listen('.thread.updated', (e) => {
+    console.log('Thread updated:', e.thread, e.update_type);
+  });
+
+// Cleanup on unmount
+window.Echo.leave(`chat.thread.${threadId}`);
+```
+
+### Authorization
+
+```php
+// routes/channels.php
+Broadcast::channel('chat.thread.{threadId}', function ($user, int $threadId) {
+    $thread = ChatThread::find($threadId);
+    return $thread && $thread->user_id === $user->id;
+});
+
+Broadcast::channel('chat.novel.{novelId}', function ($user, int $novelId) {
+    $novel = Novel::find($novelId);
+    return $novel && $novel->user_id === $user->id;
+});
+```
+
+---
+
+## Related API: Codex Alias Lookup
+
+Untuk mendukung fitur Codex Alias Auto-Detection di ChatInput, endpoint berikut tersedia di Codex API:
+
+### Get Alias Lookup Map
+
+**Endpoint:** `GET /api/novels/{novel}/codex/alias-lookup`
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| novel | integer | Novel ID |
+
+**Response:** `200 OK`
+
+```json
+{
+  "lookup": {
+    "john smith": {
+      "id": 12,
+      "name": "John Smith",
+      "type": "character",
+      "description": "A mysterious detective with a dark past..."
+    },
+    "johnny": {
+      "id": 12,
+      "name": "John Smith",
+      "type": "character",
+      "alias": "Johnny",
+      "description": "A mysterious detective with a dark past..."
+    },
+    "the old castle": {
+      "id": 45,
+      "name": "The Old Castle",
+      "type": "location",
+      "description": "An ancient fortress on the northern cliffs..."
+    }
+  },
+  "entry_count": 25
+}
+```
+
+**Authorization:**
+- User must own the novel
+
+**Notes:**
+- Keys are lowercased untuk case-insensitive matching
+- Includes both entry names dan aliases
+- Description truncated to 100 characters
+- Name entries take precedence over alias entries (same key)
+
+> 📡 Full Codex API documentation: [Codex API](./codex.md)
+
+---
+
 *Last Updated: 2026-01-02*

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, nextTick } from 'vue';
+import ConfirmDialog from '@/components/ui/overlays/ConfirmDialog.vue';
 
 interface Message {
     id: number;
@@ -10,7 +11,13 @@ interface Message {
 
 interface Thread {
     id: number;
+    novel_id?: number;
     title: string | null;
+    model?: string | null;
+    connection_id?: number | null;
+    is_pinned?: boolean;
+    archived_at?: string | null;
+    created_at?: string;
     updated_at: string;
     messages?: Message[];
 }
@@ -25,6 +32,7 @@ const emit = defineEmits<{
     select: [thread: Thread];
     create: [];
     delete: [thread: Thread];
+    rename: [thread: Thread, newTitle: string];
     close: [];
 }>();
 
@@ -67,22 +75,64 @@ const getThreadPreview = (thread: Thread): string => {
 // List animation
 const listRef = ref<HTMLElement | null>(null);
 
-// Confirm delete
-const confirmingDelete = ref<number | null>(null);
+// Delete confirmation state
+const showDeleteConfirm = ref(false);
+const threadToDelete = ref<Thread | null>(null);
 
 const handleDelete = (thread: Thread, event: Event) => {
     event.stopPropagation();
-    if (confirmingDelete.value === thread.id) {
-        emit('delete', thread);
-        confirmingDelete.value = null;
-    } else {
-        confirmingDelete.value = thread.id;
-        // Reset after 3 seconds
-        setTimeout(() => {
-            if (confirmingDelete.value === thread.id) {
-                confirmingDelete.value = null;
-            }
-        }, 3000);
+    threadToDelete.value = thread;
+    showDeleteConfirm.value = true;
+};
+
+const confirmDelete = () => {
+    if (threadToDelete.value) {
+        emit('delete', threadToDelete.value);
+    }
+    showDeleteConfirm.value = false;
+    threadToDelete.value = null;
+};
+
+const cancelDelete = () => {
+    showDeleteConfirm.value = false;
+    threadToDelete.value = null;
+};
+
+// Inline rename state
+const editingThreadId = ref<number | null>(null);
+const editingTitle = ref('');
+const editInputRef = ref<HTMLInputElement | null>(null);
+
+const startRename = (thread: Thread, event: Event) => {
+    event.stopPropagation();
+    editingThreadId.value = thread.id;
+    editingTitle.value = thread.title || getThreadPreview(thread);
+    nextTick(() => {
+        editInputRef.value?.focus();
+        editInputRef.value?.select();
+    });
+};
+
+const submitRename = (thread: Thread) => {
+    const newTitle = editingTitle.value.trim();
+    if (newTitle && newTitle !== thread.title) {
+        emit('rename', thread, newTitle);
+    }
+    cancelRename();
+};
+
+const cancelRename = () => {
+    editingThreadId.value = null;
+    editingTitle.value = '';
+};
+
+const handleRenameKeydown = (event: KeyboardEvent, thread: Thread) => {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        submitRename(thread);
+    } else if (event.key === 'Escape') {
+        event.preventDefault();
+        cancelRename();
     }
 };
 </script>
@@ -168,19 +218,20 @@ const handleDelete = (thread: Thread, event: Event) => {
 
             <!-- Thread Items -->
             <div v-else class="space-y-1">
-                <button
+                <div
                     v-for="thread in filteredThreads"
                     :key="thread.id"
-                    type="button"
-                    class="thread-item group relative w-full rounded-lg p-3 text-left transition-all active:scale-[0.98]"
+                    class="thread-item group relative w-full rounded-lg p-3 text-left transition-all"
                     :class="[
                         activeThreadId === thread.id
                             ? 'bg-violet-100 text-violet-900 dark:bg-violet-900/30 dark:text-violet-100'
                             : 'text-zinc-700 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700',
+                        editingThreadId !== thread.id && 'cursor-pointer active:scale-[0.98]',
                     ]"
-                    @click="emit('select', thread)"
+                    @click="editingThreadId !== thread.id && emit('select', thread)"
                 >
-                    <div class="flex items-start justify-between gap-2">
+                    <!-- Normal view -->
+                    <div v-if="editingThreadId !== thread.id" class="flex items-start justify-between gap-2 pr-16">
                         <span class="line-clamp-1 text-sm font-medium">
                             {{ getThreadPreview(thread) }}
                         </span>
@@ -189,28 +240,69 @@ const handleDelete = (thread: Thread, event: Event) => {
                         </span>
                     </div>
 
-                    <!-- Delete button -->
-                    <button
-                        type="button"
-                        class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 opacity-0 transition-all group-hover:opacity-100"
-                        :class="[
-                            confirmingDelete === thread.id
-                                ? 'bg-red-100 text-red-600 opacity-100 dark:bg-red-900/30 dark:text-red-400'
-                                : 'text-zinc-400 hover:bg-zinc-300 hover:text-zinc-600 dark:hover:bg-zinc-600 dark:hover:text-zinc-300',
-                        ]"
-                        :title="confirmingDelete === thread.id ? 'Click again to confirm' : 'Delete'"
-                        @click="handleDelete(thread, $event)"
+                    <!-- Inline edit view -->
+                    <div v-else class="pr-2">
+                        <input
+                            ref="editInputRef"
+                            v-model="editingTitle"
+                            type="text"
+                            class="w-full rounded border border-violet-400 bg-white px-2 py-1 text-sm text-zinc-900 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 dark:border-violet-600 dark:bg-zinc-800 dark:text-white"
+                            placeholder="Enter chat title..."
+                            @keydown="handleRenameKeydown($event, thread)"
+                            @blur="submitRename(thread)"
+                            @click.stop
+                        />
+                    </div>
+
+                    <!-- Action buttons (hover) -->
+                    <div
+                        v-if="editingThreadId !== thread.id"
+                        class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-0 transition-all group-hover:opacity-100"
                     >
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                        </svg>
-                    </button>
-                </button>
+                        <!-- Rename button -->
+                        <button
+                            type="button"
+                            class="rounded p-1 text-zinc-400 transition-colors hover:bg-zinc-300 hover:text-zinc-600 dark:hover:bg-zinc-600 dark:hover:text-zinc-300"
+                            title="Rename"
+                            @click="startRename(thread, $event)"
+                        >
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
+                                />
+                            </svg>
+                        </button>
+                        <!-- Delete button -->
+                        <button
+                            type="button"
+                            class="rounded p-1 text-zinc-400 transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                            title="Delete"
+                            @click="handleDelete(thread, $event)"
+                        >
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
+        <!-- Delete Confirmation Dialog -->
+        <ConfirmDialog
+            v-model="showDeleteConfirm"
+            title="Delete Chat"
+            :message="`Are you sure you want to delete '${threadToDelete ? getThreadPreview(threadToDelete) : 'this chat'}'? This action cannot be undone.`"
+            confirm-text="Delete"
+            cancel-text="Cancel"
+            variant="danger"
+            @confirm="confirmDelete"
+            @cancel="cancelDelete"
+        />
     </div>
 </template>

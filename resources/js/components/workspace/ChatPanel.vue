@@ -6,7 +6,12 @@ import ChatWindow from '@/components/chat/ChatWindow.vue';
 import ChatInput from '@/components/chat/ChatInput.vue';
 import ChatHeader from '@/components/chat/ChatHeader.vue';
 import ContextPreview from '@/components/chat/ContextPreview.vue';
+import TransferMenu from '@/components/chat/TransferMenu.vue';
+import ExtractToCodexModal from '@/components/chat/ExtractToCodexModal.vue';
 import { useChatContext } from '@/composables/useChatContext';
+import { useCodexAliasDetection } from '@/composables/useCodexAliasDetection';
+import { useChatRealtime, type RealtimeMessage, type RealtimeThreadUpdate } from '@/composables/useChatRealtime';
+import { router } from '@inertiajs/vue3';
 
 interface Novel {
     id: number;
@@ -40,10 +45,13 @@ interface Thread {
 const props = defineProps<{
     novel: Novel;
     initialSceneContext?: number | null;
+    currentSceneId?: number | null;
 }>();
 
 const emit = defineEmits<{
     contextUsed: [];
+    transferred: [data: { sceneId: number; sceneName: string }];
+    extracted: [data: { entries: Array<{ id: number; name: string; type: string }> }];
 }>();
 
 // State
@@ -57,6 +65,11 @@ const streamingContent = ref('');
 const threadListOpen = ref(true);
 const error = ref<string | null>(null);
 const contextPreviewOpen = ref(false);
+
+// Transfer & Extract state
+const transferMenuOpen = ref(false);
+const extractModalOpen = ref(false);
+const selectedMessage = ref<Message | null>(null);
 
 // Context management
 const {
@@ -73,6 +86,42 @@ const {
     fetchSources,
     resetContext,
 } = useChatContext(props.novel.id);
+
+// Codex alias detection for chat
+const novelIdRef = computed(() => props.novel.id);
+const { lookupMap: aliasLookup, refresh: refreshAliasLookup } = useCodexAliasDetection({
+    novelId: novelIdRef,
+    enabled: true,
+});
+
+// Handle codex click from messages (navigate to codex entry)
+const handleCodexClick = (entryId: number) => {
+    router.visit(`/codex/${entryId}`);
+};
+
+// Real-time chat updates (Sprint 21 F4)
+const activeThreadIdRef = computed(() => activeThread.value?.id ?? null);
+useChatRealtime({
+    threadId: activeThreadIdRef,
+    novelId: novelIdRef,
+    onNewMessage: (message: RealtimeMessage) => {
+        // Add message if it's not already in the list (could be from another tab)
+        if (!messages.value.find((m) => m.id === message.id)) {
+            messages.value = [...messages.value, message];
+        }
+    },
+    onThreadUpdate: (update: RealtimeThreadUpdate) => {
+        // Update thread in list
+        const index = threads.value.findIndex((t) => t.id === update.thread.id);
+        if (index !== -1) {
+            threads.value[index] = { ...threads.value[index], ...update.thread };
+        }
+        // Update active thread if it matches
+        if (activeThread.value?.id === update.thread.id) {
+            activeThread.value = { ...activeThread.value, ...update.thread };
+        }
+    },
+});
 
 // Fetch context when active thread changes
 watch(
@@ -334,7 +383,7 @@ const sendMessage = async (content: string, model?: string, connectionId?: numbe
 };
 
 // Regenerate last response
-const regenerateResponse = async () => {
+const regenerateResponse = async (model?: string, connectionId?: number) => {
     if (!activeThread.value) return;
 
     isStreaming.value = true;
@@ -348,12 +397,18 @@ const regenerateResponse = async () => {
     }
 
     try {
+        const body: Record<string, unknown> = {};
+        if (model) body.model = model;
+        if (connectionId) body.connection_id = connectionId;
+
         const response = await fetch(`/api/chat/threads/${activeThread.value.id}/regenerate`, {
             method: 'POST',
             headers: {
+                'Content-Type': 'application/json',
                 Accept: 'text/event-stream',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
             },
+            body: JSON.stringify(body),
         });
 
         if (!response.ok) {
@@ -369,6 +424,7 @@ const regenerateResponse = async () => {
 
         let fullContent = '';
         let assistantMessageId: number | null = null;
+        let modelUsed: string | null = model || null;
 
         while (true) {
             const { done, value } = await reader.read();
@@ -387,6 +443,7 @@ const regenerateResponse = async () => {
                             streamingContent.value = fullContent;
                         } else if (data.type === 'done') {
                             assistantMessageId = data.message_id;
+                            if (data.model_used) modelUsed = data.model_used;
                         } else if (data.type === 'error') {
                             error.value = data.error;
                         }
@@ -404,7 +461,7 @@ const regenerateResponse = async () => {
                 thread_id: activeThread.value.id,
                 role: 'assistant',
                 content: fullContent,
-                model_used: activeThread.value.model || null,
+                model_used: modelUsed,
                 tokens_input: null,
                 tokens_output: null,
                 created_at: new Date().toISOString(),
@@ -420,9 +477,19 @@ const regenerateResponse = async () => {
     }
 };
 
+// Regenerate with different model
+const regenerateWithModel = (model: string, connectionId: number) => {
+    regenerateResponse(model, connectionId);
+};
+
 // Toggle thread list
 const toggleThreadList = () => {
     threadListOpen.value = !threadListOpen.value;
+};
+
+// Rename thread from thread list
+const handleRename = (thread: Thread, newTitle: string) => {
+    updateThread(thread, { title: newTitle });
 };
 
 // Check if can regenerate
@@ -511,6 +578,27 @@ const handlePromptSelect = (prompt: string) => {
     chatInputRef.value?.setMessage(prompt);
 };
 
+// Transfer & Extract handlers
+const handleTransfer = (message: Message) => {
+    selectedMessage.value = message;
+    transferMenuOpen.value = true;
+};
+
+const handleExtract = (message: Message) => {
+    selectedMessage.value = message;
+    extractModalOpen.value = true;
+};
+
+const handleTransferred = (data: { sceneId: number; sceneName: string }) => {
+    emit('transferred', data);
+};
+
+const handleExtracted = (data: { entries: Array<{ id: number; name: string; type: string }> }) => {
+    emit('extracted', data);
+    // Refresh alias lookup to include newly created entries
+    refreshAliasLookup();
+};
+
 // Animation for panel entrance
 const panelRef = ref<HTMLElement | null>(null);
 
@@ -532,6 +620,7 @@ onMounted(() => {
             @select="selectThread"
             @create="createThread"
             @delete="deleteThread"
+            @rename="handleRename"
             @close="toggleThreadList"
         />
 
@@ -554,9 +643,15 @@ onMounted(() => {
                 :streaming-content="streamingContent"
                 :error="error"
                 :can-regenerate="canRegenerate"
+                :alias-lookup="aliasLookup"
+                :enable-alias-linking="true"
                 @regenerate="regenerateResponse"
+                @regenerate-with-model="regenerateWithModel"
                 @dismiss-error="error = null"
                 @select-prompt="handlePromptSelect"
+                @transfer="handleTransfer"
+                @extract="handleExtract"
+                @codex-click="handleCodexClick"
             />
 
             <!-- Input Area -->
@@ -588,6 +683,25 @@ onMounted(() => {
             @toggle="handleToggleContext"
             @remove="handleRemoveContext"
             @clear="handleClearContext"
+        />
+
+        <!-- Transfer Menu Modal -->
+        <TransferMenu
+            :show="transferMenuOpen"
+            :message="selectedMessage"
+            :novel-id="novel.id"
+            :current-scene-id="currentSceneId"
+            @close="transferMenuOpen = false"
+            @transferred="handleTransferred"
+        />
+
+        <!-- Extract to Codex Modal -->
+        <ExtractToCodexModal
+            :show="extractModalOpen"
+            :message="selectedMessage"
+            :novel-id="novel.id"
+            @close="extractModalOpen = false"
+            @extracted="handleExtracted"
         />
     </div>
 </template>

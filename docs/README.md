@@ -35,7 +35,9 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Sprint 18 - Story Planning System](./10-sprints/sprint-18-story-planning.md) ✅ Complete
 - [Sprint 19 - Performance Mode System](./10-sprints/sprint-19-performance-mode.md) ✅ Complete
 - [Sprint 20 - Chat Interface Core (Workshop)](./10-sprints/sprint-20-chat-interface-core.md) ✅ Complete
-- [Sprint 21 - Chat Context Integration (FG-04.2)](./10-sprints/sprint-21-chat-context-integration.md) ✅ Complete ✨ NEW
+- [Sprint 21 - Chat Context Integration (FG-04.2)](./10-sprints/sprint-21-chat-context-integration.md) ✅ Complete
+- [Sprint 22 - Chat Markdown Enhancement](./10-sprints/sprint-22-chat-markdown-enhancement.md) ✅ Complete
+- [Sprint 23 - Chat Enhancement Features (FG-04.4)](./10-sprints/sprint-23-chat-enhancement-features.md) ✅ Complete ✨ NEW
 
 ### API Reference
 - [Authentication API](./04-api-reference/authentication.md)
@@ -58,7 +60,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Sprint 17 Testing Guide](./06-testing/sprint-17-testing.md)
 - [Story Planning Testing Guide](./06-testing/story-planning-testing.md)
 - [Chat Testing Guide](./06-testing/chat-testing.md)
-- [Chat Context Testing Guide](./06-testing/chat-context-testing.md) ✨ NEW
+- [Chat Context Testing Guide](./06-testing/chat-context-testing.md)
+- [Chat Enhancement Testing Guide](./06-testing/chat-enhancement-testing.md) ✨ NEW
 
 ### Developer Guides
 - [Performance Mode Guide](./performance-mode.md) ✨ NEW
@@ -103,6 +106,7 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 | **Performance Mode System** | ✅ Complete | [Sprint 19](./10-sprints/sprint-19-performance-mode.md) | N/A | N/A |
 | **Chat Interface Core** | ✅ Complete | [Sprint 20](./10-sprints/sprint-20-chat-interface-core.md) | [Link](./04-api-reference/chat.md) | [Link](./06-testing/chat-testing.md) |
 | **Chat Context Integration** | ✅ Complete | [Sprint 21](./10-sprints/sprint-21-chat-context-integration.md) | [Link](./04-api-reference/chat.md#context-management-endpoints) | [Link](./06-testing/chat-context-testing.md) |
+| **Chat Enhancement Features** | ✅ Complete | [Sprint 23](./10-sprints/sprint-23-chat-enhancement-features.md) | [Link](./04-api-reference/chat.md#real-time-broadcasting-websocket) | [Link](./06-testing/chat-enhancement-testing.md) |
 
 ---
 
@@ -415,6 +419,12 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 
 ## 🎨 Recent Updates
 
+### January 2, 2026 (Evening)
+- ✅ **Sprint 23 Completed**: Chat Enhancement Features (FG-04.4) - Delete confirmation, inline rename, codex alias detection, dan real-time WebSocket
+- ✅ **Laravel Reverb Integrated**: Real-time chat updates via WebSocket
+- ✅ **Codex Alias Detection**: Auto-detect character/location names dalam chat input
+- ✅ **UX Improvements**: Delete confirmation modal, inline thread rename
+
 ### January 3, 2026
 - ✅ **Sprint 22 Completed**: Chat Markdown Enhancement - Professional markdown rendering dengan syntax highlighting untuk 20+ programming languages
 - ✅ **Code Blocks Enhanced**: Line numbers, copy buttons, dan syntax highlighting di chat responses
@@ -596,4 +606,4 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 ---
 
 *Last Updated: 2026-01-02*  
-*Latest Features: Sprint 21 (Chat Context Integration) + Sprint 20 (Chat Interface) + Sprint 19 (Performance Mode)*
+*Latest Features: Sprint 23 (Chat Enhancement Features) + Sprint 22 (Markdown Enhancement) + Sprint 21 (Chat Context Integration)*

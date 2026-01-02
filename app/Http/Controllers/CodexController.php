@@ -817,6 +817,58 @@ class CodexController extends Controller
     }
 
     /**
+     * Get codex alias lookup map for auto-detection.
+     *
+     * Returns a map of all entry names and aliases (lowercased) to their entry info,
+     * optimized for client-side text matching in chat or editor contexts.
+     *
+     * Sprint 21 (F1): Codex Alias Auto-Detection in Chat
+     */
+    public function aliasLookup(Request $request, Novel $novel): JsonResponse
+    {
+        if ($novel->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        $entries = $novel->codexEntries()
+            ->active()
+            ->with('aliases')
+            ->get(['id', 'name', 'type', 'description']);
+
+        // Build lookup map: alias -> entry
+        $lookupMap = [];
+        foreach ($entries as $entry) {
+            // Add entry name (case-insensitive)
+            $lookupMap[strtolower($entry->name)] = [
+                'id' => $entry->id,
+                'name' => $entry->name,
+                'type' => $entry->type,
+                'description' => str($entry->description)->limit(100)->toString(),
+            ];
+
+            // Add all aliases
+            foreach ($entry->aliases as $alias) {
+                $key = strtolower($alias->alias);
+                // Skip if already exists (name takes precedence)
+                if (! isset($lookupMap[$key])) {
+                    $lookupMap[$key] = [
+                        'id' => $entry->id,
+                        'name' => $entry->name,
+                        'type' => $entry->type,
+                        'alias' => $alias->alias,
+                        'description' => str($entry->description)->limit(100)->toString(),
+                    ];
+                }
+            }
+        }
+
+        return response()->json([
+            'lookup' => $lookupMap,
+            'entry_count' => $entries->count(),
+        ]);
+    }
+
+    /**
      * Bulk create entries from formatted text input.
      *
      * Sprint 15 (US-12.12): Enables rapid codex setup by parsing multi-line
