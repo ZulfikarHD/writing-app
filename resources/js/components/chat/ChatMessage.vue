@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import { marked } from 'marked';
 import hljs from 'highlight.js/lib/core';
 import 'highlight.js/styles/github-dark.css';
+import ModelSelector from '@/components/ai/ModelSelector.vue';
 
 // Import commonly used languages
 import javascript from 'highlight.js/lib/languages/javascript';
@@ -81,10 +82,23 @@ const emit = defineEmits<{
     (e: 'transfer', message: Message): void;
     (e: 'extract', message: Message): void;
     (e: 'codex-click', entryId: number): void;
+    (e: 'regenerate', message: Message): void;
+    (e: 'regenerate-with-model', message: Message, model: string, connectionId: number): void;
+    (e: 'edit', message: Message, newContent: string): void;
 }>();
 
 const copied = ref(false);
 const showActions = ref(false);
+const isEditing = ref(false);
+const editContent = ref('');
+const editTextarea = ref<HTMLTextAreaElement | null>(null);
+const showRegenerateMenu = ref(false);
+const regenerateMenuRef = ref<HTMLElement | null>(null);
+const regenerateButtonRef = ref<HTMLElement | null>(null);
+const regenerateModel = ref('');
+const regenerateConnectionId = ref<number | undefined>(undefined);
+const modelSelectorKey = ref(0);
+const menuPosition = ref({ top: '0px', left: '0px' });
 
 const isUser = computed(() => props.message.role === 'user');
 const isAssistant = computed(() => props.message.role === 'assistant');
@@ -171,6 +185,126 @@ const handleTransfer = () => {
 const handleExtract = () => {
     emit('extract', props.message);
 };
+
+const handleRegenerate = () => {
+    emit('regenerate', props.message);
+};
+
+const handleMouseLeave = () => {
+    // Don't hide actions if the regenerate menu is open
+    if (!showRegenerateMenu.value) {
+        showActions.value = false;
+    }
+};
+
+const toggleRegenerateMenu = async () => {
+    if (!showRegenerateMenu.value) {
+        // Reset state when opening
+        regenerateModel.value = '';
+        regenerateConnectionId.value = undefined;
+        modelSelectorKey.value++;
+        
+        // Calculate position
+        await nextTick();
+        if (regenerateButtonRef.value) {
+            const rect = regenerateButtonRef.value.getBoundingClientRect();
+            const menuWidth = 288; // w-72 = 18rem = 288px
+            const menuHeight = 180; // approximate height
+            
+            // Position above the button by default
+            let top = rect.top - menuHeight - 8;
+            let left = rect.left;
+            
+            // If it would go off the top, position below instead
+            if (top < 8) {
+                top = rect.bottom + 8;
+            }
+            
+            // If it would go off the right, align to the right edge
+            if (left + menuWidth > window.innerWidth - 8) {
+                left = window.innerWidth - menuWidth - 8;
+            }
+            
+            // Keep within left bounds
+            left = Math.max(8, left);
+            
+            menuPosition.value = {
+                top: `${top}px`,
+                left: `${left}px`,
+            };
+        }
+    }
+    showRegenerateMenu.value = !showRegenerateMenu.value;
+};
+
+const handleRegenerateWithModel = () => {
+    if (regenerateModel.value && regenerateConnectionId.value) {
+        emit('regenerate-with-model', props.message, regenerateModel.value, regenerateConnectionId.value);
+        showRegenerateMenu.value = false;
+    }
+};
+
+const startEdit = async () => {
+    isEditing.value = true;
+    editContent.value = props.message.content;
+    await nextTick();
+    if (editTextarea.value) {
+        editTextarea.value.focus();
+        editTextarea.value.select();
+    }
+};
+
+const cancelEdit = () => {
+    isEditing.value = false;
+    editContent.value = '';
+};
+
+const submitEdit = () => {
+    if (editContent.value.trim()) {
+        emit('edit', props.message, editContent.value.trim());
+        isEditing.value = false;
+        editContent.value = '';
+    }
+};
+
+// Close regenerate menu when clicking outside
+const handleClickOutside = (event: MouseEvent) => {
+    if (!showRegenerateMenu.value) return;
+    const target = event.target as HTMLElement;
+    
+    // Don't close if clicking inside the menu or the trigger button
+    if (regenerateMenuRef.value?.contains(target)) return;
+    if (regenerateButtonRef.value?.contains(target)) return;
+    
+    // Don't close if clicking inside any ModelSelector's fixed dropdown
+    const modelSelectorDropdowns = document.querySelectorAll('.fixed.z-\\[9999\\]');
+    for (const dropdown of modelSelectorDropdowns) {
+        if (dropdown.contains(target)) return;
+    }
+    
+    showRegenerateMenu.value = false;
+};
+
+// Watch for menu close to update actions visibility
+watch(showRegenerateMenu, (isOpen) => {
+    if (isOpen) {
+        // Keep actions visible when menu is open
+        showActions.value = true;
+    }
+});
+
+onMounted(() => {
+    document.addEventListener('click', handleClickOutside, true);
+});
+
+// Cleanup on unmount
+const cleanup = () => {
+    document.removeEventListener('click', handleClickOutside, true);
+};
+
+onMounted(() => {
+    return cleanup;
+});
 
 const formatTime = (dateStr: string): string => {
     const date = new Date(dateStr);
@@ -355,7 +489,7 @@ onMounted(() => {
         class="group flex gap-3" 
         :class="[isUser ? 'justify-end' : 'justify-start']"
         @mouseenter="showActions = true"
-        @mouseleave="showActions = false"
+        @mouseleave="handleMouseLeave"
     >
         <!-- Avatar for assistant -->
         <div v-if="isAssistant" class="shrink-0">
@@ -368,7 +502,41 @@ onMounted(() => {
 
         <!-- Message Content -->
         <div class="flex max-w-[85%] flex-col">
+            <!-- Edit Mode for User Messages -->
             <div
+                v-if="isUser && isEditing"
+                class="relative rounded-2xl bg-white p-3 shadow-sm ring-1 ring-zinc-200 dark:bg-zinc-800 dark:ring-zinc-700"
+            >
+                <textarea
+                    ref="editTextarea"
+                    v-model="editContent"
+                    rows="3"
+                    class="w-full resize-none rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+                    @keydown.enter.exact.prevent="submitEdit"
+                    @keydown.esc="cancelEdit"
+                ></textarea>
+                <div class="mt-2 flex items-center justify-end gap-2">
+                    <button
+                        type="button"
+                        class="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-all hover:bg-zinc-50 active:scale-95 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                        @click="cancelEdit"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        class="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-violet-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                        :disabled="!editContent.trim()"
+                        @click="submitEdit"
+                    >
+                        Send
+                    </button>
+                </div>
+            </div>
+
+            <!-- Normal Message Display -->
+            <div
+                v-else
                 class="relative rounded-2xl px-4 py-3"
                 :class="[
                     isUser
@@ -451,9 +619,116 @@ onMounted(() => {
                         </svg>
                         <span class="text-xs">Extract</span>
                     </button>
+
+                    <!-- Regenerate Button Group -->
+                    <div class="relative flex items-center">
+                        <!-- Main Regenerate Button -->
+                        <button
+                            type="button"
+                            class="action-btn-left"
+                            title="Regenerate this response"
+                            @click="handleRegenerate"
+                        >
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                />
+                            </svg>
+                            <span class="text-xs">Regenerate</span>
+                        </button>
+                        
+                        <!-- Dropdown Trigger -->
+                        <button
+                            ref="regenerateButtonRef"
+                            type="button"
+                            class="action-btn-right"
+                            title="Choose model"
+                            @click.stop="toggleRegenerateMenu"
+                        >
+                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </Transition>
+
+            <!-- Action Bar (User messages only) -->
+            <Transition
+                enter-active-class="transition-all duration-200 ease-out"
+                enter-from-class="opacity-0 -translate-y-1"
+                enter-to-class="opacity-100 translate-y-0"
+                leave-active-class="transition-all duration-150 ease-in"
+                leave-from-class="opacity-100 translate-y-0"
+                leave-to-class="opacity-0 -translate-y-1"
+            >
+                <div 
+                    v-if="isUser && !isEditing && showActions" 
+                    class="mt-1.5 flex items-center justify-end gap-1 pr-1"
+                >
+                    <!-- Edit Button -->
+                    <button
+                        type="button"
+                        class="action-btn"
+                        title="Edit message"
+                        @click="startEdit"
+                    >
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        <span class="text-xs">Edit</span>
+                    </button>
                 </div>
             </Transition>
         </div>
+
+        <!-- Model Selection Menu (Teleported to body) -->
+        <Teleport to="body">
+            <Transition
+                enter-active-class="transition-all duration-200 ease-out"
+                enter-from-class="opacity-0 scale-95"
+                enter-to-class="opacity-100 scale-100"
+                leave-active-class="transition-all duration-150 ease-in"
+                leave-from-class="opacity-100 scale-100"
+                leave-to-class="opacity-0 scale-95"
+            >
+                <div
+                    v-if="showRegenerateMenu"
+                    ref="regenerateMenuRef"
+                    class="fixed z-[9998] w-72 rounded-lg border border-zinc-200 bg-white p-3 shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+                    :style="menuPosition"
+                >
+                    <p class="mb-2 text-xs font-medium text-zinc-700 dark:text-zinc-300">Regenerate with different model</p>
+                    <ModelSelector
+                        :key="modelSelectorKey"
+                        v-model="regenerateModel"
+                        :connection-id="regenerateConnectionId"
+                        placeholder="Select a model"
+                        size="sm"
+                        @update:connection-id="regenerateConnectionId = $event"
+                    />
+                    <div class="mt-2 flex gap-2">
+                        <button
+                            type="button"
+                            class="flex-1 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs font-medium text-zinc-700 transition-all hover:bg-zinc-50 active:scale-95 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
+                            @click="showRegenerateMenu = false"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            class="flex-1 rounded-md bg-violet-600 px-2 py-1.5 text-xs font-medium text-white transition-all hover:bg-violet-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                            :disabled="!regenerateModel || !regenerateConnectionId"
+                            @click="handleRegenerateWithModel"
+                        >
+                            Regenerate
+                        </button>
+                    </div>
+                </div>
+            </Transition>
+        </Teleport>
 
         <!-- Avatar for user -->
         <div v-if="isUser" class="shrink-0">
@@ -860,6 +1135,75 @@ onMounted(() => {
     color: rgb(212 212 216);
     background: rgb(52 52 56);
     border-color: rgb(82 82 91);
+}
+
+/* Split Action Buttons */
+.action-btn-left {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: rgb(113 113 122);
+    background: rgb(250 250 250);
+    border: 1px solid rgb(228 228 231);
+    border-radius: 0.5rem 0 0 0.5rem;
+    border-right: none;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.action-btn-left:hover {
+    color: rgb(82 82 91);
+    background: rgb(244 244 245);
+    border-color: rgb(212 212 216);
+}
+
+.action-btn-left:active {
+    transform: scale(0.97);
+}
+
+.action-btn-right {
+    display: flex;
+    align-items: center;
+    padding: 0.375rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: rgb(113 113 122);
+    background: rgb(250 250 250);
+    border: 1px solid rgb(228 228 231);
+    border-radius: 0 0.5rem 0.5rem 0;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.action-btn-right:hover {
+    color: rgb(82 82 91);
+    background: rgb(244 244 245);
+    border-color: rgb(212 212 216);
+}
+
+.action-btn-right:active {
+    transform: scale(0.97);
+}
+
+:deep(.dark) .action-btn-left,
+:deep(.dark) .action-btn-right {
+    color: rgb(161 161 170);
+    background: rgb(39 39 42);
+    border-color: rgb(63 63 70);
+}
+
+:deep(.dark) .action-btn-left:hover,
+:deep(.dark) .action-btn-right:hover {
+    color: rgb(212 212 216);
+    background: rgb(52 52 56);
+    border-color: rgb(82 82 91);
+}
+
+:deep(.dark) .action-btn-left {
+    border-right: none;
 }
 
 /* Codex Alias Links */

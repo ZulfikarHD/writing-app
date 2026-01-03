@@ -12,6 +12,8 @@ export { useCodexHighlight } from './useCodexHighlight';
 export { useConfirm, confirmAction } from './useConfirm';
 export type { ConfirmOptions } from './useConfirm';
 export { useEditorSettings } from './useEditorSettings';
+export { usePrompts } from './usePrompts';
+export type { Prompt, PromptFormData, ModelSettings, PromptTypeInfo } from './usePrompts';
 export { useTheme } from './useTheme';
 export { useToast } from './useToast';
 export type { Toast, ToastOptions } from './useToast';

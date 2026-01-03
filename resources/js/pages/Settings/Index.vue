@@ -11,6 +11,12 @@ const settingsCategories = [
         icon: 'ai',
     },
     {
+        name: 'Prompt Library',
+        description: 'Create and manage AI prompts for writing assistance',
+        href: '/prompts',
+        icon: 'prompts',
+    },
+    {
         name: 'Profile',
         description: 'Update your account information and password',
         href: '/profile',
@@ -66,6 +72,14 @@ const settingsCategories = [
                                     stroke-linejoin="round"
                                     stroke-width="2"
                                     d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                                />
+                            </svg>
+                            <svg v-else-if="category.icon === 'prompts'" class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                                 />
                             </svg>
                             <svg v-else-if="category.icon === 'user'" class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

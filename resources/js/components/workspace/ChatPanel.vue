@@ -71,6 +71,9 @@ const transferMenuOpen = ref(false);
 const extractModalOpen = ref(false);
 const selectedMessage = ref<Message | null>(null);
 
+// Prompt selection for chat
+const selectedPromptId = ref<number | null>(null);
+
 // Context management
 const {
     contextItems,
@@ -382,18 +385,18 @@ const sendMessage = async (content: string, model?: string, connectionId?: numbe
     }
 };
 
-// Regenerate last response
-const regenerateResponse = async (model?: string, connectionId?: number) => {
+// Regenerate specific response
+const regenerateResponse = async (message: Message, model?: string, connectionId?: number) => {
     if (!activeThread.value) return;
 
     isStreaming.value = true;
     streamingContent.value = '';
     error.value = null;
 
-    // Remove last assistant message
-    const lastAssistantIdx = messages.value.findLastIndex((m) => m.role === 'assistant');
-    if (lastAssistantIdx !== -1) {
-        messages.value = messages.value.slice(0, lastAssistantIdx);
+    // Find the message index and remove it (and any messages after it)
+    const messageIdx = messages.value.findIndex((m) => m.id === message.id);
+    if (messageIdx !== -1) {
+        messages.value = messages.value.slice(0, messageIdx);
     }
 
     try {
@@ -478,8 +481,22 @@ const regenerateResponse = async (model?: string, connectionId?: number) => {
 };
 
 // Regenerate with different model
-const regenerateWithModel = (model: string, connectionId: number) => {
-    regenerateResponse(model, connectionId);
+const regenerateWithModel = (message: Message, model: string, connectionId: number) => {
+    regenerateResponse(message, model, connectionId);
+};
+
+// Handle edit message - removes all messages after the edited one and resends
+const handleEditMessage = async (message: Message, newContent: string) => {
+    if (!activeThread.value) return;
+
+    // Find the message index and remove all messages from that point
+    const messageIdx = messages.value.findIndex((m) => m.id === message.id);
+    if (messageIdx !== -1) {
+        messages.value = messages.value.slice(0, messageIdx);
+    }
+
+    // Resend with the new content
+    await sendMessage(newContent);
 };
 
 // Toggle thread list
@@ -491,11 +508,6 @@ const toggleThreadList = () => {
 const handleRename = (thread: Thread, newTitle: string) => {
     updateThread(thread, { title: newTitle });
 };
-
-// Check if can regenerate
-const canRegenerate = computed(() => {
-    return messages.value.length > 0 && messages.value[messages.value.length - 1]?.role === 'assistant' && !isStreaming.value;
-});
 
 // Context handlers
 const handleAddContext = async (
@@ -610,7 +622,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <div ref="panelRef" class="flex h-full">
+    <div ref="panelRef" class="flex h-full min-w-full">
         <!-- Thread List Sidebar -->
         <ChatThreadList
             v-if="threadListOpen"
@@ -628,6 +640,7 @@ onMounted(() => {
         <div class="flex flex-1 flex-col overflow-hidden bg-white dark:bg-zinc-900">
             <!-- Chat Header -->
             <ChatHeader
+                v-model:selected-prompt-id="selectedPromptId"
                 :thread="activeThread"
                 :thread-list-open="threadListOpen"
                 @toggle-thread-list="toggleThreadList"
@@ -642,11 +655,11 @@ onMounted(() => {
                 :is-streaming="isStreaming"
                 :streaming-content="streamingContent"
                 :error="error"
-                :can-regenerate="canRegenerate"
                 :alias-lookup="aliasLookup"
                 :enable-alias-linking="true"
                 @regenerate="regenerateResponse"
                 @regenerate-with-model="regenerateWithModel"
+                @edit-message="handleEditMessage"
                 @dismiss-error="error = null"
                 @select-prompt="handlePromptSelect"
                 @transfer="handleTransfer"
@@ -658,7 +671,6 @@ onMounted(() => {
             <ChatInput
                 ref="chatInputRef"
                 :is-streaming="isStreaming"
-                :disabled="!activeThread && threads.length === 0"
                 :thread-id="activeThread?.id"
                 :novel-id="novel.id"
                 :context-items="contextItems"

@@ -6,6 +6,7 @@ use App\Http\Controllers\EditorController;
 use App\Http\Controllers\NovelController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PromptController;
 use App\Http\Controllers\SeriesCodexController;
 use App\Http\Controllers\SeriesController;
 use App\Http\Controllers\SettingsController;
@@ -88,4 +89,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [SettingsController::class, 'index'])->name('settings.index');
         Route::get('ai', [SettingsController::class, 'aiConnections'])->name('settings.ai');
     });
+
+    // Prompts Library
+    Route::get('prompts', [PromptController::class, 'index'])->name('prompts.index');
 });

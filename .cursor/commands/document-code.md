@@ -2,7 +2,8 @@
 
 **Documentation Update** 
 **STRICTLY FOLLOW THIS GUIDE:** [DOCUMENTATION_GUIDE.md](../../documentation_guide.md)
-q
+
+**Update Git** After Updating the documentation run Git Commit and Push, use the git commit message and PR best conventions, meaning describe throughfully about what we done while adhere to my writing style, use indonesian.
 
 # 📚 Lessons Learned: Documentation Mistakes & Best Practices
 
@@ -180,4 +181,3 @@ grep -n "this->.*Service->" app/Http/Controllers/Owner/{Feature}/*
 - [ ] Last Updated date
 ```
 
-**Update Git** After Updating the documentation run Git Commit and Push, use the git commit message and PR best conventions, meaning describe throughfully about what we done while adhere to my writing style, use indonesian.

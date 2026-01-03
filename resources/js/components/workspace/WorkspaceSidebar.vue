@@ -3,6 +3,8 @@ import { Link } from '@inertiajs/vue3';
 import { useWorkspaceState, type WorkspaceMode } from '@/composables/useWorkspaceState';
 import SidebarToolSection from './SidebarToolSection.vue';
 import CodexQuickList from './CodexQuickList.vue';
+import PromptsQuickList from './PromptsQuickList.vue';
+import type { Prompt } from '@/composables/usePrompts';
 
 interface Novel {
     id: number;
@@ -20,6 +22,7 @@ const emit = defineEmits<{
     (e: 'openCodexEntry', entryId: number): void;
     (e: 'openQuickCreate', selectedText?: string): void;
     (e: 'toggleScenesSidebar'): void;
+    (e: 'selectPrompt', prompt: Prompt): void;
 }>();
 
 const {
@@ -108,6 +111,21 @@ const {
                 <div class="px-2 py-3 text-center text-xs text-zinc-500 dark:text-zinc-400">
                     Scene notes will appear here
                 </div>
+            </SidebarToolSection>
+
+            <!-- Prompts Tool Section -->
+            <SidebarToolSection
+                name="prompts"
+                title="Prompts"
+                icon="prompts"
+                :expanded="isToolExpanded('prompts')"
+                :pinned="isToolPinned('prompts')"
+                @toggle="toggleToolExpanded('prompts')"
+                @pin="toggleToolPinned('prompts')"
+            >
+                <PromptsQuickList
+                    @select="emit('selectPrompt', $event)"
+                />
             </SidebarToolSection>
         </div>
 

@@ -16,6 +16,7 @@ use App\Http\Controllers\CodexProgressionController;
 use App\Http\Controllers\CodexRelationController;
 use App\Http\Controllers\CodexTagController;
 use App\Http\Controllers\PlanController;
+use App\Http\Controllers\PromptController;
 use App\Http\Controllers\SceneController;
 use App\Http\Controllers\SceneLabelController;
 use App\Http\Controllers\SeriesCodexController;
@@ -328,4 +329,21 @@ Route::middleware('auth')->prefix('api')->group(function () {
 
     // Context sources for a novel
     Route::get('novels/{novel}/context-sources', [ChatContextController::class, 'sources'])->name('chat.context.sources');
+
+    // ==================== Prompts API ====================
+    Route::prefix('prompts')->group(function () {
+        Route::get('/', [PromptController::class, 'list'])->name('prompts.list');
+        Route::get('types', [PromptController::class, 'types'])->name('prompts.types');
+        Route::get('type/{type}', [PromptController::class, 'byType'])->name('prompts.by-type');
+        Route::post('/', [PromptController::class, 'store'])->name('prompts.store');
+        Route::post('reorder', [PromptController::class, 'reorder'])->name('prompts.reorder');
+    });
+
+    Route::prefix('prompts/{prompt}')->group(function () {
+        Route::get('/', [PromptController::class, 'show'])->name('prompts.show');
+        Route::patch('/', [PromptController::class, 'update'])->name('prompts.update');
+        Route::delete('/', [PromptController::class, 'destroy'])->name('prompts.destroy');
+        Route::post('clone', [PromptController::class, 'clone'])->name('prompts.clone');
+        Route::post('usage', [PromptController::class, 'recordUsage'])->name('prompts.usage');
+    });
 });

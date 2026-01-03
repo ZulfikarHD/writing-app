@@ -98,6 +98,12 @@ const logout = () => {
                                     AI Settings
                                 </Link>
                                 <Link
+                                    href="/prompts"
+                                    class="block px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                                >
+                                    Prompt Library
+                                </Link>
+                                <Link
                                     href="/profile"
                                     class="block px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-700"
                                 >

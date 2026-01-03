@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import PromptSelector from '@/components/prompts/PromptSelector.vue';
 
 interface Thread {
     id: number;
@@ -11,12 +12,14 @@ interface Thread {
 const props = defineProps<{
     thread: Thread | null;
     threadListOpen: boolean;
+    selectedPromptId?: number | null;
 }>();
 
 const emit = defineEmits<{
     toggleThreadList: [];
     updateThread: [thread: Thread, updates: Partial<Thread>];
     deleteThread: [thread: Thread];
+    'update:selectedPromptId': [value: number | null];
 }>();
 
 const isEditing = ref(false);
@@ -130,8 +133,20 @@ const displayTitle = computed(() => {
             </div>
         </div>
 
-        <!-- Actions Menu -->
-        <div v-if="thread" class="relative">
+        <!-- Prompt Selector & Actions -->
+        <div class="flex items-center gap-2">
+            <!-- Prompt Selector -->
+            <div class="w-48">
+                <PromptSelector
+                    :model-value="selectedPromptId"
+                    type="chat"
+                    placeholder="Select prompt..."
+                    @update:model-value="emit('update:selectedPromptId', $event)"
+                />
+            </div>
+
+            <!-- Actions Menu -->
+            <div v-if="thread" class="relative">
             <button
                 type="button"
                 class="rounded-md p-1.5 text-zinc-500 transition-all hover:bg-zinc-100 hover:text-zinc-700 active:scale-95 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
@@ -188,6 +203,7 @@ const displayTitle = computed(() => {
 
             <!-- Backdrop -->
             <div v-if="showMenu" class="fixed inset-0 z-0" @click="showMenu = false"></div>
+        </div>
         </div>
     </header>
 </template>

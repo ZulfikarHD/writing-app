@@ -157,7 +157,7 @@ onMounted(fetchEntries);
 </script>
 
 <template>
-    <div class="flex h-full flex-col overflow-hidden">
+    <div class="flex h-full min-w-full flex-col overflow-hidden">
         <!-- Header -->
         <div class="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
             <div class="flex items-center gap-4">

@@ -37,7 +37,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Sprint 20 - Chat Interface Core (Workshop)](./10-sprints/sprint-20-chat-interface-core.md) ✅ Complete
 - [Sprint 21 - Chat Context Integration (FG-04.2)](./10-sprints/sprint-21-chat-context-integration.md) ✅ Complete
 - [Sprint 22 - Chat Markdown Enhancement](./10-sprints/sprint-22-chat-markdown-enhancement.md) ✅ Complete
-- [Sprint 23 - Chat Enhancement Features (FG-04.4)](./10-sprints/sprint-23-chat-enhancement-features.md) ✅ Complete ✨ NEW
+- [Sprint 23 - Chat Enhancement Features (FG-04.4)](./10-sprints/sprint-23-chat-enhancement-features.md) ✅ Complete
+- [Sprint 24 - Prompt Library Core (FG-05.1)](./10-sprints/sprint-24-prompts-library-core.md) ✅ Complete ✨ NEW
 
 ### API Reference
 - [Authentication API](./04-api-reference/authentication.md)
@@ -48,7 +49,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Codex API](./04-api-reference/codex.md)
 - [Series API](./04-api-reference/series.md)
 - [Story Planning API](./04-api-reference/story-planning.md)
-- [Chat API](./04-api-reference/chat.md) ✨ NEW
+- [Chat API](./04-api-reference/chat.md)
+- [Prompts API](./04-api-reference/prompts.md) ✨ NEW
 
 ### Testing
 - [Foundation Testing Guide](./06-testing/foundation-testing.md)
@@ -61,7 +63,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Story Planning Testing Guide](./06-testing/story-planning-testing.md)
 - [Chat Testing Guide](./06-testing/chat-testing.md)
 - [Chat Context Testing Guide](./06-testing/chat-context-testing.md)
-- [Chat Enhancement Testing Guide](./06-testing/chat-enhancement-testing.md) ✨ NEW
+- [Chat Enhancement Testing Guide](./06-testing/chat-enhancement-testing.md)
+- [Prompts Testing Guide](./06-testing/prompts-testing.md) ✨ NEW
 
 ### Developer Guides
 - [Performance Mode Guide](./performance-mode.md) ✨ NEW
@@ -81,7 +84,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 ### User Journeys
 - [Authentication Flow](./07-user-journeys/authentication/user-auth-flow.md)
 - [Story Planning Flows](./07-user-journeys/story-planning/plan-views-flow.md)
-- [Chat Context Integration Flow](./07-user-journeys/chat-context/context-integration-flow.md) ✨ NEW
+- [Chat Context Integration Flow](./07-user-journeys/chat-context/context-integration-flow.md)
+- [Prompts Library Flow](./07-user-journeys/prompts/prompt-library-flow.md) ✨ NEW
 
 ---
 
@@ -430,6 +434,10 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 - ✅ **UX Improvements**: Delete confirmation modal, inline thread rename
 
 ### January 3, 2026
+- ✅ **Sprint 24 Completed**: Prompt Library Core (FG-05.1) - Full prompt management system dengan CRUD, types, cloning, dan workspace integration
+- ✅ **Prompt System**: Create, edit, clone, dan organize AI prompts dengan 4 types (Chat, Prose, Replacement, Summary)
+- ✅ **Workspace Integration**: Prompts accessible dari workspace sidebar untuk seamless writing flow
+- ✅ **System Prompts**: Built-in prompts yang read-only dengan clone capability untuk customization
 - ✅ **Chat UX Enhancements**: Regenerate with model selection, edit & resend messages, improved first-time UX
 - ✅ **Reverb Connection Fixed**: WebSocket real-time chat now working properly dengan comprehensive setup guide
 - ✅ **Sprint 22 Completed**: Chat Markdown Enhancement - Professional markdown rendering dengan syntax highlighting untuk 20+ programming languages
@@ -611,5 +619,5 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 
 ---
 
-*Last Updated: 2026-01-02*  
-*Latest Features: Sprint 23 (Chat Enhancement Features) + Sprint 22 (Markdown Enhancement) + Sprint 21 (Chat Context Integration)*
+*Last Updated: 2026-01-03*  
+*Latest Features: Sprint 24 (Prompt Library Core) + Sprint 23 (Chat Enhancement Features) + Sprint 22 (Markdown Enhancement)*

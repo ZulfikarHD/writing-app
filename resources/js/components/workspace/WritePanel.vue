@@ -101,7 +101,7 @@ watch(
             currentScene.value = props.scene;
             content.value = props.scene.content || null;
             wordCount.value = props.scene.word_count || 0;
-            
+
             // Update editor content
             if (editorRef.value?.editor) {
                 if (props.scene.content) {
@@ -266,7 +266,7 @@ const editorWidthClass = computed(() => {
 </script>
 
 <template>
-    <div class="flex h-full flex-col">
+    <div class="flex h-full min-w-full flex-col">
         <!-- Toolbar -->
         <EditorToolbar
             v-if="editorRef"

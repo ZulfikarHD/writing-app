@@ -2,7 +2,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 
 export type WorkspaceMode = 'write' | 'plan' | 'codex' | 'chat';
 
-export type SidebarTool = 'scenes' | 'codex' | 'notes';
+export type SidebarTool = 'scenes' | 'codex' | 'notes' | 'prompts';
 
 export interface WorkspaceState {
     mode: WorkspaceMode;

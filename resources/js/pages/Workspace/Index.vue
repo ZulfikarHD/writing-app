@@ -18,6 +18,9 @@ const ChatPanel = defineAsyncComponent(() => import('@/components/workspace/Chat
 const CodexEntryModal = defineAsyncComponent(() => import('@/components/codex/modals/CodexEntryModal.vue'));
 const CodexCreateModal = defineAsyncComponent(() => import('@/components/codex/modals/CodexCreateModal.vue'));
 const QuickCreateModal = defineAsyncComponent(() => import('@/components/codex/modals/QuickCreateModal.vue'));
+const PromptModal = defineAsyncComponent(() => import('@/components/prompts/PromptModal.vue'));
+
+import type { Prompt } from '@/composables/usePrompts';
 
 interface Label {
     id: number;
@@ -122,6 +125,8 @@ const pinnedChatOpen = ref(false); // Pinned chat panel (beside editor in Write 
 const quickCreateOpen = ref(false);
 const quickCreateSelectedText = ref('');
 const codexCreateOpen = ref(false);
+const promptModalOpen = ref(false);
+const selectedPrompt = ref<Prompt | null>(null);
 
 // Toggle pinned chat panel
 const togglePinnedChat = () => {
@@ -256,6 +261,31 @@ const handleCodexCreated = () => {
     }
 };
 
+// Prompt modal handlers
+const openPromptModal = (prompt: Prompt) => {
+    selectedPrompt.value = prompt;
+    promptModalOpen.value = true;
+};
+
+const closePromptModal = () => {
+    promptModalOpen.value = false;
+    selectedPrompt.value = null;
+};
+
+const handlePromptUpdated = (prompt: Prompt) => {
+    // Update is handled within the modal, just keep it open with updated data
+    selectedPrompt.value = prompt;
+};
+
+const handlePromptCloned = (prompt: Prompt) => {
+    // Switch to the newly cloned prompt
+    selectedPrompt.value = prompt;
+};
+
+const handlePromptDeleted = () => {
+    closePromptModal();
+};
+
 // Handle chat with scene - opens pinned chat panel with scene context
 const handleChatWithScene = async (sceneId: number) => {
     // Store scene context ID for the chat panel
@@ -327,7 +357,7 @@ onBeforeUnmount(() => {
     <div class="flex h-screen bg-white dark:bg-zinc-900" :style="editorStyles">
         <Head :title="`${novel.title} - Workspace`" />
 
-        <!-- Left Sidebar (Codex, Notes) -->
+        <!-- Left Sidebar (Codex, Notes, Prompts) -->
         <WorkspaceSidebar
             v-if="!sidebarCollapsed"
             :novel="novel"
@@ -337,6 +367,7 @@ onBeforeUnmount(() => {
             @open-codex-entry="openCodexEntry"
             @open-quick-create="openQuickCreate"
             @toggle-scenes-sidebar="toggleScenesSidebar"
+            @select-prompt="openPromptModal"
         />
 
         <!-- Main Content -->
@@ -569,6 +600,16 @@ onBeforeUnmount(() => {
             :selected-text="quickCreateSelectedText"
             @close="closeQuickCreate"
             @created="handleCodexCreated"
+        />
+
+        <!-- Prompt Modal -->
+        <PromptModal
+            :show="promptModalOpen"
+            :prompt="selectedPrompt"
+            @close="closePromptModal"
+            @updated="handlePromptUpdated"
+            @cloned="handlePromptCloned"
+            @deleted="handlePromptDeleted"
         />
     </div>
 </template>

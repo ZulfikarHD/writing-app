@@ -9,7 +9,6 @@ use App\Models\ChatMessage;
 use App\Models\ChatThread;
 use App\Models\User;
 use Generator;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class ChatService
@@ -443,41 +442,65 @@ class ChatService
         $body = $this->buildRequestBody($connection, $messages, $model);
 
         try {
-            $response = Http::withHeaders($this->getHeaders($connection, $apiKey))
-                ->timeout(120)
-                ->withOptions(['stream' => true])
-                ->post("{$baseUrl}/chat/completions", $body);
+            // Use Guzzle directly for proper streaming support
+            $client = new \GuzzleHttp\Client([
+                'timeout' => 120,
+                'stream' => true,
+            ]);
 
-            if (! $response->successful()) {
-                $error = $response->json('error.message') ?? "Request failed with status {$response->status()}";
+            $response = $client->post("{$baseUrl}/chat/completions", [
+                'headers' => $this->getHeaders($connection, $apiKey),
+                'json' => $body,
+                'stream' => true,
+            ]);
+
+            if ($response->getStatusCode() !== 200) {
+                $error = "Request failed with status {$response->getStatusCode()}";
                 yield ['error' => $error];
 
                 return;
             }
 
-            $body = $response->body();
+            // Stream the response body line by line
+            $stream = $response->getBody();
+            $buffer = '';
 
-            // Parse SSE stream
-            foreach ($this->parseSSEStream($body) as $event) {
-                if ($event === '[DONE]') {
-                    break;
-                }
+            while (! $stream->eof()) {
+                $chunk = $stream->read(1024); // Read in 1KB chunks
+                $buffer .= $chunk;
 
-                $data = json_decode($event, true);
-                if (! $data) {
-                    continue;
-                }
+                // Process complete lines
+                while (($pos = strpos($buffer, "\n")) !== false) {
+                    $line = substr($buffer, 0, $pos);
+                    $buffer = substr($buffer, $pos + 1);
 
-                // Handle different response formats
-                if (isset($data['choices'][0]['delta']['content'])) {
-                    yield ['content' => $data['choices'][0]['delta']['content']];
-                } elseif (isset($data['choices'][0]['message']['content'])) {
-                    // Non-streaming response
-                    yield ['content' => $data['choices'][0]['message']['content']];
-                }
+                    $line = trim($line);
 
-                if (isset($data['usage'])) {
-                    yield ['usage' => $data['usage']];
+                    // Parse SSE format: "data: {...}"
+                    if (str_starts_with($line, 'data: ')) {
+                        $eventData = substr($line, 6);
+
+                        if ($eventData === '[DONE]') {
+                            break 2; // Exit both loops
+                        }
+
+                        $data = json_decode($eventData, true);
+                        if (! $data) {
+                            continue;
+                        }
+
+                        // Handle different response formats
+                        if (isset($data['choices'][0]['delta']['content'])) {
+                            yield ['content' => $data['choices'][0]['delta']['content']];
+                        } elseif (isset($data['choices'][0]['message']['content'])) {
+                            // Non-streaming response
+                            yield ['content' => $data['choices'][0]['message']['content']];
+                        }
+
+                        if (isset($data['usage'])) {
+                            yield ['usage' => $data['usage']];
+                        }
+                    }
                 }
             }
         } catch (\Exception $e) {
