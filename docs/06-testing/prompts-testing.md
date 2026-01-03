@@ -1,6 +1,6 @@
 # Testing Guide: Prompts System
 
-**Feature:** Prompt Library Core (FG-05.1)  
+**Feature:** Prompt Library Core (FG-05.1) + Prompt Editor Enhancement (FG-05.2)  
 **Test Suite:** `tests/Feature/PromptTest.php`  
 **Status:** ✅ 18/18 Tests Passing  
 **Last Updated:** 2026-01-03
@@ -663,6 +663,257 @@ Before marking feature as "Done", verify:
 - [ ] Responsive on mobile, tablet, desktop
 - [ ] Dark mode supported
 - [ ] Keyboard navigation functional
+
+---
+
+---
+
+## 🧪 Sprint 25: Prompt Editor Enhancement Tests
+
+### Category 7: Prompt Inputs
+
+#### TC-P019: List Prompt Inputs
+**Test:** Manual  
+**Priority:** 🔴 Critical
+
+**Scenario:**
+```
+Given: Prompt with 3 inputs defined
+When: User requests /api/prompts/{id}/inputs
+Then: Returns all 3 inputs sorted by sort_order
+```
+
+---
+
+#### TC-P020: Create Prompt Input
+**Test:** Manual  
+**Priority:** 🔴 Critical
+
+**Scenario:**
+```
+Given: User's own prompt
+When: User posts /api/prompts/{id}/inputs with valid data
+Then: Input is created
+```
+
+**Request Body:**
+```json
+{
+  "name": "word_count",
+  "label": "Target Word Count",
+  "type": "select",
+  "options": [{ "value": "500", "label": "Short" }],
+  "is_required": true
+}
+```
+
+---
+
+#### TC-P021: Cannot Create Input for System Prompt
+**Test:** Manual  
+**Priority:** 🔴 Critical (Security)
+
+**Scenario:**
+```
+Given: System prompt
+When: User attempts to create input
+Then: Returns 403 Forbidden
+```
+
+---
+
+### Category 8: Prompt Components
+
+#### TC-P022: List Components
+**Test:** Manual  
+**Priority:** 🔴 Critical
+
+**Scenario:**
+```
+Given: 2 system components, 3 user components
+When: User requests /api/prompt-components
+Then: Returns 5 components
+```
+
+---
+
+#### TC-P023: Create Component
+**Test:** Manual  
+**Priority:** 🔴 Critical
+
+**Scenario:**
+```
+Given: Valid component data
+When: User posts /api/prompt-components
+Then: Component is created
+```
+
+---
+
+#### TC-P024: Unique Component Name per User
+**Test:** Manual  
+**Priority:** 🟡 High
+
+**Scenario:**
+```
+Given: User has component named "genre_fantasy"
+When: User attempts to create another with same name
+Then: Returns 422 validation error
+```
+
+---
+
+### Category 9: Variable Autocomplete UI
+
+#### TC-P025: Autocomplete Triggers on {
+**Test:** Manual UI  
+**Priority:** 🔴 Critical
+
+**Steps:**
+1. Open prompt editor
+2. Focus on system message textarea
+3. Type `{`
+4. **Verify:** Autocomplete dropdown appears
+5. **Verify:** Variables grouped by category
+6. **Verify:** Can search by typing
+
+---
+
+#### TC-P026: Variable Selection
+**Test:** Manual UI  
+**Priority:** 🔴 Critical
+
+**Steps:**
+1. Trigger autocomplete with `{`
+2. Use arrow keys to navigate
+3. Press Enter to select
+4. **Verify:** Variable inserted at cursor
+5. **Verify:** Dropdown closes
+
+---
+
+### Category 10: Multi-Message UI
+
+#### TC-P027: Add Message
+**Test:** Manual UI  
+**Priority:** 🟡 High
+
+**Steps:**
+1. Open Instructions tab
+2. Click "Add Message" button
+3. **Verify:** New message block appears
+4. **Verify:** Default role is "User"
+
+---
+
+#### TC-P028: Toggle Message Role
+**Test:** Manual UI  
+**Priority:** 🟡 High
+
+**Steps:**
+1. Add a message
+2. Click role badge ("User")
+3. **Verify:** Role toggles to "AI"
+4. **Verify:** Visual styling changes
+
+---
+
+#### TC-P029: Reorder Messages
+**Test:** Manual UI  
+**Priority:** 🟢 Medium
+
+**Steps:**
+1. Add 3 messages
+2. Drag message 3 to position 1
+3. **Verify:** Order updated
+4. **Verify:** Animation smooth
+
+---
+
+### Category 11: Preview Tab
+
+#### TC-P030: Token Count Display
+**Test:** Manual UI  
+**Priority:** 🟡 High
+
+**Steps:**
+1. Open Preview tab
+2. **Verify:** Token count displayed (~X tokens)
+3. Edit system message
+4. **Verify:** Token count updates
+
+---
+
+#### TC-P031: Copy to Clipboard
+**Test:** Manual UI  
+**Priority:** 🟢 Medium
+
+**Steps:**
+1. Open Preview tab
+2. Click "Copy" button
+3. **Verify:** Button changes to "Copied!"
+4. **Verify:** Full prompt in clipboard
+
+---
+
+#### TC-P032: Sample Data Resolution
+**Test:** Manual UI  
+**Priority:** 🟡 High
+
+**Steps:**
+1. Add `{scene.title}` to system message
+2. Open Preview tab
+3. Toggle "Show with sample data"
+4. **Verify:** Variable replaced with sample value
+5. **Verify:** Purple highlight on resolved variable
+
+---
+
+## 🧪 QA Checklist: Sprint 25 Features
+
+### Prompt Editor Tabs
+
+- [ ] **General Tab**
+  - [ ] Name field works (required)
+  - [ ] Type selector shows 4 options
+  - [ ] Model settings inputs work
+  - [ ] Cannot edit system prompts
+
+- [ ] **Instructions Tab**
+  - [ ] System message textarea works
+  - [ ] User message textarea works
+  - [ ] Variable autocomplete triggers on `{`
+  - [ ] Autocomplete shows categories
+  - [ ] Selection inserts variable
+  - [ ] ESC closes autocomplete
+
+- [ ] **Advanced Tab**
+  - [ ] "Add Input" creates new input
+  - [ ] Input form fields work
+  - [ ] Select type shows options editor
+  - [ ] Remove input works
+  - [ ] Components section displays
+
+- [ ] **Description Tab**
+  - [ ] Textarea editable
+  - [ ] Tips box visible
+  - [ ] Character count accurate
+
+- [ ] **Preview Tab**
+  - [ ] Shows system/user messages
+  - [ ] Shows additional messages
+  - [ ] Token count displayed
+  - [ ] Copy button works
+  - [ ] Sample data toggle works
+  - [ ] Variable highlighting works
+
+### Workspace Modal
+
+- [ ] **Prompt Modal opens** from workspace sidebar
+- [ ] **All 5 tabs** present in modal
+- [ ] **Save/Cancel** buttons work
+- [ ] **Clone/Delete** buttons work
+- [ ] **Unsaved changes** warning appears
 
 ---
 

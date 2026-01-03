@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import { useWorkspaceState, type WorkspaceMode } from '@/composables/useWorkspaceState';
 import SidebarToolSection from './SidebarToolSection.vue';
@@ -31,6 +32,25 @@ const {
     isToolPinned,
     toggleToolPinned,
 } = useWorkspaceState();
+
+// Refs for quick list components
+const codexQuickListRef = ref<InstanceType<typeof CodexQuickList> | null>(null);
+const promptsQuickListRef = ref<InstanceType<typeof PromptsQuickList> | null>(null);
+
+// Refresh methods
+const refreshCodexList = () => {
+    codexQuickListRef.value?.refresh();
+};
+
+const refreshPromptsList = () => {
+    promptsQuickListRef.value?.refresh();
+};
+
+// Expose refresh methods
+defineExpose({
+    refreshCodexList,
+    refreshPromptsList,
+});
 </script>
 
 <template>
@@ -92,6 +112,7 @@ const {
                 @pin="toggleToolPinned('codex')"
             >
                 <CodexQuickList
+                    ref="codexQuickListRef"
                     :novel-id="novel.id"
                     @select="emit('openCodexEntry', $event)"
                     @create="emit('openQuickCreate')"
@@ -124,6 +145,7 @@ const {
                 @pin="toggleToolPinned('prompts')"
             >
                 <PromptsQuickList
+                    ref="promptsQuickListRef"
                     @select="emit('selectPrompt', $event)"
                 />
             </SidebarToolSection>

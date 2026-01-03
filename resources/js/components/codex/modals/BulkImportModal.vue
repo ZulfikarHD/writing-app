@@ -165,7 +165,7 @@ const typeIcons: Record<string, string> = {
 </script>
 
 <template>
-    <Modal :show="show" title="Import Codex Entries" max-width="lg" @close="handleClose">
+    <Modal :show="show" title="Import Codex Entries" size="lg" @close="handleClose">
         <div class="min-h-[300px]">
             <!-- Step 1: Upload -->
             <div v-if="step === 'upload'" class="space-y-4">

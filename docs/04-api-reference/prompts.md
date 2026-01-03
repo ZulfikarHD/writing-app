@@ -590,6 +590,210 @@ curl -X POST https://api.yourapp.com/api/prompts/reorder \
 
 ---
 
+---
+
+## Prompt Inputs API
+
+### 11. List Prompt Inputs
+
+Mengambil daftar inputs untuk sebuah prompt.
+
+**Endpoint:** `GET /api/prompts/{prompt}/inputs`
+
+**Response:** `200 OK`
+
+```json
+{
+  "inputs": [
+    {
+      "id": 1,
+      "prompt_id": 42,
+      "name": "word_count",
+      "label": "Word Count",
+      "type": "select",
+      "options": [
+        { "value": "500", "label": "Short (500 words)" },
+        { "value": "1000", "label": "Medium (1000 words)" }
+      ],
+      "default_value": "500",
+      "placeholder": null,
+      "description": "Target word count",
+      "is_required": true,
+      "sort_order": 0
+    }
+  ]
+}
+```
+
+---
+
+### 12. Create Prompt Input
+
+**Endpoint:** `POST /api/prompts/{prompt}/inputs`
+
+**Request Body:**
+
+```json
+{
+  "name": "word_count",
+  "label": "Word Count",
+  "type": "select",
+  "options": [
+    { "value": "500", "label": "Short" },
+    { "value": "1000", "label": "Medium" }
+  ],
+  "default_value": "500",
+  "is_required": true
+}
+```
+
+**Validation Rules:**
+
+| Field | Type | Required | Rules |
+|-------|------|----------|-------|
+| name | string | Yes | Max 100, regex: `/^[a-z_][a-z0-9_]*$/i` |
+| label | string | Yes | Max 255 |
+| type | string | Yes | Enum: text, textarea, select, number, checkbox |
+| options | array | No | Required if type=select |
+| default_value | string | No | - |
+| placeholder | string | No | - |
+| description | string | No | - |
+| is_required | boolean | No | Default: false |
+| sort_order | integer | No | Default: 0 |
+
+**Response:** `201 Created`
+
+---
+
+### 13. Update Prompt Input
+
+**Endpoint:** `PATCH /api/prompts/{prompt}/inputs/{input}`
+
+**Request Body:** Same as create, all fields optional.
+
+**Response:** `200 OK`
+
+---
+
+### 14. Delete Prompt Input
+
+**Endpoint:** `DELETE /api/prompts/{prompt}/inputs/{input}`
+
+**Response:** `200 OK`
+
+---
+
+### 15. Bulk Update Inputs (Reorder)
+
+**Endpoint:** `PUT /api/prompts/{prompt}/inputs/bulk`
+
+**Request Body:**
+
+```json
+{
+  "inputs": [
+    { "id": 1, "sort_order": 0 },
+    { "id": 2, "sort_order": 1 }
+  ]
+}
+```
+
+**Response:** `200 OK`
+
+---
+
+## Prompt Components API
+
+Base URL: `/api/prompt-components`
+
+### 16. List Components
+
+Mengambil daftar komponen yang accessible (system + user-owned).
+
+**Endpoint:** `GET /api/prompt-components`
+
+**Response:** `200 OK`
+
+```json
+{
+  "components": [
+    {
+      "id": 1,
+      "user_id": 123,
+      "name": "genre_fantasy",
+      "label": "Fantasy Genre Rules",
+      "content": "When writing fantasy, consider world-building...",
+      "description": "Guidelines for fantasy writing",
+      "is_system": false,
+      "created_at": "2026-01-03T10:00:00.000Z",
+      "updated_at": "2026-01-03T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+### 17. Create Component
+
+**Endpoint:** `POST /api/prompt-components`
+
+**Request Body:**
+
+```json
+{
+  "name": "genre_fantasy",
+  "label": "Fantasy Genre Rules",
+  "content": "When writing fantasy...",
+  "description": "Guidelines for fantasy"
+}
+```
+
+**Validation Rules:**
+
+| Field | Type | Required | Rules |
+|-------|------|----------|-------|
+| name | string | Yes | Max 100, regex: `/^[a-z_][a-z0-9_]*$/i`, unique per user |
+| label | string | Yes | Max 255 |
+| content | string | Yes | - |
+| description | string | No | - |
+
+**Response:** `201 Created`
+
+---
+
+### 18. Get Component Detail
+
+**Endpoint:** `GET /api/prompt-components/{component}`
+
+**Response:** `200 OK`
+
+---
+
+### 19. Update Component
+
+**Endpoint:** `PATCH /api/prompt-components/{component}`
+
+**Response:** `200 OK`
+
+---
+
+### 20. Delete Component
+
+**Endpoint:** `DELETE /api/prompt-components/{component}`
+
+**Response:** `200 OK`
+
+---
+
+### 21. Clone Component
+
+**Endpoint:** `POST /api/prompt-components/{component}/clone`
+
+**Response:** `201 Created`
+
+---
+
 ## Data Structures
 
 ### Prompt Object
@@ -605,18 +809,48 @@ interface Prompt {
   type_label: string;
   system_message: string | null;
   user_message: string | null;
-  model_settings: {
-    temperature?: number;
-    max_tokens?: number;
-    top_p?: number;
-    frequency_penalty?: number;
-    presence_penalty?: number;
-    [key: string]: any;
-  } | null;
+  messages: PromptMessage[] | null;  // NEW: Multi-message support
+  model_settings: ModelSettings | null;
   is_system: boolean;
   is_active: boolean;
   sort_order: number;
   usage_count: number;
+  inputs: PromptInput[];  // NEW: Dynamic inputs
+  created_at: string;
+  updated_at: string;
+}
+
+// NEW: Multi-message structure
+interface PromptMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+// NEW: Prompt Input definition
+interface PromptInput {
+  id: number;
+  prompt_id: number;
+  name: string;
+  label: string;
+  type: 'text' | 'textarea' | 'select' | 'number' | 'checkbox';
+  options?: { value: string; label: string }[];
+  default_value?: string | null;
+  placeholder?: string | null;
+  description?: string | null;
+  is_required: boolean;
+  sort_order: number;
+}
+
+// NEW: Prompt Component
+interface PromptComponent {
+  id: number;
+  user_id: number;
+  name: string;
+  label: string;
+  content: string;
+  description?: string | null;
+  is_system: boolean;
   created_at: string;
   updated_at: string;
 }

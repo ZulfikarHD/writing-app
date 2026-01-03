@@ -16,7 +16,9 @@ use App\Http\Controllers\CodexProgressionController;
 use App\Http\Controllers\CodexRelationController;
 use App\Http\Controllers\CodexTagController;
 use App\Http\Controllers\PlanController;
+use App\Http\Controllers\PromptComponentController;
 use App\Http\Controllers\PromptController;
+use App\Http\Controllers\PromptInputController;
 use App\Http\Controllers\SceneController;
 use App\Http\Controllers\SceneLabelController;
 use App\Http\Controllers\SeriesCodexController;
@@ -345,5 +347,25 @@ Route::middleware('auth')->prefix('api')->group(function () {
         Route::delete('/', [PromptController::class, 'destroy'])->name('prompts.destroy');
         Route::post('clone', [PromptController::class, 'clone'])->name('prompts.clone');
         Route::post('usage', [PromptController::class, 'recordUsage'])->name('prompts.usage');
+
+        // Prompt Inputs
+        Route::get('inputs', [PromptInputController::class, 'index'])->name('prompts.inputs.index');
+        Route::post('inputs', [PromptInputController::class, 'store'])->name('prompts.inputs.store');
+        Route::put('inputs/bulk', [PromptInputController::class, 'bulkUpdate'])->name('prompts.inputs.bulk');
+        Route::patch('inputs/{input}', [PromptInputController::class, 'update'])->name('prompts.inputs.update');
+        Route::delete('inputs/{input}', [PromptInputController::class, 'destroy'])->name('prompts.inputs.destroy');
+    });
+
+    // ==================== Prompt Components API ====================
+    Route::prefix('prompt-components')->group(function () {
+        Route::get('/', [PromptComponentController::class, 'index'])->name('prompt-components.index');
+        Route::post('/', [PromptComponentController::class, 'store'])->name('prompt-components.store');
+    });
+
+    Route::prefix('prompt-components/{component}')->group(function () {
+        Route::get('/', [PromptComponentController::class, 'show'])->name('prompt-components.show');
+        Route::patch('/', [PromptComponentController::class, 'update'])->name('prompt-components.update');
+        Route::delete('/', [PromptComponentController::class, 'destroy'])->name('prompt-components.destroy');
+        Route::post('clone', [PromptComponentController::class, 'clone'])->name('prompt-components.clone');
     });
 });

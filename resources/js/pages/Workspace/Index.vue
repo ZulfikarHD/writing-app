@@ -5,6 +5,7 @@ import WorkspaceSidebar from '@/components/workspace/WorkspaceSidebar.vue';
 import ScenesRightSidebar from '@/components/workspace/ScenesRightSidebar.vue';
 import SceneDetailsSidebar from '@/components/workspace/SceneDetailsSidebar.vue';
 import ModeNavigation from '@/components/workspace/ModeNavigation.vue';
+import ConfirmProvider from '@/components/ui/overlays/ConfirmProvider.vue';
 import { useWorkspaceState, type WorkspaceMode } from '@/composables/useWorkspaceState';
 import { useEditorSettings } from '@/composables/useEditorSettings';
 
@@ -120,6 +121,9 @@ const localChapters = ref<Chapter[]>([...props.chapters]);
 const scenesSidebarOpen = ref(true); // Scenes sidebar (right) - open by default
 const detailsSidebarOpen = ref(false); // Scene details sidebar
 const pinnedChatOpen = ref(false); // Pinned chat panel (beside editor in Write mode)
+
+// Sidebar ref for refreshing lists
+const workspaceSidebarRef = ref<InstanceType<typeof WorkspaceSidebar> | null>(null);
 
 // Modal states
 const quickCreateOpen = ref(false);
@@ -255,6 +259,8 @@ const closeCodexCreate = () => {
 const handleCodexCreated = () => {
     closeQuickCreate();
     closeCodexCreate();
+    // Refresh sidebar codex list
+    workspaceSidebarRef.value?.refreshCodexList();
     // Refresh codex data if in codex mode
     if (isCodexMode.value) {
         router.reload({ only: ['codexEntries'] });
@@ -275,15 +281,21 @@ const closePromptModal = () => {
 const handlePromptUpdated = (prompt: Prompt) => {
     // Update is handled within the modal, just keep it open with updated data
     selectedPrompt.value = prompt;
+    // Refresh sidebar prompts list
+    workspaceSidebarRef.value?.refreshPromptsList();
 };
 
 const handlePromptCloned = (prompt: Prompt) => {
     // Switch to the newly cloned prompt
     selectedPrompt.value = prompt;
+    // Refresh sidebar prompts list
+    workspaceSidebarRef.value?.refreshPromptsList();
 };
 
 const handlePromptDeleted = () => {
     closePromptModal();
+    // Refresh sidebar prompts list
+    workspaceSidebarRef.value?.refreshPromptsList();
 };
 
 // Handle chat with scene - opens pinned chat panel with scene context
@@ -360,6 +372,7 @@ onBeforeUnmount(() => {
         <!-- Left Sidebar (Codex, Notes, Prompts) -->
         <WorkspaceSidebar
             v-if="!sidebarCollapsed"
+            ref="workspaceSidebarRef"
             :novel="novel"
             :total-word-count="totalWordCount"
             :current-mode="mode"
@@ -611,5 +624,8 @@ onBeforeUnmount(() => {
             @cloned="handlePromptCloned"
             @deleted="handlePromptDeleted"
         />
+
+        <!-- Global Confirm Dialog Provider -->
+        <ConfirmProvider />
     </div>
 </template>

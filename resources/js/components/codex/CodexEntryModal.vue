@@ -5,8 +5,10 @@ import Toast from '@/components/ui/feedback/Toast.vue';
 import ConfirmDialog from '@/components/ui/overlays/ConfirmDialog.vue';
 import { AliasManager, CategoryManager, DetailManager, ProgressionManager, RelationGraph, RelationManager, ResearchTab, TagManager } from '@/components/codex';
 import { router } from '@inertiajs/vue3';
+import { Motion } from 'motion-v';
 import axios from 'axios';
 import { ref, watch, computed } from 'vue';
+import { usePerformanceMode } from '@/composables/usePerformanceMode';
 
 interface Alias {
     id: number;
@@ -123,6 +125,9 @@ const emit = defineEmits<{
     (e: 'close'): void;
     (e: 'updated'): void;
 }>();
+
+// Performance mode for animations
+const { isReducedMotion, quickSpringConfig } = usePerformanceMode();
 
 // State
 const loading = ref(false);
@@ -609,10 +614,19 @@ const toggleTracking = async () => {
                 </nav>
             </div>
 
-            <!-- Tab Content -->
-            <div class="min-h-[320px]">
+            <!-- Tab Content with Motion animations -->
+            <Motion
+                :key="activeTab"
+                :initial="isReducedMotion ? { opacity: 0 } : { opacity: 0, x: -12 }"
+                :animate="isReducedMotion ? { opacity: 1 } : { opacity: 1, x: 0 }"
+                :transition="quickSpringConfig"
+                class="relative min-h-[320px]"
+            >
                 <!-- Details Tab -->
-                <div v-if="activeTab === 'details'" class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <div
+                    v-if="activeTab === 'details'"
+                    class="grid grid-cols-1 gap-6 lg:grid-cols-2"
+                >
                     <!-- Left Column: Description, Aliases, Tags -->
                     <div class="space-y-5">
                         <!-- Description Card -->
@@ -775,7 +789,10 @@ const toggleTracking = async () => {
                 </div>
 
                 <!-- Relations Tab -->
-                <div v-else-if="activeTab === 'relations'" class="space-y-4">
+                <div
+                    v-if="activeTab === 'relations'"
+                    class="space-y-4"
+                >
                     <!-- Relation Graph Visualization -->
                     <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800/50">
                         <div class="mb-4 flex items-center gap-2">
@@ -813,7 +830,10 @@ const toggleTracking = async () => {
                 </div>
 
                 <!-- Progressions Tab -->
-                <div v-else-if="activeTab === 'progressions'" class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800/50">
+                <div
+                    v-if="activeTab === 'progressions'"
+                    class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800/50"
+                >
                     <div class="mb-4 flex items-center gap-2">
                         <svg class="h-4 w-4 text-zinc-500 dark:text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -832,7 +852,10 @@ const toggleTracking = async () => {
                 </div>
 
                 <!-- Mentions Tab -->
-                <div v-else-if="activeTab === 'mentions'" class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800/50">
+                <div
+                    v-if="activeTab === 'mentions'"
+                    class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800/50"
+                >
                     <div class="mb-4 flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <svg class="h-4 w-4 text-zinc-500 dark:text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -908,7 +931,10 @@ const toggleTracking = async () => {
                 </div>
 
                 <!-- Research Tab -->
-                <div v-else-if="activeTab === 'research'" class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800/50">
+                <div
+                    v-if="activeTab === 'research'"
+                    class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800/50"
+                >
                     <div class="mb-4 flex items-center gap-2">
                         <svg class="h-4 w-4 text-zinc-500 dark:text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -922,7 +948,7 @@ const toggleTracking = async () => {
                         @updated="fetchEntry"
                     />
                 </div>
-            </div>
+            </Motion>
         </template>
 
         <!-- Footer -->

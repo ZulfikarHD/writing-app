@@ -1,5 +1,37 @@
 import { ref, computed } from 'vue';
 
+export interface PromptMessage {
+    id: string;
+    role: 'user' | 'assistant';
+    content: string;
+}
+
+export interface PromptInput {
+    id: number;
+    prompt_id: number;
+    name: string;
+    label: string;
+    type: 'text' | 'textarea' | 'select' | 'number' | 'checkbox';
+    options?: { value: string; label: string }[];
+    default_value?: string | null;
+    placeholder?: string | null;
+    description?: string | null;
+    is_required: boolean;
+    sort_order: number;
+}
+
+export interface PromptComponent {
+    id: number;
+    user_id: number;
+    name: string;
+    label: string;
+    content: string;
+    description?: string | null;
+    is_system: boolean;
+    created_at?: string | null;
+    updated_at?: string | null;
+}
+
 export interface Prompt {
     id: number;
     user_id: number | null;
@@ -10,11 +42,13 @@ export interface Prompt {
     type_label: string;
     system_message: string | null;
     user_message: string | null;
+    messages: PromptMessage[] | null;
     model_settings: ModelSettings | null;
     is_system: boolean;
     is_active: boolean;
     sort_order: number;
     usage_count: number;
+    inputs?: PromptInput[];
     created_at: string | null;
     updated_at: string | null;
 }
@@ -33,6 +67,7 @@ export interface PromptFormData {
     type: 'chat' | 'prose' | 'replacement' | 'summary';
     system_message?: string | null;
     user_message?: string | null;
+    messages?: PromptMessage[] | null;
     model_settings?: ModelSettings | null;
     folder_id?: number | null;
     sort_order?: number;

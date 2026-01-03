@@ -154,7 +154,7 @@ watch(
 </script>
 
 <template>
-    <Modal :show="show" title="Insert to Scene" max-width="md" @close="emit('close')">
+    <Modal :show="show" title="Insert to Scene" size="md" @close="emit('close')">
         <!-- Success State -->
         <div v-if="success" class="flex flex-col items-center py-8">
             <div class="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">

@@ -82,6 +82,9 @@ const entriesByType = computed(() => {
 
 onMounted(fetchEntries);
 watch(() => props.novelId, fetchEntries);
+
+// Expose refresh method for parent to call
+defineExpose({ refresh: fetchEntries });
 </script>
 
 <template>

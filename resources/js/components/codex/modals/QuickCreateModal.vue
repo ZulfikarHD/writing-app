@@ -129,7 +129,7 @@ const handleClose = () => {
 </script>
 
 <template>
-    <Modal :show="show" title="Quick Create Codex Entry" max-width="md" @close="handleClose">
+    <Modal :show="show" title="Quick Create Codex Entry" size="md" @close="handleClose">
         <form class="space-y-4" @submit.prevent="handleSubmit">
             <!-- Error message -->
             <div v-if="error" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-900/20 dark:text-red-400">

@@ -60,20 +60,39 @@ export function usePerformanceMode() {
     const isReducedMotion = computed(() => settings.value.mode === 'reduced');
     const isFullAnimation = computed(() => settings.value.mode === 'full');
 
-    // Animation configs based on mode
+    // Animation configs based on mode - iOS-inspired spring physics
     const springConfig = computed(() => {
         if (isReducedMotion.value) {
-            // Faster, simpler transitions for reduced mode
             return {
                 type: 'tween' as const,
                 duration: 0.15,
                 ease: 'easeOut' as const,
             };
         }
+        // Snappy spring for general UI (similar to iOS default)
+        return {
+            type: 'spring' as const,
+            stiffness: 500,
+            damping: 35,
+            mass: 1,
+        };
+    });
+
+    // Modal-specific spring config with natural bounce
+    const modalSpringConfig = computed(() => {
+        if (isReducedMotion.value) {
+            return {
+                type: 'tween' as const,
+                duration: 0.2,
+                ease: 'easeOut' as const,
+            };
+        }
+        // Natural, bouncy spring for modals (iOS sheet-style)
         return {
             type: 'spring' as const,
             stiffness: 400,
             damping: 30,
+            mass: 0.8,
         };
     });
 
@@ -89,6 +108,24 @@ export function usePerformanceMode() {
             type: 'spring' as const,
             stiffness: 400,
             damping: 40,
+            mass: 1,
+        };
+    });
+
+    // Quick spring for micro-interactions (press feedback, etc.)
+    const quickSpringConfig = computed(() => {
+        if (isReducedMotion.value) {
+            return {
+                type: 'tween' as const,
+                duration: 0.1,
+                ease: 'easeOut' as const,
+            };
+        }
+        return {
+            type: 'spring' as const,
+            stiffness: 600,
+            damping: 30,
+            mass: 0.5,
         };
     });
 
@@ -123,7 +160,9 @@ export function usePerformanceMode() {
         isReducedMotion,
         isFullAnimation,
         springConfig,
+        modalSpringConfig,
         sidebarSpringConfig,
+        quickSpringConfig,
         transitionClass,
         buttonTransitionClass,
         backdropBlurClass,

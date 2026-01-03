@@ -38,7 +38,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Sprint 21 - Chat Context Integration (FG-04.2)](./10-sprints/sprint-21-chat-context-integration.md) ✅ Complete
 - [Sprint 22 - Chat Markdown Enhancement](./10-sprints/sprint-22-chat-markdown-enhancement.md) ✅ Complete
 - [Sprint 23 - Chat Enhancement Features (FG-04.4)](./10-sprints/sprint-23-chat-enhancement-features.md) ✅ Complete
-- [Sprint 24 - Prompt Library Core (FG-05.1)](./10-sprints/sprint-24-prompts-library-core.md) ✅ Complete ✨ NEW
+- [Sprint 24 - Prompt Library Core (FG-05.1)](./10-sprints/sprint-24-prompts-library-core.md) ✅ Complete
+- [Sprint 25 - Prompt Editor Enhancement (FG-05.2)](./10-sprints/sprint-25-prompt-editor-enhancement.md) ✅ Complete ✨ NEW
 
 ### API Reference
 - [Authentication API](./04-api-reference/authentication.md)
@@ -85,7 +86,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Authentication Flow](./07-user-journeys/authentication/user-auth-flow.md)
 - [Story Planning Flows](./07-user-journeys/story-planning/plan-views-flow.md)
 - [Chat Context Integration Flow](./07-user-journeys/chat-context/context-integration-flow.md)
-- [Prompts Library Flow](./07-user-journeys/prompts/prompt-library-flow.md) ✨ NEW
+- [Prompts Library Flow](./07-user-journeys/prompts/prompt-library-flow.md)
+- [Prompt Editor Flow](./07-user-journeys/prompts/prompt-editor-flow.md) ✨ NEW
 
 ---
 
@@ -115,6 +117,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 | **Chat Interface Core** | ✅ Complete | [Sprint 20](./10-sprints/sprint-20-chat-interface-core.md) | [Link](./04-api-reference/chat.md) | [Link](./06-testing/chat-testing.md) |
 | **Chat Context Integration** | ✅ Complete | [Sprint 21](./10-sprints/sprint-21-chat-context-integration.md) | [Link](./04-api-reference/chat.md#context-management-endpoints) | [Link](./06-testing/chat-context-testing.md) |
 | **Chat Enhancement Features** | ✅ Complete | [Sprint 23](./10-sprints/sprint-23-chat-enhancement-features.md) | [Link](./04-api-reference/chat.md#real-time-broadcasting-websocket) | [Link](./06-testing/chat-enhancement-testing.md) |
+| **Prompt Library Core** | ✅ Complete | [Sprint 24](./10-sprints/sprint-24-prompts-library-core.md) | [Link](./04-api-reference/prompts.md) | [Link](./06-testing/prompts-testing.md) |
+| **Prompt Editor Enhancement** | ✅ Complete | [Sprint 25](./10-sprints/sprint-25-prompt-editor-enhancement.md) | [Link](./04-api-reference/prompts.md) | [Link](./06-testing/prompts-testing.md) |
 
 ---
 

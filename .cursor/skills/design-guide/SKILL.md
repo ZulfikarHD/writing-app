@@ -13,7 +13,6 @@ description: design-guide for the app
 ### Use iOS Design Principles like
 - **Spring Physics**: Natural, bouncy animations that feels like native iOS
 - **Press Feedback**: Scale-down effect when element is tapped (0.97 scale)
-- **Glass Effect**: Frosted glass navbar and footer with backdrop blur
 - **Haptic Feedback**: Vibration API for tactile response
 - **Staggered Animations**: Sequential entrance animations for lists
 - **Gesture Recognition**: Swipe-to-delete, pull-to-refresh, drag-to-dismiss

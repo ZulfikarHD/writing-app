@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Prompt Model
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $type
  * @property string|null $system_message
  * @property string|null $user_message
+ * @property array|null $messages
  * @property array|null $model_settings
  * @property bool $is_system
  * @property bool $is_active
@@ -26,6 +28,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $usage_count
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, PromptInput> $inputs
  */
 class Prompt extends Model
 {
@@ -48,6 +51,7 @@ class Prompt extends Model
         'type',
         'system_message',
         'user_message',
+        'messages',
         'model_settings',
         'is_system',
         'is_active',
@@ -61,6 +65,7 @@ class Prompt extends Model
     protected function casts(): array
     {
         return [
+            'messages' => 'array',
             'model_settings' => 'array',
             'is_system' => 'boolean',
             'is_active' => 'boolean',
@@ -83,6 +88,14 @@ class Prompt extends Model
     public function folder(): BelongsTo
     {
         return $this->belongsTo(PromptFolder::class);
+    }
+
+    /**
+     * @return HasMany<PromptInput, $this>
+     */
+    public function inputs(): HasMany
+    {
+        return $this->hasMany(PromptInput::class)->orderBy('sort_order');
     }
 
     /**

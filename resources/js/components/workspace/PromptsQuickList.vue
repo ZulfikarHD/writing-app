@@ -77,6 +77,9 @@ const promptsByType = computed(() => {
 });
 
 onMounted(fetchAllPrompts);
+
+// Expose refresh method for parent to call
+defineExpose({ refresh: fetchAllPrompts });
 </script>
 
 <template>

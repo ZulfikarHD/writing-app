@@ -234,11 +234,26 @@ class PromptController extends Controller
             'type_label' => Prompt::getTypeLabels()[$prompt->type] ?? $prompt->type,
             'system_message' => $prompt->system_message,
             'user_message' => $prompt->user_message,
+            'messages' => $prompt->messages,
             'model_settings' => $prompt->model_settings,
             'is_system' => $prompt->is_system,
             'is_active' => $prompt->is_active,
             'sort_order' => $prompt->sort_order,
             'usage_count' => $prompt->usage_count,
+            'inputs' => $prompt->relationLoaded('inputs')
+                ? $prompt->inputs->map(fn ($input) => [
+                    'id' => $input->id,
+                    'name' => $input->name,
+                    'label' => $input->label,
+                    'type' => $input->type,
+                    'options' => $input->options,
+                    'default_value' => $input->default_value,
+                    'placeholder' => $input->placeholder,
+                    'description' => $input->description,
+                    'is_required' => $input->is_required,
+                    'sort_order' => $input->sort_order,
+                ])
+                : [],
             'created_at' => $prompt->created_at?->toISOString(),
             'updated_at' => $prompt->updated_at?->toISOString(),
         ];
