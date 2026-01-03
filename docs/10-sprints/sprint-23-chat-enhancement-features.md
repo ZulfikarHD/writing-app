@@ -58,6 +58,25 @@ Sprint 23 mengimplementasikan Chat Enhancement Features (FG-04.4) yang meningkat
 - **useChatRealtime composable** - Frontend integration dengan Laravel Echo
 - **Echo bootstrap** - Konfigurasi Pusher/Reverb connection
 
+> 📖 **For comprehensive Reverb setup instructions, see:** [Reverb Setup Guide](../reverb-setup-guide.md)
+
+### F5: Regenerate with Model Selection
+- **Inline regenerate button** - Regenerate button sekarang inline dengan copy/insert/extract actions per message
+- **Model selector dropdown** - Pilih model berbeda untuk regenerasi dengan dropdown menu
+- **Smart positioning** - Menu positioned near regenerate button dengan collision detection
+- **Connection-aware** - Show available connections and models dari AI provider settings
+- **Per-message regeneration** - Regenerate hanya affect specific message, bukan full conversation
+- **Smooth animations** - Spring animation untuk menu appearance dengan proper hover handling
+
+### F6: Edit and Resend Messages
+- **Edit user messages** - Click edit button pada user message untuk modify content
+- **Inline editing** - Edit mode dengan textarea langsung di message bubble
+- **Auto-resize textarea** - Textarea automatically adjusts height untuk multi-line content
+- **Keyboard shortcuts** - Enter to submit, Escape to cancel, Shift+Enter for new line
+- **Message reconstruction** - Editing removes all messages after edited one dan resend conversation
+- **Visual feedback** - Clear edit/cancel/submit buttons dengan hover states
+- **Preserve context** - Edited message maintains original context for AI
+
 ---
 
 ## 📁 File Structure
@@ -136,6 +155,14 @@ resources/js/
 │
 ├── components/
 │   └── chat/
+│       ├── ChatMessage.vue                             ✏️ UPDATED (430 lines)
+│       │   ├─ Inline regenerate button (F5)
+│       │   ├─ Model selector dropdown
+│       │   ├─ Edit mode for user messages (F6)
+│       │   ├─ Edit textarea with auto-resize
+│       │   ├─ Keyboard handlers (Enter/Escape)
+│       │   └─ Smart menu positioning
+│       │
 │       ├── ChatThreadList.vue                          ✏️ UPDATED (309 lines)
 │       │   ├─ ConfirmDialog for delete (F2)
 │       │   ├─ Inline rename input (F3)
@@ -172,6 +199,89 @@ resources/js/
 ---
 
 ## 💡 Technical Highlights
+
+### Regenerate with Model Selection (F5)
+
+**Smart Menu Positioning:**
+```typescript
+const positionMenu = () => {
+    if (!regenerateButtonRef.value || !regenerateMenuRef.value) return;
+    
+    const button = regenerateButtonRef.value.getBoundingClientRect();
+    const menu = regenerateMenuRef.value;
+    const menuHeight = 200; // Estimated
+    
+    // Position above button by default
+    let top = button.top - menuHeight - 8;
+    
+    // If would go off-screen at top, position below instead
+    if (top < 8) {
+        top = button.bottom + 8;
+    }
+    
+    // Horizontal positioning with bounds check
+    let left = button.left;
+    if (left + menuWidth > window.innerWidth - 16) {
+        left = window.innerWidth - menuWidth - 16;
+    }
+    
+    menu.style.top = `${top}px`;
+    menu.style.left = `${left}px`;
+};
+```
+
+**Event Emission:**
+```typescript
+const handleRegenerateWithModel = (model: string, connectionId: number) => {
+    emit('regenerate-with-model', props.message, model, connectionId);
+    showRegenerateMenu.value = false;
+};
+```
+
+### Edit Message Flow (F6)
+
+**Message Editing:**
+```vue
+<template>
+    <!-- Normal view -->
+    <div v-if="!isEditing" class="message-content">
+        {{ message.content }}
+    </div>
+    
+    <!-- Edit mode -->
+    <div v-else class="edit-mode">
+        <textarea
+            ref="editTextarea"
+            v-model="editContent"
+            @keydown="handleEditKeydown"
+            rows="3"
+        />
+        <div class="actions">
+            <button @click="submitEdit">Save</button>
+            <button @click="cancelEdit">Cancel</button>
+        </div>
+    </div>
+</template>
+```
+
+**Conversation Reconstruction:**
+```typescript
+const handleEdit = async (message: Message, newContent: string) => {
+    // Find the message index
+    const messageIndex = messages.value.findIndex(m => m.id === message.id);
+    
+    // Remove all messages after the edited one
+    messages.value = messages.value.slice(0, messageIndex);
+    
+    // Delete from backend
+    for (const msg of messagesToDelete) {
+        await fetch(`/api/chat/messages/${msg.id}`, { method: 'DELETE' });
+    }
+    
+    // Resend with new content
+    await sendMessage(newContent);
+};
+```
 
 ### Alias Detection Algorithm
 
@@ -243,6 +353,73 @@ Broadcast::channel('chat.thread.{threadId}', function ($user, int $threadId) {
 
 ## 🎨 UI/UX Enhancements
 
+### Regenerate Button Inline (F5)
+
+**Button Layout:**
+```vue
+<!-- Assistant message actions -->
+<div class="action-buttons flex gap-2">
+    <button @click="handleCopy">📋 Copy</button>
+    <button @click="handleTransfer">📝 Insert</button>
+    <button @click="handleExtract">📤 Extract</button>
+    <button @click="toggleRegenerateMenu">🔄 Regenerate</button> <!-- ✨ NEW -->
+</div>
+
+<!-- Model selector dropdown (when regenerate clicked) -->
+<div v-if="showRegenerateMenu" ref="regenerateMenuRef" class="model-selector-menu">
+    <ModelSelector
+        :available-connections="availableConnections"
+        @select="handleRegenerateWithModel"
+    />
+</div>
+```
+
+**Hover Behavior:**
+- Actions appear on message hover
+- Menu stays open even when hovering over it (no flickering)
+- Smooth spring animation for menu appearance
+- Menu positioned near button dengan auto-adjustment for screen edges
+
+### Edit Message UI (F6)
+
+**Edit Button:**
+```vue
+<!-- User message actions -->
+<div class="action-buttons flex gap-2">
+    <button @click="startEdit">✏️ Edit</button> <!-- ✨ NEW -->
+    <button @click="handleCopy">📋 Copy</button>
+</div>
+```
+
+**Edit Mode:**
+```vue
+<!-- Edit textarea with auto-resize -->
+<textarea
+    ref="editTextarea"
+    v-model="editContent"
+    class="edit-textarea"
+    @keydown.enter.exact.prevent="submitEdit"
+    @keydown.escape="cancelEdit"
+/>
+
+<!-- Action buttons -->
+<div class="edit-actions">
+    <button class="save-btn" @click="submitEdit">
+        💾 Save & Resend
+    </button>
+    <button class="cancel-btn" @click="cancelEdit">
+        ❌ Cancel
+    </button>
+</div>
+```
+
+**Interaction Flow:**
+1. Hover user message → Edit button appears
+2. Click edit → Message transforms to textarea
+3. Edit content (Shift+Enter for new line)
+4. Enter/Save → Submits, removes subsequent messages, resends
+5. Escape/Cancel → Reverts to original content
+
 ### Delete Confirmation Dialog (F2)
 
 ```vue
@@ -307,6 +484,8 @@ Broadcast::channel('chat.thread.{threadId}', function ($user, int $threadId) {
 | "Can't rename without opening" | Must open chat first | Inline rename |
 | "AI doesn't know my characters" | Manual context | Auto-detect aliases |
 | "Have to refresh for updates" | Manual refresh | Real-time WebSocket |
+| "Want different AI model for this response" | Can't choose per-message | Regenerate with model selector |
+| "Made typo in my message" | Can't edit, must start over | Edit and resend seamlessly |
 
 ### Expected Impact
 
@@ -314,6 +493,8 @@ Broadcast::channel('chat.thread.{threadId}', function ($user, int $threadId) {
 - ⏱️ **Time saved:** ~5 sec per rename operation
 - 🎯 **Context accuracy:** +30% character mentions in context
 - 🔄 **Real-time updates:** Zero manual refreshes needed
+- 🎨 **Model flexibility:** Choose optimal AI per response
+- ✏️ **Error correction:** Fix typos without losing conversation
 
 ---
 
@@ -329,17 +510,22 @@ Broadcast::channel('chat.thread.{threadId}', function ($user, int $threadId) {
 | Echo not initialized | useChatRealtime checks window.Echo |
 | Concurrent renames | Last submit wins (optimistic) |
 | Network error on delete | Toast error, keeps modal open |
+| Edit with empty content | Rejects submit, keeps edit mode open |
+| Edit during streaming | Edit button disabled while AI responds |
+| Regenerate during streaming | Button disabled, prevents conflicts |
+| Menu goes off-screen | Auto-repositions above/below as needed |
+| No AI connections configured | Shows "Connect AI Provider" prompt |
 
 ---
 
 ## 🚀 Future Enhancements (Not in This Sprint)
 
-- [ ] **F5: Regenerate with Model** - Choose different model for regeneration
 - [ ] **Alias linking in messages** - Click alias in AI response to view codex entry
 - [ ] **Typing indicators** - Show when AI is "thinking"
 - [ ] **Presence indicators** - Show if user has chat open in another tab
 - [ ] **Message reactions** - Like/dislike AI responses
 - [ ] **Export conversation** - Download chat as markdown/PDF
+- [ ] **Streaming to specific model** - Real-time model switching during generation
 
 ---
 

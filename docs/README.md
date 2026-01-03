@@ -65,13 +65,17 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 
 ### Developer Guides
 - [Performance Mode Guide](./performance-mode.md) ✨ NEW
+- [Laravel Reverb Setup Guide](./reverb-setup-guide.md) ✨ NEW - Comprehensive WebSocket setup
+- [Reverb Quick Start](./REVERB-QUICK-START.md) ✨ NEW - Get WebSocket running in 3 commands
 
 ### Design & Polish
 - [Design System Refinement (2026-01-02)](./bug-fixes/2026-01-02-design-system-refinement.md)
 
 ### Bug Fixes
-- [Theme Toggle Fix (2026-01-02)](./bug-fixes/2026-01-02-theme-toggle-fix.md) ✨ NEW
-- [Scene Navigation Fix (2026-01-02)](./bug-fixes/2026-01-02-scene-navigation-fix.md) ✨ NEW
+- [Chat UX Improvements (2026-01-03)](./bug-fixes/2026-01-03-chat-ux-improvements.md) ✨ NEW - Fixed disabled input & full-width chat
+- [Reverb Connection Fix (2026-01-03)](./bug-fixes/2026-01-03-reverb-connection-fix.md) ✨ NEW - WebSocket real-time chat fixed
+- [Theme Toggle Fix (2026-01-02)](./bug-fixes/2026-01-02-theme-toggle-fix.md)
+- [Scene Navigation Fix (2026-01-02)](./bug-fixes/2026-01-02-scene-navigation-fix.md)
 - [Workspace Scenes Sidebar Enhancement (2026-01-02)](./bug-fixes/2026-01-02-workspace-scenes-sidebar-enhancement.md)
 
 ### User Journeys
@@ -426,6 +430,8 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 - ✅ **UX Improvements**: Delete confirmation modal, inline thread rename
 
 ### January 3, 2026
+- ✅ **Chat UX Enhancements**: Regenerate with model selection, edit & resend messages, improved first-time UX
+- ✅ **Reverb Connection Fixed**: WebSocket real-time chat now working properly dengan comprehensive setup guide
 - ✅ **Sprint 22 Completed**: Chat Markdown Enhancement - Professional markdown rendering dengan syntax highlighting untuk 20+ programming languages
 - ✅ **Code Blocks Enhanced**: Line numbers, copy buttons, dan syntax highlighting di chat responses
 - ✅ **Animation Fixed**: Resolved motion library keyframe errors untuk smooth message animations
