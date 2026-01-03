@@ -2,20 +2,32 @@
 import { ref, computed, onMounted } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import Input from '@/components/ui/forms/Input.vue';
+import Badge from '@/components/ui/Badge.vue';
 import { usePrompts } from '@/composables/usePrompts';
+import { usePersonas } from '@/composables/usePersonas';
 import type { Prompt } from '@/composables/usePrompts';
+import type { Persona } from '@/composables/usePersonas';
+import PersonaEditor from '@/components/prompts/PersonaEditor.vue';
 
 const emit = defineEmits<{
     (e: 'select', prompt: Prompt): void;
+    (e: 'selectPersona', persona: Persona): void;
 }>();
 
 const { fetchPromptsByType } = usePrompts();
+const { fetchPersonas, personas } = usePersonas();
 
 const prompts = ref<Prompt[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const searchQuery = ref('');
 const selectedType = ref('');
+const activeSection = ref<'prompts' | 'personas'>('prompts');
+
+// Persona editor state
+const showPersonaEditor = ref(false);
+const editingPersona = ref<Persona | null>(null);
+const isCreatingPersona = ref(false);
 
 const typeConfig: Record<string, { label: string; icon: string; color: string }> = {
     chat: { label: 'Chat', icon: '💬', color: 'text-blue-600 dark:text-blue-400' },
@@ -45,6 +57,54 @@ const fetchAllPrompts = async () => {
         loading.value = false;
     }
 };
+
+const fetchAllPersonas = async () => {
+    try {
+        await fetchPersonas();
+    } catch {
+        // Silent fail
+    }
+};
+
+// Filtered personas
+const filteredPersonas = computed(() => {
+    if (!searchQuery.value) return personas.value.filter(p => !p.is_archived);
+    
+    const query = searchQuery.value.toLowerCase();
+    return personas.value.filter(
+        (p) =>
+            !p.is_archived &&
+            (p.name.toLowerCase().includes(query) ||
+            p.description?.toLowerCase().includes(query))
+    );
+});
+
+// Open persona editor
+function openNewPersona() {
+    editingPersona.value = null;
+    isCreatingPersona.value = true;
+    showPersonaEditor.value = true;
+}
+
+function openEditPersona(persona: Persona) {
+    editingPersona.value = persona;
+    isCreatingPersona.value = false;
+    showPersonaEditor.value = true;
+}
+
+function handlePersonaCreated() {
+    showPersonaEditor.value = false;
+    fetchAllPersonas();
+}
+
+function handlePersonaUpdated() {
+    fetchAllPersonas();
+}
+
+function handlePersonaDeleted() {
+    showPersonaEditor.value = false;
+    fetchAllPersonas();
+}
 
 const filteredPrompts = computed(() => {
     let result = prompts.value;
@@ -76,18 +136,52 @@ const promptsByType = computed(() => {
     return grouped;
 });
 
-onMounted(fetchAllPrompts);
+onMounted(() => {
+    fetchAllPrompts();
+    fetchAllPersonas();
+});
 
 // Expose refresh method for parent to call
-defineExpose({ refresh: fetchAllPrompts });
+defineExpose({ refresh: () => { fetchAllPrompts(); fetchAllPersonas(); } });
 </script>
 
 <template>
     <div class="space-y-2">
+        <!-- Section Tabs -->
+        <div class="flex gap-1 border-b border-zinc-200 dark:border-zinc-700">
+            <button
+                type="button"
+                class="flex-1 border-b-2 px-2 py-1.5 text-xs font-medium transition-colors"
+                :class="[
+                    activeSection === 'prompts'
+                        ? 'border-pink-500 text-pink-600 dark:text-pink-400'
+                        : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300',
+                ]"
+                @click="activeSection = 'prompts'"
+            >
+                Prompts
+            </button>
+            <button
+                type="button"
+                class="flex-1 border-b-2 px-2 py-1.5 text-xs font-medium transition-colors"
+                :class="[
+                    activeSection === 'personas'
+                        ? 'border-violet-500 text-violet-600 dark:text-violet-400'
+                        : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300',
+                ]"
+                @click="activeSection = 'personas'"
+            >
+                Personas
+                <Badge v-if="personas.filter(p => !p.is_archived).length > 0" variant="secondary" size="sm" class="ml-1">
+                    {{ personas.filter(p => !p.is_archived).length }}
+                </Badge>
+            </button>
+        </div>
+
         <!-- Search -->
         <Input
             v-model="searchQuery"
-            placeholder="Search prompts..."
+            :placeholder="activeSection === 'prompts' ? 'Search prompts...' : 'Search personas...'"
             size="sm"
             class="text-xs"
         >
@@ -98,6 +192,8 @@ defineExpose({ refresh: fetchAllPrompts });
             </template>
         </Input>
 
+        <!-- Prompts Section -->
+        <template v-if="activeSection === 'prompts'">
         <!-- Type Filter -->
         <div class="flex flex-wrap gap-1">
             <button
@@ -185,5 +281,88 @@ defineExpose({ refresh: fetchAllPrompts });
             </svg>
             Manage Prompts
         </Link>
+        </template>
+
+        <!-- Personas Section -->
+        <template v-if="activeSection === 'personas'">
+            <!-- Empty -->
+            <div v-if="filteredPersonas.length === 0" class="py-4 text-center">
+                <div class="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-violet-100 dark:bg-violet-900/30">
+                    <svg class="h-5 w-5 text-violet-600 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                </div>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                    {{ searchQuery ? 'No matching personas' : 'No personas yet' }}
+                </p>
+                <button
+                    v-if="!searchQuery"
+                    type="button"
+                    class="mt-2 text-xs font-medium text-violet-600 hover:text-violet-700 dark:text-violet-400"
+                    @click="openNewPersona"
+                >
+                    Create your first persona
+                </button>
+            </div>
+
+            <!-- Personas List -->
+            <div v-else class="max-h-48 space-y-1.5 overflow-y-auto">
+                <button
+                    v-for="persona in filteredPersonas"
+                    :key="persona.id"
+                    type="button"
+                    class="group flex w-full items-center gap-2 rounded-lg border border-zinc-200 bg-white p-2 text-left transition-colors hover:border-violet-300 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-violet-600"
+                    @click="emit('selectPersona', persona)"
+                >
+                    <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-violet-100 dark:bg-violet-900/30">
+                        <svg class="h-3 w-3 text-violet-600 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-1">
+                            <span class="truncate text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                                {{ persona.name }}
+                            </span>
+                            <Badge v-if="persona.is_default" variant="info" size="sm">Default</Badge>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        class="shrink-0 rounded p-1 opacity-0 transition-opacity hover:bg-zinc-100 group-hover:opacity-100 dark:hover:bg-zinc-700"
+                        title="Edit persona"
+                        @click.stop="openEditPersona(persona)"
+                    >
+                        <svg class="h-3 w-3 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                    </button>
+                </button>
+            </div>
+
+            <!-- Create Persona Button -->
+            <button
+                type="button"
+                class="flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-zinc-300 px-2 py-1.5 text-xs text-zinc-500 transition-colors hover:border-violet-400 hover:text-violet-600 dark:border-zinc-600 dark:text-zinc-400 dark:hover:border-violet-500 dark:hover:text-violet-400"
+                @click="openNewPersona"
+            >
+                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                New Persona
+            </button>
+        </template>
     </div>
+
+    <!-- Persona Editor Modal -->
+    <PersonaEditor
+        :show="showPersonaEditor"
+        :persona="editingPersona"
+        :is-creating="isCreatingPersona"
+        @close="showPersonaEditor = false"
+        @created="handlePersonaCreated"
+        @updated="handlePersonaUpdated"
+        @deleted="handlePersonaDeleted"
+        @archived="handlePersonaDeleted"
+    />
 </template>

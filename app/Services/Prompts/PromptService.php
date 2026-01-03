@@ -4,6 +4,8 @@ namespace App\Services\Prompts;
 
 use App\Models\Prompt;
 use App\Models\PromptFolder;
+use App\Models\PromptPersona;
+use App\Models\PromptPreset;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
@@ -353,5 +355,153 @@ class PromptService
             'by_type' => $byType,
             'total_usage' => $totalUsage,
         ];
+    }
+
+    // ==================== Persona Methods ====================
+
+    /**
+     * Get personas applicable for a user, interaction type, and project.
+     *
+     * @return Collection<int, PromptPersona>
+     */
+    public function getApplicablePersonas(
+        User $user,
+        string $interactionType,
+        ?int $projectId = null
+    ): Collection {
+        return PromptPersona::where('user_id', $user->id)
+            ->active()
+            ->forInteractionType($interactionType)
+            ->forProject($projectId)
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * Get default personas for a user.
+     *
+     * @return Collection<int, PromptPersona>
+     */
+    public function getDefaultPersonas(User $user): Collection
+    {
+        return PromptPersona::where('user_id', $user->id)
+            ->active()
+            ->where('is_default', true)
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * Build persona system message from applicable personas.
+     *
+     * @param  Collection<int, PromptPersona>  $personas
+     */
+    public function buildPersonaContext(Collection $personas): string
+    {
+        if ($personas->isEmpty()) {
+            return '';
+        }
+
+        $messages = $personas->map(function (PromptPersona $persona) {
+            $header = "## {$persona->name}";
+            if ($persona->description) {
+                $header .= "\n*{$persona->description}*";
+            }
+
+            return "{$header}\n\n{$persona->system_message}";
+        });
+
+        return $messages->join("\n\n---\n\n");
+    }
+
+    /**
+     * Prepare prompt execution context with personas.
+     *
+     * @param  array<string, mixed>  $additionalContext
+     * @return array<string, mixed>
+     */
+    public function preparePromptContext(
+        Prompt $prompt,
+        User $user,
+        ?int $projectId = null,
+        array $additionalContext = []
+    ): array {
+        $context = $additionalContext;
+
+        // Get applicable personas
+        $personas = $this->getApplicablePersonas($user, $prompt->type, $projectId);
+        $context['personas'] = $this->buildPersonaContext($personas);
+        $context['personaCount'] = $personas->count();
+        $context['personaNames'] = $personas->pluck('name')->join(', ');
+
+        return $context;
+    }
+
+    // ==================== Preset Methods ====================
+
+    /**
+     * Get presets for a prompt.
+     *
+     * @return Collection<int, PromptPreset>
+     */
+    public function getPresetsForPrompt(User $user, Prompt $prompt): Collection
+    {
+        return PromptPreset::where('user_id', $user->id)
+            ->where('prompt_id', $prompt->id)
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * Get the default preset for a prompt.
+     */
+    public function getDefaultPreset(User $user, Prompt $prompt): ?PromptPreset
+    {
+        return PromptPreset::where('user_id', $user->id)
+            ->where('prompt_id', $prompt->id)
+            ->where('is_default', true)
+            ->first();
+    }
+
+    /**
+     * Apply preset settings to model settings.
+     *
+     * @param  array<string, mixed>|null  $baseSettings
+     * @return array<string, mixed>
+     */
+    public function applyPresetSettings(?array $baseSettings, PromptPreset $preset): array
+    {
+        $settings = $baseSettings ?? [];
+
+        // Apply preset model settings (non-null values override)
+        if ($preset->model !== null) {
+            $settings['model'] = $preset->model;
+        }
+
+        if ($preset->temperature !== null) {
+            $settings['temperature'] = $preset->temperature;
+        }
+
+        if ($preset->max_tokens !== null) {
+            $settings['max_tokens'] = $preset->max_tokens;
+        }
+
+        if ($preset->top_p !== null) {
+            $settings['top_p'] = $preset->top_p;
+        }
+
+        if ($preset->frequency_penalty !== null) {
+            $settings['frequency_penalty'] = $preset->frequency_penalty;
+        }
+
+        if ($preset->presence_penalty !== null) {
+            $settings['presence_penalty'] = $preset->presence_penalty;
+        }
+
+        if ($preset->stop_sequences !== null && count($preset->stop_sequences) > 0) {
+            $settings['stop'] = $preset->stop_sequences;
+        }
+
+        return $settings;
     }
 }

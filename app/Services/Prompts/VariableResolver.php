@@ -3,9 +3,11 @@
 namespace App\Services\Prompts;
 
 use App\Models\Novel;
+use App\Models\PromptPersona;
 use App\Models\Scene;
 use App\Models\User;
 use App\Services\Codex\CodexContextBuilder;
+use Illuminate\Support\Collection;
 
 /**
  * Resolves variables in prompt templates.
@@ -112,6 +114,56 @@ class VariableResolver
         ];
 
         return $this;
+    }
+
+    /**
+     * Build context from personas.
+     *
+     * @param  Collection<int, PromptPersona>  $personas
+     */
+    public function buildPersonasContext(Collection $personas): self
+    {
+        if ($personas->isEmpty()) {
+            $this->context['personas'] = '';
+
+            return $this;
+        }
+
+        // Combine all persona system messages into a single context block
+        $personaMessages = $personas
+            ->map(function (PromptPersona $persona) {
+                $header = "## {$persona->name}";
+                if ($persona->description) {
+                    $header .= "\n*{$persona->description}*";
+                }
+
+                return "{$header}\n\n{$persona->system_message}";
+            })
+            ->join("\n\n---\n\n");
+
+        $this->context['personas'] = $personaMessages;
+        $this->context['personaCount'] = $personas->count();
+        $this->context['personaNames'] = $personas->pluck('name')->join(', ');
+
+        return $this;
+    }
+
+    /**
+     * Get applicable personas for a user and context.
+     *
+     * @return Collection<int, PromptPersona>
+     */
+    public function getApplicablePersonas(
+        User $user,
+        string $interactionType,
+        ?int $projectId = null
+    ): Collection {
+        return PromptPersona::where('user_id', $user->id)
+            ->active()
+            ->forInteractionType($interactionType)
+            ->forProject($projectId)
+            ->orderBy('name')
+            ->get();
     }
 
     /**

@@ -16,9 +16,11 @@ import TabInstructions from './editor/TabInstructions.vue';
 import TabAdvanced from './editor/TabAdvanced.vue';
 import TabDescription from './editor/TabDescription.vue';
 import PromptPreviewPanel from './editor/PromptPreviewPanel.vue';
+import PresetEditor from './PresetEditor.vue';
 
 // Types from tab components
 import type { PromptInputDef, PromptComponentRef } from './editor/TabAdvanced.vue';
+import type { Preset } from '@/composables/usePresets';
 
 // Performance mode for animations
 const { isReducedMotion, quickSpringConfig } = usePerformanceMode();
@@ -84,6 +86,11 @@ const tabs: { id: TabId; label: string; icon: string }[] = [
 // UI state
 const isLoading = ref(false);
 const hasChanges = ref(false);
+
+// Preset editor state
+const showPresetEditor = ref(false);
+const editingPreset = ref<Preset | null>(null);
+const isCreatingPreset = ref(false);
 
 // Toast state
 const toast = ref({
@@ -255,6 +262,37 @@ function handleInsertVariable(variable: string, field: 'system' | 'user') {
 function handleInsertComponent(componentName: string) {
     systemMessage.value += `[[${componentName}]]`;
 }
+
+// Handle preset editor
+function handleOpenPresetEditor(preset: Preset | null, isCreating: boolean) {
+    editingPreset.value = preset;
+    isCreatingPreset.value = isCreating;
+    showPresetEditor.value = true;
+}
+
+function handlePresetCreated(preset: Preset) {
+    showToastMessage('success', 'Created!', `Preset "${preset.name}" created`);
+}
+
+function handlePresetUpdated(preset: Preset) {
+    showToastMessage('success', 'Updated!', `Preset "${preset.name}" updated`);
+}
+
+function handlePresetDeleted() {
+    showToastMessage('success', 'Deleted!', 'Preset deleted');
+}
+
+function handleApplyPreset(preset: Preset) {
+    // Apply model settings from preset
+    const newSettings: ModelSettings = {};
+    if (preset.temperature !== null) newSettings.temperature = preset.temperature;
+    if (preset.max_tokens !== null) newSettings.max_tokens = preset.max_tokens;
+    if (preset.top_p !== null) newSettings.top_p = preset.top_p;
+    if (preset.frequency_penalty !== null) newSettings.frequency_penalty = preset.frequency_penalty;
+    if (preset.presence_penalty !== null) newSettings.presence_penalty = preset.presence_penalty;
+    
+    modelSettings.value = newSettings;
+}
 </script>
 
 <template>
@@ -363,9 +401,12 @@ function handleInsertComponent(componentName: string) {
                     :model-settings="modelSettings"
                     :is-editable="isEditable ?? false"
                     :is-creating="false"
+                    :prompt-id="prompt?.id"
                     @update:name="name = $event"
                     @update:type="type = $event"
                     @update:model-settings="modelSettings = $event"
+                    @open-preset-editor="handleOpenPresetEditor"
+                    @apply-preset="handleApplyPreset"
                 />
             </Motion>
 
@@ -464,4 +505,16 @@ function handleInsertComponent(componentName: string) {
     >
         {{ toast.message }}
     </Toast>
+
+    <!-- Preset Editor Modal -->
+    <PresetEditor
+        :show="showPresetEditor"
+        :preset="editingPreset"
+        :prompt="prompt"
+        :is-creating="isCreatingPreset"
+        @close="showPresetEditor = false"
+        @created="handlePresetCreated"
+        @updated="handlePresetUpdated"
+        @deleted="handlePresetDeleted"
+    />
 </template>

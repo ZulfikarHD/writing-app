@@ -1,5 +1,10 @@
 <script setup lang="ts">
+import { ref, computed, watch } from 'vue';
+import Button from '@/components/ui/buttons/Button.vue';
+import Badge from '@/components/ui/Badge.vue';
 import type { ModelSettings } from '@/composables/usePrompts';
+import { usePresets } from '@/composables/usePresets';
+import type { Preset } from '@/composables/usePresets';
 
 interface Props {
     name: string;
@@ -8,6 +13,7 @@ interface Props {
     modelSettings: ModelSettings;
     isEditable: boolean;
     isCreating: boolean;
+    promptId?: number;
 }
 
 const props = defineProps<Props>();
@@ -16,9 +22,80 @@ const emit = defineEmits<{
     'update:name': [value: string];
     'update:type': [value: 'chat' | 'prose' | 'replacement' | 'summary'];
     'update:modelSettings': [value: ModelSettings];
+    'openPresetEditor': [preset: Preset | null, isCreating: boolean];
+    'applyPreset': [preset: Preset];
 }>();
 
+const { fetchPresetsForPrompt } = usePresets();
+
+// Presets state
+const presets = ref<Preset[]>([]);
+const isLoadingPresets = ref(false);
+const selectedPresetId = ref<number | null>(null);
+const showPresetDropdown = ref(false);
+
+// Load presets when prompt ID is available
+async function loadPresets() {
+    if (!props.promptId) return;
+    
+    isLoadingPresets.value = true;
+    try {
+        presets.value = await fetchPresetsForPrompt(props.promptId);
+    } catch {
+        // Silently fail
+    } finally {
+        isLoadingPresets.value = false;
+    }
+}
+
+// Watch for prompt ID changes
+watch(() => props.promptId, () => {
+    if (props.promptId) {
+        loadPresets();
+    }
+}, { immediate: true });
+
+// Selected preset
+const selectedPreset = computed(() => {
+    if (!selectedPresetId.value) return null;
+    return presets.value.find(p => p.id === selectedPresetId.value) || null;
+});
+
+// Apply preset settings
+function applyPreset(preset: Preset) {
+    selectedPresetId.value = preset.id;
+    showPresetDropdown.value = false;
+    
+    // Apply model settings from preset
+    const newSettings: ModelSettings = {};
+    if (preset.temperature !== null) newSettings.temperature = preset.temperature;
+    if (preset.max_tokens !== null) newSettings.max_tokens = preset.max_tokens;
+    if (preset.top_p !== null) newSettings.top_p = preset.top_p;
+    if (preset.frequency_penalty !== null) newSettings.frequency_penalty = preset.frequency_penalty;
+    if (preset.presence_penalty !== null) newSettings.presence_penalty = preset.presence_penalty;
+    
+    emit('update:modelSettings', newSettings);
+    emit('applyPreset', preset);
+}
+
+// Clear preset selection
+function clearPreset() {
+    selectedPresetId.value = null;
+}
+
+// Open preset editor (create new)
+function openNewPreset() {
+    emit('openPresetEditor', null, true);
+}
+
+// Open preset editor (edit existing)
+function editPreset(preset: Preset) {
+    emit('openPresetEditor', preset, false);
+}
+
 function updateModelSetting(key: keyof ModelSettings, value: number | undefined) {
+    // Clear preset selection when manually changing settings
+    selectedPresetId.value = null;
     emit('update:modelSettings', {
         ...props.modelSettings,
         [key]: value || undefined,
@@ -61,6 +138,97 @@ function updateModelSetting(key: keyof ModelSettings, value: number | undefined)
             <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                 Determines where and how this prompt can be used.
             </p>
+        </div>
+
+        <!-- Presets Section (only when editing existing prompt) -->
+        <div v-if="promptId && !isCreating" class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/50">
+            <div class="mb-3 flex items-center justify-between">
+                <div>
+                    <h3 class="font-medium text-zinc-900 dark:text-white">Presets</h3>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                        Quick-apply saved model settings and input values
+                    </p>
+                </div>
+                <Button
+                    v-if="isEditable"
+                    variant="ghost"
+                    size="sm"
+                    @click="openNewPreset"
+                >
+                    <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    New Preset
+                </Button>
+            </div>
+
+            <!-- Loading state -->
+            <div v-if="isLoadingPresets" class="flex items-center gap-2 text-sm text-zinc-500">
+                <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Loading presets...
+            </div>
+
+            <!-- No presets -->
+            <div v-else-if="presets.length === 0" class="text-sm text-zinc-500 dark:text-zinc-400">
+                No presets saved yet. Create one to quickly apply your favorite settings.
+            </div>
+
+            <!-- Preset list -->
+            <div v-else class="space-y-2">
+                <!-- Selected preset indicator -->
+                <div v-if="selectedPreset" class="mb-3 flex items-center gap-2 rounded-lg bg-violet-50 px-3 py-2 dark:bg-violet-950/30">
+                    <svg class="h-4 w-4 text-violet-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm font-medium text-violet-700 dark:text-violet-300">
+                        Using preset: {{ selectedPreset.name }}
+                    </span>
+                    <button
+                        type="button"
+                        class="ml-auto text-violet-600 hover:text-violet-700 dark:text-violet-400"
+                        @click="clearPreset"
+                    >
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Preset buttons -->
+                <div class="flex flex-wrap gap-2">
+                    <button
+                        v-for="preset in presets"
+                        :key="preset.id"
+                        type="button"
+                        class="group relative flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors"
+                        :class="[
+                            selectedPresetId === preset.id
+                                ? 'border-violet-500 bg-violet-50 text-violet-700 dark:border-violet-400 dark:bg-violet-950/30 dark:text-violet-300'
+                                : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600',
+                        ]"
+                        @click="applyPreset(preset)"
+                    >
+                        <span>{{ preset.name }}</span>
+                        <Badge v-if="preset.is_default" variant="info" size="sm">Default</Badge>
+                        
+                        <!-- Edit button (on hover) -->
+                        <button
+                            v-if="isEditable"
+                            type="button"
+                            class="ml-1 opacity-0 transition-opacity group-hover:opacity-100"
+                            title="Edit preset"
+                            @click.stop="editPreset(preset)"
+                        >
+                            <svg class="h-3.5 w-3.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                        </button>
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Model Settings Section -->

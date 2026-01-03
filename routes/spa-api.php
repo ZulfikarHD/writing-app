@@ -19,6 +19,8 @@ use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PromptComponentController;
 use App\Http\Controllers\PromptController;
 use App\Http\Controllers\PromptInputController;
+use App\Http\Controllers\PromptPersonaController;
+use App\Http\Controllers\PromptPresetController;
 use App\Http\Controllers\SceneController;
 use App\Http\Controllers\SceneLabelController;
 use App\Http\Controllers\SeriesCodexController;
@@ -367,5 +369,39 @@ Route::middleware('auth')->prefix('api')->group(function () {
         Route::patch('/', [PromptComponentController::class, 'update'])->name('prompt-components.update');
         Route::delete('/', [PromptComponentController::class, 'destroy'])->name('prompt-components.destroy');
         Route::post('clone', [PromptComponentController::class, 'clone'])->name('prompt-components.clone');
+    });
+
+    // ==================== Prompt Personas API ====================
+    Route::prefix('prompt-personas')->group(function () {
+        Route::get('/', [PromptPersonaController::class, 'index'])->name('prompt-personas.index');
+        Route::get('context', [PromptPersonaController::class, 'forContext'])->name('prompt-personas.context');
+        Route::get('interaction-types', [PromptPersonaController::class, 'interactionTypes'])->name('prompt-personas.interaction-types');
+        Route::post('/', [PromptPersonaController::class, 'store'])->name('prompt-personas.store');
+    });
+
+    Route::prefix('prompt-personas/{promptPersona}')->group(function () {
+        Route::get('/', [PromptPersonaController::class, 'show'])->name('prompt-personas.show');
+        Route::patch('/', [PromptPersonaController::class, 'update'])->name('prompt-personas.update');
+        Route::delete('/', [PromptPersonaController::class, 'destroy'])->name('prompt-personas.destroy');
+        Route::post('archive', [PromptPersonaController::class, 'archive'])->name('prompt-personas.archive');
+        Route::post('restore', [PromptPersonaController::class, 'restore'])->name('prompt-personas.restore');
+    });
+
+    // ==================== Prompt Presets API ====================
+    Route::prefix('prompt-presets')->group(function () {
+        Route::get('/', [PromptPresetController::class, 'index'])->name('prompt-presets.index');
+    });
+
+    Route::prefix('prompt-presets/{promptPreset}')->group(function () {
+        Route::get('/', [PromptPresetController::class, 'show'])->name('prompt-presets.show');
+        Route::patch('/', [PromptPresetController::class, 'update'])->name('prompt-presets.update');
+        Route::delete('/', [PromptPresetController::class, 'destroy'])->name('prompt-presets.destroy');
+        Route::post('set-default', [PromptPresetController::class, 'setDefault'])->name('prompt-presets.set-default');
+    });
+
+    // Presets for a specific prompt
+    Route::prefix('prompts/{prompt}/presets')->group(function () {
+        Route::get('/', [PromptPresetController::class, 'forPrompt'])->name('prompts.presets.index');
+        Route::post('/', [PromptPresetController::class, 'store'])->name('prompts.presets.store');
     });
 });

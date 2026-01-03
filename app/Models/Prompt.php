@@ -29,6 +29,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read \Illuminate\Database\Eloquent\Collection<int, PromptInput> $inputs
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, PromptPreset> $presets
  */
 class Prompt extends Model
 {
@@ -96,6 +97,14 @@ class Prompt extends Model
     public function inputs(): HasMany
     {
         return $this->hasMany(PromptInput::class)->orderBy('sort_order');
+    }
+
+    /**
+     * @return HasMany<PromptPreset, $this>
+     */
+    public function presets(): HasMany
+    {
+        return $this->hasMany(PromptPreset::class);
     }
 
     /**

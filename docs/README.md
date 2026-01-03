@@ -39,7 +39,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Sprint 22 - Chat Markdown Enhancement](./10-sprints/sprint-22-chat-markdown-enhancement.md) ✅ Complete
 - [Sprint 23 - Chat Enhancement Features (FG-04.4)](./10-sprints/sprint-23-chat-enhancement-features.md) ✅ Complete
 - [Sprint 24 - Prompt Library Core (FG-05.1)](./10-sprints/sprint-24-prompts-library-core.md) ✅ Complete
-- [Sprint 25 - Prompt Editor Enhancement (FG-05.2)](./10-sprints/sprint-25-prompt-editor-enhancement.md) ✅ Complete ✨ NEW
+- [Sprint 25 - Prompt Editor Enhancement (FG-05.2)](./10-sprints/sprint-25-prompt-editor-enhancement.md) ✅ Complete
+- [Sprint 26 - Personas & Presets (FG-05.3)](./10-sprints/sprint-26-personas-presets.md) ✅ Complete ✨ NEW
 
 ### API Reference
 - [Authentication API](./04-api-reference/authentication.md)
@@ -51,7 +52,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Series API](./04-api-reference/series.md)
 - [Story Planning API](./04-api-reference/story-planning.md)
 - [Chat API](./04-api-reference/chat.md)
-- [Prompts API](./04-api-reference/prompts.md) ✨ NEW
+- [Prompts API](./04-api-reference/prompts.md)
+- [Personas & Presets API](./04-api-reference/personas-presets.md) ✨ NEW
 
 ### Testing
 - [Foundation Testing Guide](./06-testing/foundation-testing.md)
@@ -65,7 +67,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Chat Testing Guide](./06-testing/chat-testing.md)
 - [Chat Context Testing Guide](./06-testing/chat-context-testing.md)
 - [Chat Enhancement Testing Guide](./06-testing/chat-enhancement-testing.md)
-- [Prompts Testing Guide](./06-testing/prompts-testing.md) ✨ NEW
+- [Prompts Testing Guide](./06-testing/prompts-testing.md)
+- [Personas & Presets Testing Guide](./06-testing/personas-presets-testing.md) ✨ NEW
 
 ### Developer Guides
 - [Performance Mode Guide](./performance-mode.md) ✨ NEW
@@ -87,7 +90,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Story Planning Flows](./07-user-journeys/story-planning/plan-views-flow.md)
 - [Chat Context Integration Flow](./07-user-journeys/chat-context/context-integration-flow.md)
 - [Prompts Library Flow](./07-user-journeys/prompts/prompt-library-flow.md)
-- [Prompt Editor Flow](./07-user-journeys/prompts/prompt-editor-flow.md) ✨ NEW
+- [Prompt Editor Flow](./07-user-journeys/prompts/prompt-editor-flow.md)
+- [Personas & Presets Flow](./07-user-journeys/personas-presets/personas-presets-flow.md) ✨ NEW
 
 ---
 
@@ -119,6 +123,7 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 | **Chat Enhancement Features** | ✅ Complete | [Sprint 23](./10-sprints/sprint-23-chat-enhancement-features.md) | [Link](./04-api-reference/chat.md#real-time-broadcasting-websocket) | [Link](./06-testing/chat-enhancement-testing.md) |
 | **Prompt Library Core** | ✅ Complete | [Sprint 24](./10-sprints/sprint-24-prompts-library-core.md) | [Link](./04-api-reference/prompts.md) | [Link](./06-testing/prompts-testing.md) |
 | **Prompt Editor Enhancement** | ✅ Complete | [Sprint 25](./10-sprints/sprint-25-prompt-editor-enhancement.md) | [Link](./04-api-reference/prompts.md) | [Link](./06-testing/prompts-testing.md) |
+| **Personas & Presets** | ✅ Complete | [Sprint 26](./10-sprints/sprint-26-personas-presets.md) | [Link](./04-api-reference/personas-presets.md) | [Link](./06-testing/personas-presets-testing.md) |
 
 ---
 
@@ -438,10 +443,15 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 - ✅ **UX Improvements**: Delete confirmation modal, inline thread rename
 
 ### January 3, 2026
+- ✅ **Sprint 26 Completed**: Personas & Presets (FG-05.3) - Reusable AI instructions dan saved prompt configurations
+- ✅ **Personas System**: Create global AI instructions yang di-share across multiple prompts dan projects
+- ✅ **Presets System**: Save dan quick-apply model settings + input values untuk prompts tertentu
+- ✅ **Interaction Type Filtering**: Personas automatically apply berdasarkan prompt type (chat, prose, replacement, summary)
+- ✅ **Default Management**: Auto-apply default personas dan presets untuk consistent AI behavior
+- ✅ **Workspace Integration**: Personas tab di sidebar dengan create/edit/archive functionality
+- ✅ **Variable Injection**: `{personas}` variable support untuk inject persona instructions ke prompts
+- ✅ **Sprint 25 Completed**: Prompt Editor Enhancement (FG-05.2) - Advanced prompt editing dengan variables, components, dan preview
 - ✅ **Sprint 24 Completed**: Prompt Library Core (FG-05.1) - Full prompt management system dengan CRUD, types, cloning, dan workspace integration
-- ✅ **Prompt System**: Create, edit, clone, dan organize AI prompts dengan 4 types (Chat, Prose, Replacement, Summary)
-- ✅ **Workspace Integration**: Prompts accessible dari workspace sidebar untuk seamless writing flow
-- ✅ **System Prompts**: Built-in prompts yang read-only dengan clone capability untuk customization
 - ✅ **Chat UX Enhancements**: Regenerate with model selection, edit & resend messages, improved first-time UX
 - ✅ **Reverb Connection Fixed**: WebSocket real-time chat now working properly dengan comprehensive setup guide
 - ✅ **Sprint 22 Completed**: Chat Markdown Enhancement - Professional markdown rendering dengan syntax highlighting untuk 20+ programming languages
@@ -624,4 +634,4 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 ---
 
 *Last Updated: 2026-01-03*  
-*Latest Features: Sprint 24 (Prompt Library Core) + Sprint 23 (Chat Enhancement Features) + Sprint 22 (Markdown Enhancement)*
+*Latest Features: Sprint 26 (Personas & Presets) + Sprint 25 (Prompt Editor) + Sprint 24 (Prompt Library Core)*
