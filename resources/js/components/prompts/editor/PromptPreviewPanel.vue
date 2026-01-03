@@ -1,19 +1,63 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import Button from '@/components/ui/buttons/Button.vue';
+import Input from '@/components/ui/forms/Input.vue';
 import type { PromptMessage } from './TabInstructions.vue';
+import { useComponents } from '@/composables/useComponents';
+
+export interface PromptInputDef {
+    id: string | number;
+    name: string;
+    label: string;
+    type: 'text' | 'textarea' | 'select' | 'number' | 'checkbox';
+    options?: { value: string; label: string }[];
+    default_value?: string;
+    placeholder?: string;
+    description?: string;
+    is_required: boolean;
+    sort_order: number;
+}
 
 interface Props {
     systemMessage: string;
     userMessage: string;
     messages: PromptMessage[];
     promptType: 'chat' | 'prose' | 'replacement' | 'summary';
+    inputs?: PromptInputDef[];
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    inputs: () => [],
+});
+
+// Components composable
+const { components, fetchComponents } = useComponents();
+
+// Fetch components on mount
+onMounted(async () => {
+    await fetchComponents();
+});
 
 const showResolved = ref(false);
 const copied = ref(false);
+const showInputPanel = ref(false);
+
+// Test values for inputs
+const inputTestValues = ref<Record<string, string>>({});
+
+// Initialize input test values when inputs change
+watch(
+    () => props.inputs,
+    (inputs) => {
+        const values: Record<string, string> = {};
+        for (const input of inputs) {
+            // Keep existing value if present, otherwise use default
+            values[input.name] = inputTestValues.value[input.name] ?? input.default_value ?? '';
+        }
+        inputTestValues.value = values;
+    },
+    { immediate: true, deep: true }
+);
 
 // Sample context data for preview
 const sampleContext = {
@@ -39,6 +83,15 @@ const sampleContext = {
     'date.today': new Date().toLocaleDateString(),
 };
 
+// Build a map of component content by name
+const componentMap = computed(() => {
+    const map: Record<string, string> = {};
+    for (const comp of components.value) {
+        map[comp.name] = comp.content;
+    }
+    return map;
+});
+
 // Estimate token count (rough approximation: 1 token ~= 4 characters)
 const tokenCount = computed(() => {
     const text = `${props.systemMessage}\n${props.userMessage}\n${props.messages.map((m) => m.content).join('\n')}`;
@@ -51,21 +104,62 @@ function resolveVariables(text: string): string {
 
     let resolved = text;
 
-    // Replace {variable} patterns with sample data
-    resolved = resolved.replace(/\{([a-zA-Z_.]+)(?:\([^)]*\))?\}/g, (match, varName) => {
-        const value = sampleContext[varName as keyof typeof sampleContext];
-        if (value) {
-            return `<span class="variable-resolved">${value}</span>`;
+    // Replace {include("name")} patterns with component content
+    resolved = resolved.replace(/\{include\(["']([^"']+)["']\)\}/g, (match, compName) => {
+        const content = componentMap.value[compName];
+        if (content) {
+            // Recursively resolve variables in the component content
+            const resolvedContent = resolveVariables(content);
+            return `<span class="component-resolved" title="Component: ${compName}">${resolvedContent}</span>`;
         }
-        return `<span class="variable-unresolved">${match}</span>`;
+        return `<span class="component-unresolved" title="Component not found: ${compName}">${match}</span>`;
     });
 
-    // Replace [[component]] patterns
+    // Replace [[component]] patterns (legacy syntax)
     resolved = resolved.replace(/\[\[([a-zA-Z_][a-zA-Z0-9_]*)\]\]/g, (match, compName) => {
-        return `<span class="component-resolved">[Component: ${compName}]</span>`;
+        const content = componentMap.value[compName];
+        if (content) {
+            const resolvedContent = resolveVariables(content);
+            return `<span class="component-resolved" title="Component: ${compName}">${resolvedContent}</span>`;
+        }
+        return `<span class="component-unresolved" title="Component not found: ${compName}">${match}</span>`;
+    });
+
+    // Replace {input("name")} patterns with test values
+    resolved = resolved.replace(/\{input\(["']([^"']+)["']\)\}/g, (match, inputName) => {
+        const value = inputTestValues.value[inputName];
+        if (value !== undefined && value !== '') {
+            return `<span class="input-resolved" title="Input: ${inputName}">${escapeHtml(value)}</span>`;
+        }
+        // Check if this is a known input
+        const knownInput = props.inputs.find((i) => i.name === inputName);
+        if (knownInput) {
+            return `<span class="input-placeholder" title="Input: ${inputName}">[${knownInput.label || inputName}]</span>`;
+        }
+        return `<span class="input-unresolved" title="Unknown input: ${inputName}">${match}</span>`;
+    });
+
+    // Replace {variable} patterns with sample data (simple variables without quotes)
+    resolved = resolved.replace(/\{([a-zA-Z_][a-zA-Z0-9_.]*)\}/g, (match, varName) => {
+        // Skip if it looks like a function call we already handled
+        if (varName === 'include' || varName === 'input') {
+            return match;
+        }
+        const value = sampleContext[varName as keyof typeof sampleContext];
+        if (value) {
+            return `<span class="variable-resolved" title="Variable: ${varName}">${value}</span>`;
+        }
+        return `<span class="variable-unresolved" title="Unknown variable: ${varName}">${match}</span>`;
     });
 
     return resolved;
+}
+
+// Escape HTML to prevent XSS when showing user input
+function escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // Format message role label
@@ -121,6 +215,22 @@ function buildFullPrompt(): string {
                     />
                     <span class="text-zinc-700 dark:text-zinc-300">Show with sample data</span>
                 </label>
+                <button
+                    v-if="inputs.length > 0"
+                    type="button"
+                    class="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium transition-colors"
+                    :class="[
+                        showInputPanel
+                            ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300'
+                            : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700',
+                    ]"
+                    @click="showInputPanel = !showInputPanel"
+                >
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Test Inputs ({{ inputs.length }})
+                </button>
             </div>
 
             <div class="flex items-center gap-3">
@@ -142,6 +252,32 @@ function buildFullPrompt(): string {
                     </svg>
                     {{ copied ? 'Copied!' : 'Copy' }}
                 </Button>
+            </div>
+        </div>
+
+        <!-- Test Input Panel -->
+        <div
+            v-if="showInputPanel && inputs.length > 0"
+            class="rounded-lg border border-pink-200 bg-pink-50 p-3 dark:border-pink-800 dark:bg-pink-950/30"
+        >
+            <div class="mb-2 flex items-center gap-2">
+                <svg class="h-4 w-4 text-pink-600 dark:text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <span class="text-xs font-medium text-pink-700 dark:text-pink-300">Test Input Values</span>
+            </div>
+            <div class="grid gap-2 sm:grid-cols-2">
+                <div v-for="input in inputs" :key="input.id">
+                    <label class="mb-0.5 block text-[10px] font-medium text-pink-700 dark:text-pink-400">
+                        {{ input.label || input.name }}
+                    </label>
+                    <Input
+                        v-model="inputTestValues[input.name]"
+                        :placeholder="input.placeholder || `Enter ${input.label || input.name}...`"
+                        size="sm"
+                        class="bg-white text-xs dark:bg-zinc-800"
+                    />
+                </div>
             </div>
         </div>
 
@@ -226,7 +362,15 @@ function buildFullPrompt(): string {
                 </div>
                 <div class="flex items-center gap-1.5">
                     <span class="inline-block h-3 w-3 rounded bg-cyan-200 dark:bg-cyan-800"></span>
-                    <span class="text-zinc-600 dark:text-zinc-400">Component Reference</span>
+                    <span class="text-zinc-600 dark:text-zinc-400">Component (Resolved)</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="inline-block h-3 w-3 rounded bg-pink-200 dark:bg-pink-800"></span>
+                    <span class="text-zinc-600 dark:text-zinc-400">Input Value</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="inline-block h-3 w-3 rounded bg-zinc-300 dark:bg-zinc-600"></span>
+                    <span class="text-zinc-600 dark:text-zinc-400">Input Placeholder</span>
                 </div>
             </div>
         </div>
@@ -255,20 +399,67 @@ function buildFullPrompt(): string {
     color: rgb(14 116 144);
 }
 
-@media (prefers-color-scheme: dark) {
-    :deep(.variable-resolved) {
-        background-color: rgba(91, 33, 182, 0.5);
-        color: rgb(221 214 254);
-    }
+:deep(.component-unresolved) {
+    border-radius: 0.25rem;
+    background-color: rgb(254 226 226);
+    padding: 0.125rem 0.25rem;
+    color: rgb(185 28 28);
+}
 
-    :deep(.variable-unresolved) {
-        background-color: rgba(146, 64, 14, 0.5);
-        color: rgb(253 230 138);
-    }
+:deep(.input-resolved) {
+    border-radius: 0.25rem;
+    background-color: rgb(252 231 243);
+    padding: 0.125rem 0.25rem;
+    color: rgb(157 23 77);
+}
 
-    :deep(.component-resolved) {
-        background-color: rgba(14, 116, 144, 0.5);
-        color: rgb(165 243 252);
-    }
+:deep(.input-placeholder) {
+    border-radius: 0.25rem;
+    background-color: rgb(228 228 231);
+    padding: 0.125rem 0.25rem;
+    color: rgb(82 82 91);
+    font-style: italic;
+}
+
+:deep(.input-unresolved) {
+    border-radius: 0.25rem;
+    background-color: rgb(254 243 199);
+    padding: 0.125rem 0.25rem;
+    color: rgb(146 64 14);
+}
+
+.dark :deep(.variable-resolved) {
+    background-color: rgba(91, 33, 182, 0.5);
+    color: rgb(221 214 254);
+}
+
+.dark :deep(.variable-unresolved) {
+    background-color: rgba(146, 64, 14, 0.5);
+    color: rgb(253 230 138);
+}
+
+.dark :deep(.component-resolved) {
+    background-color: rgba(14, 116, 144, 0.5);
+    color: rgb(165 243 252);
+}
+
+.dark :deep(.component-unresolved) {
+    background-color: rgba(185, 28, 28, 0.5);
+    color: rgb(254 202 202);
+}
+
+.dark :deep(.input-resolved) {
+    background-color: rgba(157, 23, 77, 0.5);
+    color: rgb(251 207 232);
+}
+
+.dark :deep(.input-placeholder) {
+    background-color: rgba(82, 82, 91, 0.5);
+    color: rgb(212 212 216);
+}
+
+.dark :deep(.input-unresolved) {
+    background-color: rgba(146, 64, 14, 0.5);
+    color: rgb(253 230 138);
 }
 </style>

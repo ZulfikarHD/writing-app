@@ -110,17 +110,55 @@ Dokumen ini menjelaskan user journey untuk Prompt Editor system, yaitu: workflow
 📍 START: Prompt Editor
     │
     ├─▶ Advanced Tab:
-    │   └─ "Included Components" section shows available components
-    │       ├─ Click "Insert" on component
-    │       │   └─ [[component_name]] inserted into system message
-    │       └─ See component content preview
+    │   └─ "Available Components" section shows all components
+    │       ├─ Click copy button on component
+    │       │   └─ {include("name")} copied to clipboard
+    │       ├─ Click "+" button to insert directly
+    │       │   └─ Component inserted into current message
+    │       └─ See system vs user-created badges
     │
-    ├─▶ Or manually type in Instructions Tab:
-    │   └─ Type [[genre_fantasy]]
-    │       └─ Component will be resolved at runtime
+    ├─▶ Instructions Tab - Autocomplete:
+    │   └─ Type "{include(" to trigger autocomplete
+    │       └─ Select component from dropdown
+    │           └─ {include("writing_style")} inserted
     │
     └─▶ Preview Tab:
-        └─ See [Component: genre_fantasy] placeholder
+        ├─ Toggle "Show with sample data"
+        └─ See component content resolved inline (cyan highlight)
+```
+
+---
+
+## Journey 4b: Creating a New Component
+
+**Actor:** Writer  
+**Goal:** Membuat reusable component baru
+
+```
+📍 START: Workspace Sidebar
+    │
+    ├─▶ Click "Prompts" section in sidebar
+    │   └─ Prompts Quick List appears
+    │
+    ├─▶ Click "Blocks" tab
+    │   └─ Component list shown (or empty state)
+    │
+    ├─▶ Click "+ New Component"
+    │   └─ ComponentEditor modal opens
+    │
+    ├─▶ Fill Component Details:
+    │   ├─ Name (Identifier): "writing_style"
+    │   │   └─ Must be valid identifier (letters, numbers, underscores)
+    │   ├─ Display Label: "Writing Style Guide"
+    │   └─ Instructions Tab:
+    │       └─ Enter reusable instructions content
+    │
+    ├─▶ Click "Copy include() call"
+    │   └─ {include("writing_style")} copied to clipboard
+    │
+    └─▶ Click "Create Component"
+        └─ SUCCESS: Component appears in Blocks list
+            └─ Can now be used in any prompt
 ```
 
 ---
@@ -251,12 +289,48 @@ Dokumen ini menjelaskan user journey untuk Prompt Editor system, yaitu: workflow
 
 ---
 
+---
+
+## Journey 8: Running Prompt with Inputs
+
+**Actor:** Writer  
+**Goal:** Menjalankan prompt yang memerlukan input
+
+```
+📍 START: Workspace Chat or Editor
+    │
+    ├─▶ Trigger prompt yang memiliki inputs
+    │   └─ InputForm modal appears
+    │
+    ├─▶ InputForm shows:
+    │   ├─ Prompt name di header
+    │   ├─ All defined input fields:
+    │   │   ├─ Text inputs (single line)
+    │   │   ├─ Textarea (multi-line)
+    │   │   ├─ Select dropdowns
+    │   │   ├─ Number inputs
+    │   │   └─ Checkbox toggles
+    │   ├─ Default values pre-filled
+    │   └─ Required fields marked with *
+    │
+    ├─▶ Fill input values:
+    │   ├─ Enter custom values
+    │   └─ Validation prevents submit if required empty
+    │
+    └─▶ Click "Run Prompt"
+        └─ SUCCESS: Prompt executed with values
+            └─ {input("name")} replaced with actual values
+```
+
+---
+
 ## Related Documentation
 
 - **API Reference:** [Prompts API](../../04-api-reference/prompts.md)
 - **Testing Guide:** [Prompts Testing](../../06-testing/prompts-testing.md)
-- **Sprint Doc:** [Sprint 25](../../10-sprints/sprint-25-prompt-editor-enhancement.md)
+- **Advanced Features Testing:** [FG-05.4 Testing](../../06-testing/prompt-advanced-features-testing.md)
+- **Sprint Doc:** [Sprint 27 - Advanced Features](../../10-sprints/sprint-27-prompt-advanced-features.md)
 
 ---
 
-*Last Updated: 2026-01-03*
+*Last Updated: 2026-01-04*

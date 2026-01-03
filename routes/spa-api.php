@@ -369,6 +369,7 @@ Route::middleware('auth')->prefix('api')->group(function () {
         Route::patch('/', [PromptComponentController::class, 'update'])->name('prompt-components.update');
         Route::delete('/', [PromptComponentController::class, 'destroy'])->name('prompt-components.destroy');
         Route::post('clone', [PromptComponentController::class, 'clone'])->name('prompt-components.clone');
+        Route::get('usages', [PromptComponentController::class, 'usages'])->name('prompt-components.usages');
     });
 
     // ==================== Prompt Personas API ====================

@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import Button from '@/components/ui/buttons/Button.vue';
+import Badge from '@/components/ui/Badge.vue';
+import { useComponents } from '@/composables/useComponents';
 
 export interface PromptInputDef {
     id: string;
@@ -35,7 +37,53 @@ const emit = defineEmits<{
     insertComponent: [componentName: string];
 }>();
 
+// Components composable for fetching available components
+const { components: allComponents, fetchComponents } = useComponents();
+
 const expandedInputId = ref<string | null>(null);
+const copiedInputName = ref<string | null>(null);
+const copiedComponentName = ref<string | null>(null);
+
+// Fetch components on mount
+onMounted(async () => {
+    await fetchComponents();
+});
+
+// Sort inputs by sort_order
+const sortedInputs = computed(() => {
+    return [...props.inputs].sort((a, b) => a.sort_order - b.sort_order);
+});
+
+// Validation for input name
+function isValidInputName(name: string): boolean {
+    return /^[a-z_][a-z0-9_]*$/i.test(name);
+}
+
+// Copy input syntax to clipboard
+async function copyInputSyntax(inputName: string) {
+    try {
+        await navigator.clipboard.writeText(`{input("${inputName}")}`);
+        copiedInputName.value = inputName;
+        setTimeout(() => {
+            copiedInputName.value = null;
+        }, 2000);
+    } catch {
+        // Silent fail
+    }
+}
+
+// Copy component syntax to clipboard
+async function copyComponentSyntax(componentName: string) {
+    try {
+        await navigator.clipboard.writeText(`{include("${componentName}")}`);
+        copiedComponentName.value = componentName;
+        setTimeout(() => {
+            copiedComponentName.value = null;
+        }, 2000);
+    } catch {
+        // Silent fail
+    }
+}
 
 const inputTypes = [
     { value: 'text', label: 'Text Input' },
@@ -125,9 +173,9 @@ function removeSelectOption(inputId: string, index: number) {
             </div>
 
             <!-- Inputs List -->
-            <div v-if="inputs.length > 0" class="space-y-2">
+            <div v-if="sortedInputs.length > 0" class="space-y-2">
                 <div
-                    v-for="input in inputs"
+                    v-for="input in sortedInputs"
                     :key="input.id"
                     class="rounded-lg border border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800/50"
                 >
@@ -179,10 +227,34 @@ function removeSelectOption(inputId: string, index: number) {
                                     :disabled="!isEditable"
                                     type="text"
                                     placeholder="e.g., word_count"
-                                    class="w-full rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 disabled:cursor-not-allowed disabled:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
+                                    class="w-full rounded border bg-white px-2 py-1.5 font-mono text-sm focus:outline-none focus:ring-1 disabled:cursor-not-allowed disabled:bg-zinc-100 dark:bg-zinc-800 dark:text-white"
+                                    :class="[
+                                        input.name && !isValidInputName(input.name)
+                                            ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
+                                            : 'border-zinc-300 focus:border-violet-500 focus:ring-violet-500 dark:border-zinc-600',
+                                    ]"
                                     @input="updateInput(input.id, { name: ($event.target as HTMLInputElement).value })"
                                 />
-                                <p class="mt-0.5 text-[10px] text-zinc-500">Use in prompt as: <code class="rounded bg-zinc-200 px-1 dark:bg-zinc-700">{`{input("${input.name || 'name'}"})`}</code></p>
+                                <div v-if="input.name && !isValidInputName(input.name)" class="mt-0.5 text-[10px] text-red-500">
+                                    Use only letters, numbers, and underscores (start with letter or underscore)
+                                </div>
+                                <div v-else class="mt-0.5 flex items-center gap-1.5">
+                                    <p class="text-[10px] text-zinc-500">Use in prompt as:</p>
+                                    <button
+                                        type="button"
+                                        class="inline-flex items-center gap-1 rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-[10px] transition-colors hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600"
+                                        :title="'Copy to clipboard'"
+                                        @click.stop="copyInputSyntax(input.name || 'name')"
+                                    >
+                                        {input("{{ input.name || 'name' }}")}
+                                        <svg v-if="copiedInputName === input.name" class="h-3 w-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        <svg v-else class="h-3 w-3 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Label -->
@@ -320,35 +392,60 @@ function removeSelectOption(inputId: string, index: number) {
         <!-- Components Section -->
         <div class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
             <div class="mb-3">
-                <h3 class="font-medium text-zinc-900 dark:text-white">Included Components</h3>
+                <h3 class="font-medium text-zinc-900 dark:text-white">Available Components</h3>
                 <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-                    Reusable text snippets inserted using <code class="rounded bg-zinc-200 px-1 dark:bg-zinc-700">[[component_name]]</code> syntax
+                    Reusable instruction blocks inserted using <code class="rounded bg-zinc-200 px-1 dark:bg-zinc-700">{include("name")}</code> syntax
                 </p>
             </div>
 
-            <div v-if="components.length > 0" class="space-y-2">
+            <div v-if="allComponents.length > 0" class="space-y-2">
                 <div
-                    v-for="comp in components"
+                    v-for="comp in allComponents"
                     :key="comp.id"
                     class="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800/50"
                 >
-                    <div>
-                        <span class="text-sm font-medium text-zinc-900 dark:text-white">{{ comp.label }}</span>
-                        <span class="ml-2 text-xs text-zinc-500 dark:text-zinc-400">[[{{ comp.name }}]]</span>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium text-zinc-900 dark:text-white">{{ comp.label }}</span>
+                            <Badge v-if="comp.is_system" variant="info" size="sm">System</Badge>
+                        </div>
+                        <div class="mt-0.5 flex items-center gap-2">
+                            <button
+                                type="button"
+                                class="inline-flex items-center gap-1 rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-[10px] transition-colors hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600"
+                                :title="'Copy to clipboard'"
+                                @click="copyComponentSyntax(comp.name)"
+                            >
+                                {include("{{ comp.name }}")}
+                                <svg v-if="copiedComponentName === comp.name" class="h-3 w-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                <svg v-else class="h-3 w-3 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                            </button>
+                            <span v-if="comp.description" class="truncate text-[10px] text-zinc-500 dark:text-zinc-400">
+                                {{ comp.description }}
+                            </span>
+                        </div>
                     </div>
                     <button
                         v-if="isEditable"
                         type="button"
-                        class="rounded px-2 py-1 text-xs text-violet-600 hover:bg-violet-50 dark:text-violet-400 dark:hover:bg-violet-950"
+                        class="ml-2 shrink-0 rounded px-2 py-1 text-xs text-violet-600 hover:bg-violet-50 dark:text-violet-400 dark:hover:bg-violet-950"
+                        title="Insert into prompt"
                         @click="emit('insertComponent', comp.name)"
                     >
-                        Insert
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
                     </button>
                 </div>
             </div>
 
             <div v-else class="py-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
-                No components referenced. Use <code class="rounded bg-zinc-200 px-1 dark:bg-zinc-700">[[component_name]]</code> in your prompt to include them.
+                <p>No components available.</p>
+                <p class="mt-1 text-xs">Create components in the Prompt Library to reuse instructions across prompts.</p>
             </div>
         </div>
     </div>

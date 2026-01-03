@@ -40,7 +40,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Sprint 23 - Chat Enhancement Features (FG-04.4)](./10-sprints/sprint-23-chat-enhancement-features.md) ✅ Complete
 - [Sprint 24 - Prompt Library Core (FG-05.1)](./10-sprints/sprint-24-prompts-library-core.md) ✅ Complete
 - [Sprint 25 - Prompt Editor Enhancement (FG-05.2)](./10-sprints/sprint-25-prompt-editor-enhancement.md) ✅ Complete
-- [Sprint 26 - Personas & Presets (FG-05.3)](./10-sprints/sprint-26-personas-presets.md) ✅ Complete ✨ NEW
+- [Sprint 26 - Personas & Presets (FG-05.3)](./10-sprints/sprint-26-personas-presets.md) ✅ Complete
+- [Sprint 27 - Prompt Advanced Features (FG-05.4)](./10-sprints/sprint-27-prompt-advanced-features.md) ✅ Complete ✨ NEW
 
 ### API Reference
 - [Authentication API](./04-api-reference/authentication.md)
@@ -68,7 +69,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Chat Context Testing Guide](./06-testing/chat-context-testing.md)
 - [Chat Enhancement Testing Guide](./06-testing/chat-enhancement-testing.md)
 - [Prompts Testing Guide](./06-testing/prompts-testing.md)
-- [Personas & Presets Testing Guide](./06-testing/personas-presets-testing.md) ✨ NEW
+- [Personas & Presets Testing Guide](./06-testing/personas-presets-testing.md)
+- [Prompt Advanced Features Testing Guide](./06-testing/prompt-advanced-features-testing.md) ✨ NEW
 
 ### Developer Guides
 - [Performance Mode Guide](./performance-mode.md) ✨ NEW
@@ -124,6 +126,7 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 | **Prompt Library Core** | ✅ Complete | [Sprint 24](./10-sprints/sprint-24-prompts-library-core.md) | [Link](./04-api-reference/prompts.md) | [Link](./06-testing/prompts-testing.md) |
 | **Prompt Editor Enhancement** | ✅ Complete | [Sprint 25](./10-sprints/sprint-25-prompt-editor-enhancement.md) | [Link](./04-api-reference/prompts.md) | [Link](./06-testing/prompts-testing.md) |
 | **Personas & Presets** | ✅ Complete | [Sprint 26](./10-sprints/sprint-26-personas-presets.md) | [Link](./04-api-reference/personas-presets.md) | [Link](./06-testing/personas-presets-testing.md) |
+| **Prompt Advanced Features** | ✅ Complete | [Sprint 27](./10-sprints/sprint-27-prompt-advanced-features.md) | [Link](./04-api-reference/prompts.md#prompt-components-api) | [Link](./06-testing/prompt-advanced-features-testing.md) |
 
 ---
 
@@ -436,14 +439,24 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 
 ## 🎨 Recent Updates
 
+### January 4, 2026
+- ✅ **Sprint 27 Completed**: Prompt Advanced Features (FG-05.4) - Components & Inputs system
+- ✅ **Prompt Components**: Reusable instruction blocks dengan `{include("name")}` syntax
+- ✅ **Prompt Inputs**: Dynamic input forms sebelum prompt execution
+- ✅ **Component Library UI**: New "Blocks" tab di sidebar dengan full CRUD
+- ✅ **Preview Enhancement**: Real-time resolution untuk inputs dan components
+- ✅ **API Extension**: New `/usages` endpoint untuk track component usage
+
+### January 3, 2026
+- ✅ **Sprint 26 Completed**: Personas & Presets (FG-05.3) - Reusable AI instructions dan saved prompt configurations
+
 ### January 2, 2026 (Evening)
 - ✅ **Sprint 23 Completed**: Chat Enhancement Features (FG-04.4) - Delete confirmation, inline rename, codex alias detection, dan real-time WebSocket
 - ✅ **Laravel Reverb Integrated**: Real-time chat updates via WebSocket
 - ✅ **Codex Alias Detection**: Auto-detect character/location names dalam chat input
 - ✅ **UX Improvements**: Delete confirmation modal, inline thread rename
 
-### January 3, 2026
-- ✅ **Sprint 26 Completed**: Personas & Presets (FG-05.3) - Reusable AI instructions dan saved prompt configurations
+### January 3, 2026 (Prev)
 - ✅ **Personas System**: Create global AI instructions yang di-share across multiple prompts dan projects
 - ✅ **Presets System**: Save dan quick-apply model settings + input values untuk prompts tertentu
 - ✅ **Interaction Type Filtering**: Personas automatically apply berdasarkan prompt type (chat, prose, replacement, summary)
@@ -633,5 +646,5 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 
 ---
 
-*Last Updated: 2026-01-03*  
-*Latest Features: Sprint 26 (Personas & Presets) + Sprint 25 (Prompt Editor) + Sprint 24 (Prompt Library Core)*
+*Last Updated: 2026-01-04*  
+*Latest Features: Sprint 27 (Prompt Advanced Features) + Sprint 26 (Personas & Presets) + Sprint 25 (Prompt Editor)*

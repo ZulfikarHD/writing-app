@@ -5,29 +5,42 @@ import Input from '@/components/ui/forms/Input.vue';
 import Badge from '@/components/ui/Badge.vue';
 import { usePrompts } from '@/composables/usePrompts';
 import { usePersonas } from '@/composables/usePersonas';
+import { useComponents } from '@/composables/useComponents';
+import { useConfirm } from '@/composables/useConfirm';
 import type { Prompt } from '@/composables/usePrompts';
 import type { Persona } from '@/composables/usePersonas';
+import type { PromptComponent } from '@/composables/useComponents';
 import PersonaEditor from '@/components/prompts/PersonaEditor.vue';
+import ComponentEditor from '@/components/prompts/ComponentEditor.vue';
+import ComponentCard from '@/components/prompts/ComponentCard.vue';
 
 const emit = defineEmits<{
     (e: 'select', prompt: Prompt): void;
     (e: 'selectPersona', persona: Persona): void;
+    (e: 'selectComponent', component: PromptComponent): void;
 }>();
 
 const { fetchPromptsByType } = usePrompts();
 const { fetchPersonas, personas } = usePersonas();
+const { fetchComponents, components, cloneComponent, deleteComponent } = useComponents();
+const { confirm: showConfirm } = useConfirm();
 
 const prompts = ref<Prompt[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const searchQuery = ref('');
 const selectedType = ref('');
-const activeSection = ref<'prompts' | 'personas'>('prompts');
+const activeSection = ref<'prompts' | 'personas' | 'components'>('prompts');
 
 // Persona editor state
 const showPersonaEditor = ref(false);
 const editingPersona = ref<Persona | null>(null);
 const isCreatingPersona = ref(false);
+
+// Component editor state
+const showComponentEditor = ref(false);
+const editingComponent = ref<PromptComponent | null>(null);
+const isCreatingComponent = ref(false);
 
 const typeConfig: Record<string, { label: string; icon: string; color: string }> = {
     chat: { label: 'Chat', icon: '💬', color: 'text-blue-600 dark:text-blue-400' },
@@ -66,6 +79,14 @@ const fetchAllPersonas = async () => {
     }
 };
 
+const fetchAllComponents = async () => {
+    try {
+        await fetchComponents();
+    } catch {
+        // Silent fail
+    }
+};
+
 // Filtered personas
 const filteredPersonas = computed(() => {
     if (!searchQuery.value) return personas.value.filter(p => !p.is_archived);
@@ -76,6 +97,19 @@ const filteredPersonas = computed(() => {
             !p.is_archived &&
             (p.name.toLowerCase().includes(query) ||
             p.description?.toLowerCase().includes(query))
+    );
+});
+
+// Filtered components
+const filteredComponents = computed(() => {
+    if (!searchQuery.value) return components.value;
+    
+    const query = searchQuery.value.toLowerCase();
+    return components.value.filter(
+        (c) =>
+            c.name.toLowerCase().includes(query) ||
+            c.label.toLowerCase().includes(query) ||
+            c.description?.toLowerCase().includes(query)
     );
 });
 
@@ -104,6 +138,56 @@ function handlePersonaUpdated() {
 function handlePersonaDeleted() {
     showPersonaEditor.value = false;
     fetchAllPersonas();
+}
+
+// Component editor handlers
+function openNewComponent() {
+    editingComponent.value = null;
+    isCreatingComponent.value = true;
+    showComponentEditor.value = true;
+}
+
+function openEditComponent(component: PromptComponent) {
+    editingComponent.value = component;
+    isCreatingComponent.value = false;
+    showComponentEditor.value = true;
+}
+
+function handleComponentCreated() {
+    showComponentEditor.value = false;
+    fetchAllComponents();
+}
+
+function handleComponentUpdated() {
+    fetchAllComponents();
+}
+
+function handleComponentDeleted() {
+    showComponentEditor.value = false;
+    fetchAllComponents();
+}
+
+async function handleCloneComponent(component: PromptComponent) {
+    const cloned = await cloneComponent(component.id);
+    if (cloned) {
+        fetchAllComponents();
+    }
+}
+
+async function handleDeleteComponent(component: PromptComponent) {
+    const confirmed = await showConfirm({
+        title: 'Delete Component',
+        message: `Are you sure you want to delete "${component.label}"? This action cannot be undone.`,
+        confirmText: 'Delete',
+        confirmVariant: 'danger',
+    });
+
+    if (confirmed) {
+        const success = await deleteComponent(component.id);
+        if (success) {
+            fetchAllComponents();
+        }
+    }
 }
 
 const filteredPrompts = computed(() => {
@@ -139,10 +223,11 @@ const promptsByType = computed(() => {
 onMounted(() => {
     fetchAllPrompts();
     fetchAllPersonas();
+    fetchAllComponents();
 });
 
 // Expose refresh method for parent to call
-defineExpose({ refresh: () => { fetchAllPrompts(); fetchAllPersonas(); } });
+defineExpose({ refresh: () => { fetchAllPrompts(); fetchAllPersonas(); fetchAllComponents(); } });
 </script>
 
 <template>
@@ -176,12 +261,27 @@ defineExpose({ refresh: () => { fetchAllPrompts(); fetchAllPersonas(); } });
                     {{ personas.filter(p => !p.is_archived).length }}
                 </Badge>
             </button>
+            <button
+                type="button"
+                class="flex-1 border-b-2 px-2 py-1.5 text-xs font-medium transition-colors"
+                :class="[
+                    activeSection === 'components'
+                        ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+                        : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300',
+                ]"
+                @click="activeSection = 'components'"
+            >
+                Blocks
+                <Badge v-if="components.length > 0" variant="secondary" size="sm" class="ml-1">
+                    {{ components.length }}
+                </Badge>
+            </button>
         </div>
 
         <!-- Search -->
         <Input
             v-model="searchQuery"
-            :placeholder="activeSection === 'prompts' ? 'Search prompts...' : 'Search personas...'"
+            :placeholder="activeSection === 'prompts' ? 'Search prompts...' : activeSection === 'personas' ? 'Search personas...' : 'Search components...'"
             size="sm"
             class="text-xs"
         >
@@ -352,6 +452,58 @@ defineExpose({ refresh: () => { fetchAllPrompts(); fetchAllPersonas(); } });
                 New Persona
             </button>
         </template>
+
+        <!-- Components Section -->
+        <template v-if="activeSection === 'components'">
+            <!-- Empty -->
+            <div v-if="filteredComponents.length === 0" class="py-4 text-center">
+                <div class="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
+                    <svg class="h-5 w-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                </div>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                    {{ searchQuery ? 'No matching components' : 'No components yet' }}
+                </p>
+                <p class="mt-1 text-[10px] text-zinc-400 dark:text-zinc-500">
+                    Components are reusable instruction blocks
+                </p>
+                <button
+                    v-if="!searchQuery"
+                    type="button"
+                    class="mt-2 text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"
+                    @click="openNewComponent"
+                >
+                    Create your first component
+                </button>
+            </div>
+
+            <!-- Components List -->
+            <div v-else class="max-h-48 space-y-1.5 overflow-y-auto">
+                <ComponentCard
+                    v-for="component in filteredComponents"
+                    :key="component.id"
+                    :component="component"
+                    compact
+                    @click="emit('selectComponent', component)"
+                    @edit="openEditComponent"
+                    @clone="handleCloneComponent"
+                    @delete="handleDeleteComponent"
+                />
+            </div>
+
+            <!-- Create Component Button -->
+            <button
+                type="button"
+                class="flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-zinc-300 px-2 py-1.5 text-xs text-zinc-500 transition-colors hover:border-emerald-400 hover:text-emerald-600 dark:border-zinc-600 dark:text-zinc-400 dark:hover:border-emerald-500 dark:hover:text-emerald-400"
+                @click="openNewComponent"
+            >
+                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                New Component
+            </button>
+        </template>
     </div>
 
     <!-- Persona Editor Modal -->
@@ -364,5 +516,17 @@ defineExpose({ refresh: () => { fetchAllPrompts(); fetchAllPersonas(); } });
         @updated="handlePersonaUpdated"
         @deleted="handlePersonaDeleted"
         @archived="handlePersonaDeleted"
+    />
+
+    <!-- Component Editor Modal -->
+    <ComponentEditor
+        :show="showComponentEditor"
+        :component="editingComponent"
+        :is-creating="isCreatingComponent"
+        @close="showComponentEditor = false"
+        @created="handleComponentCreated"
+        @updated="handleComponentUpdated"
+        @deleted="handleComponentDeleted"
+        @cloned="handleComponentCreated"
     />
 </template>

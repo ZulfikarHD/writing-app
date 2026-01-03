@@ -970,12 +970,122 @@ await fetch(`/api/prompts/${newPrompt.id}`, {
 
 ---
 
+---
+
+## Prompt Components API
+
+Base URL untuk components: `/api/prompt-components`
+
+### List Components
+
+Mengambil semua components yang accessible (system + user-owned).
+
+**Endpoint:** `GET /api/prompt-components`
+
+**Response:** `200 OK`
+
+```json
+{
+  "components": [
+    {
+      "id": 1,
+      "user_id": null,
+      "name": "writing_style",
+      "label": "Writing Style Guide",
+      "content": "Write in third person limited POV with vivid sensory details.",
+      "description": "Standard writing style instructions",
+      "is_system": true,
+      "created_at": "2026-01-04T10:00:00.000Z",
+      "updated_at": "2026-01-04T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+### Create Component
+
+**Endpoint:** `POST /api/prompt-components`
+
+**Request Body:**
+
+```json
+{
+  "name": "my_component",
+  "label": "My Component",
+  "content": "Instructions to include in prompts...",
+  "description": "Optional description"
+}
+```
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| name | string | Yes | Max 100, regex: /^[a-z_][a-z0-9_]*$/i |
+| label | string | Yes | Max 255 |
+| content | string | Yes | - |
+| description | string | No | - |
+
+**Response:** `201 Created`
+
+### Update Component
+
+**Endpoint:** `PATCH /api/prompt-components/{id}`
+
+### Delete Component
+
+**Endpoint:** `DELETE /api/prompt-components/{id}`
+
+> Note: System components tidak bisa di-edit atau delete.
+
+### Clone Component
+
+**Endpoint:** `POST /api/prompt-components/{id}/clone`
+
+Membuat copy dari component dengan nama unik (suffix `_copy` atau `_copy_N`).
+
+### Get Component Usages
+
+Mendapatkan daftar prompts yang menggunakan component ini.
+
+**Endpoint:** `GET /api/prompt-components/{id}/usages`
+
+**Response:** `200 OK`
+
+```json
+{
+  "usages": [
+    {
+      "prompt_id": 5,
+      "prompt_name": "Creative Writing Helper",
+      "prompt_type": "prose",
+      "is_system": false
+    }
+  ],
+  "count": 1
+}
+```
+
+### Component Syntax
+
+Gunakan syntax berikut dalam prompts untuk include component:
+
+```
+{include("component_name")}
+```
+
+Legacy syntax juga didukung:
+
+```
+[[component_name]]
+```
+
+---
+
 ## Related Documentation
 
-- **Sprint Documentation:** [Sprint 24: Prompts Library Core](../10-sprints/sprint-24-prompts-library-core.md)
+- **Sprint Documentation:** [Sprint 27: Prompt Advanced Features](../10-sprints/sprint-27-prompt-advanced-features.md)
 - **Testing Guide:** [Prompts Testing](../06-testing/prompts-testing.md)
 - **User Journeys:** [Prompts User Journeys](../07-user-journeys/prompts/)
 
 ---
 
-*Last Updated: 2026-01-03*
+*Last Updated: 2026-01-04*

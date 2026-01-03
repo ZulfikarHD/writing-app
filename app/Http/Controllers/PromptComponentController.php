@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Prompt;
 use App\Models\PromptComponent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -140,6 +141,99 @@ class PromptComponentController extends Controller
             'success' => true,
             'message' => 'Component deleted successfully.',
         ]);
+    }
+
+    /**
+     * Get prompts that use this component.
+     */
+    public function usages(Request $request, PromptComponent $component): JsonResponse
+    {
+        $user = $request->user();
+
+        // Check access
+        if (! $component->is_system && $component->user_id !== $user->id) {
+            abort(403, 'You do not have access to this component.');
+        }
+
+        // Search patterns for component references
+        $patterns = [
+            '%{include("' . $component->name . '")}%',
+            '%{include(\'' . $component->name . '\')}%',
+            '%[[' . $component->name . ']]%',
+        ];
+
+        // Get all prompts accessible by the user
+        $prompts = Prompt::accessibleBy($user->id)
+            ->where(function ($query) use ($patterns) {
+                foreach ($patterns as $pattern) {
+                    $query->orWhere('system_message', 'like', $pattern)
+                        ->orWhere('user_message', 'like', $pattern);
+                }
+            })
+            ->get()
+            ->filter(function ($prompt) use ($component) {
+                // Additional check for messages array (JSON)
+                return $this->promptUsesComponent($prompt, $component->name);
+            });
+
+        return response()->json([
+            'usages' => $prompts->map(fn ($prompt) => [
+                'prompt_id' => $prompt->id,
+                'prompt_name' => $prompt->name,
+                'prompt_type' => $prompt->type,
+                'is_system' => $prompt->is_system,
+            ])->values(),
+            'count' => $prompts->count(),
+        ]);
+    }
+
+    /**
+     * Check if a prompt uses a specific component.
+     */
+    protected function promptUsesComponent(Prompt $prompt, string $componentName): bool
+    {
+        // Check system_message
+        if ($this->textContainsComponent($prompt->system_message, $componentName)) {
+            return true;
+        }
+
+        // Check user_message
+        if ($this->textContainsComponent($prompt->user_message, $componentName)) {
+            return true;
+        }
+
+        // Check messages array
+        if (is_array($prompt->messages)) {
+            foreach ($prompt->messages as $message) {
+                if (isset($message['content']) && $this->textContainsComponent($message['content'], $componentName)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if text contains a component reference.
+     */
+    protected function textContainsComponent(?string $text, string $componentName): bool
+    {
+        if (empty($text)) {
+            return false;
+        }
+
+        // Check for {include("name")} pattern
+        if (preg_match('/\{include\(["\']' . preg_quote($componentName, '/') . '["\']\)\}/', $text)) {
+            return true;
+        }
+
+        // Check for [[name]] pattern
+        if (str_contains($text, '[[' . $componentName . ']]')) {
+            return true;
+        }
+
+        return false;
     }
 
     /**

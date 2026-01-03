@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useComponents, type PromptComponent } from '@/composables/useComponents';
 
 export interface VariableDefinition {
     name: string;
@@ -7,6 +8,14 @@ export interface VariableDefinition {
     category: string;
     example?: string;
     parameters?: { name: string; type: string; required: boolean }[];
+    insertText?: string; // Custom text to insert instead of default formatting
+}
+
+export interface PromptInputDef {
+    id: number | string;
+    name: string;
+    label: string;
+    type: string;
 }
 
 interface Props {
@@ -14,17 +23,22 @@ interface Props {
     disabled?: boolean;
     placeholder?: string;
     rows?: number;
+    promptInputs?: PromptInputDef[]; // Available inputs for current prompt
 }
 
 const props = withDefaults(defineProps<Props>(), {
     disabled: false,
     placeholder: 'Enter text...',
     rows: 4,
+    promptInputs: () => [],
 });
 
 const emit = defineEmits<{
     'update:modelValue': [value: string];
 }>();
+
+// Component composable
+const { components, fetchComponents } = useComponents();
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const showAutocomplete = ref(false);
@@ -33,8 +47,13 @@ const searchQuery = ref('');
 const selectedIndex = ref(0);
 const triggerPosition = ref(0);
 
-// Variable registry - all available functions based on NovelCrafter reference
-const variableRegistry: VariableDefinition[] = [
+// Fetch components on mount
+onMounted(async () => {
+    await fetchComponents();
+});
+
+// Base variable registry - all available functions based on NovelCrafter reference
+const baseVariableRegistry: VariableDefinition[] = [
     // Acts
     { name: 'act', description: 'Current act information', category: 'Acts' },
     { name: 'act.fullText', description: 'Full text of the current act', category: 'Acts' },
@@ -73,7 +92,7 @@ const variableRegistry: VariableDefinition[] = [
     { name: 'message', description: 'User message input', category: 'Context' },
     { name: 'content', description: 'Selected/target content', category: 'Context' },
 
-    // Composition
+    // Composition (base functions - components and inputs added dynamically)
     { name: 'include', description: 'Include a component', category: 'Composition', parameters: [{ name: 'component', type: 'string', required: true }] },
     { name: 'input', description: 'Get prompt input value', category: 'Composition', parameters: [{ name: 'name', type: 'string', required: true }] },
 
@@ -103,13 +122,43 @@ const variableRegistry: VariableDefinition[] = [
     { name: 'date.today', description: 'Current date', category: 'Other' },
 ];
 
+// Generate dynamic component entries for autocomplete
+const componentVariables = computed<VariableDefinition[]>(() => {
+    return components.value.map((component: PromptComponent) => ({
+        name: `include("${component.name}")`,
+        description: component.description || component.label,
+        category: 'Components',
+        insertText: `include("${component.name}")`,
+    }));
+});
+
+// Generate dynamic input entries for autocomplete (from prompt inputs prop)
+const inputVariables = computed<VariableDefinition[]>(() => {
+    return props.promptInputs.map((input) => ({
+        name: `input("${input.name}")`,
+        description: input.label,
+        category: 'Inputs',
+        insertText: `input("${input.name}")`,
+    }));
+});
+
+// Combined variable registry with dynamic components and inputs
+const variableRegistry = computed<VariableDefinition[]>(() => {
+    return [
+        ...baseVariableRegistry,
+        ...componentVariables.value,
+        ...inputVariables.value,
+    ];
+});
+
 // Filter variables based on search query
 const filteredVariables = computed(() => {
+    const registry = variableRegistry.value;
     if (!searchQuery.value) {
-        return variableRegistry;
+        return registry;
     }
     const query = searchQuery.value.toLowerCase();
-    return variableRegistry.filter(
+    return registry.filter(
         (v) =>
             v.name.toLowerCase().includes(query) ||
             v.description.toLowerCase().includes(query) ||
@@ -226,6 +275,10 @@ function handleKeyDown(e: KeyboardEvent) {
 
 // Format variable display
 function formatVariableDisplay(variable: VariableDefinition): string {
+    // For variables with custom insertText, just show the name as-is
+    if (variable.insertText) {
+        return '{' + variable.insertText + '}';
+    }
     const suffix = variable.parameters ? '(...)' : '';
     return '{' + variable.name + suffix + '}';
 }
@@ -237,11 +290,16 @@ function selectVariable(variable: VariableDefinition) {
     const text = props.modelValue;
     const cursorPos = textareaRef.value.selectionStart;
 
-    // Build the variable string
-    let variableStr = variable.name;
-    if (variable.parameters && variable.parameters.length > 0) {
-        const params = variable.parameters.map((p) => p.required ? `"${p.name}"` : '').filter(Boolean);
-        variableStr += `(${params.join(', ')})`;
+    // Build the variable string - use custom insertText if available
+    let variableStr: string;
+    if (variable.insertText) {
+        variableStr = variable.insertText;
+    } else {
+        variableStr = variable.name;
+        if (variable.parameters && variable.parameters.length > 0) {
+            const params = variable.parameters.map((p) => p.required ? `"${p.name}"` : '').filter(Boolean);
+            variableStr += `(${params.join(', ')})`;
+        }
     }
 
     // Replace from trigger position to cursor with the variable
@@ -268,8 +326,9 @@ function handleClickOutside(e: MouseEvent) {
     }
 }
 
-onMounted(() => {
+onMounted(async () => {
     document.addEventListener('click', handleClickOutside);
+    // Components already fetched at top of script
 });
 
 onUnmounted(() => {
