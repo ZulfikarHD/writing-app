@@ -21,10 +21,12 @@ use App\Http\Controllers\PromptController;
 use App\Http\Controllers\PromptInputController;
 use App\Http\Controllers\PromptPersonaController;
 use App\Http\Controllers\PromptPresetController;
+use App\Http\Controllers\ProseGenerationController;
 use App\Http\Controllers\PromptSharingController;
 use App\Http\Controllers\SceneController;
 use App\Http\Controllers\SceneLabelController;
 use App\Http\Controllers\SectionController;
+use App\Http\Controllers\TextReplacementController;
 use App\Http\Controllers\SeriesCodexController;
 use App\Http\Controllers\SeriesController;
 use Illuminate\Support\Facades\Route;
@@ -271,6 +273,18 @@ Route::middleware('auth')->prefix('api')->group(function () {
         Route::post('dissolve', [SectionController::class, 'dissolve'])->name('sections.dissolve');
         Route::post('duplicate', [SectionController::class, 'duplicate'])->name('sections.duplicate');
     });
+
+    // ==================== AI Writing Features API ====================
+    // Prose Generation
+    Route::prefix('scenes/{scene}')->group(function () {
+        Route::post('generate-prose', [ProseGenerationController::class, 'generate'])->name('scenes.generate-prose');
+    });
+
+    Route::get('prose-generation/options', [ProseGenerationController::class, 'options'])->name('prose-generation.options');
+
+    // Text Replacement
+    Route::post('text/replace', [TextReplacementController::class, 'replace'])->name('text.replace');
+    Route::get('text-replacement/options', [TextReplacementController::class, 'options'])->name('text-replacement.options');
 
     // ==================== Acts API ====================
     Route::prefix('novels/{novel}/acts')->group(function () {

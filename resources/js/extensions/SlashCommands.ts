@@ -8,8 +8,18 @@ export interface SlashCommand {
     title: string;
     description: string;
     icon: string;
+    category?: 'ai' | 'sections' | 'formatting' | 'blocks';
     command: (editor: { chain: () => { focus: () => { run: () => void } } }) => void;
 }
+
+// Event types for AI commands
+export type AICommandEvent = 
+    | { type: 'scene-beat' }
+    | { type: 'continue' }
+    | { type: 'custom'; instructions?: string };
+
+// AI command callback type
+export type AICommandCallback = (event: AICommandEvent) => void;
 
 export interface SlashCommandsOptions {
     suggestion: Partial<SuggestionOptions>;
@@ -40,12 +50,46 @@ export const SlashCommands = Extension.create<SlashCommandsOptions>({
     },
 });
 
+// AI slash commands (require callback)
+export function createAISlashCommands(onAICommand: AICommandCallback): SlashCommand[] {
+    return [
+        {
+            title: 'Scene Beat',
+            description: 'Generate prose from a scene beat',
+            icon: 'ai-beat',
+            category: 'ai',
+            command: () => {
+                onAICommand({ type: 'scene-beat' });
+            },
+        },
+        {
+            title: 'Continue Writing',
+            description: 'Continue the story from here',
+            icon: 'ai-continue',
+            category: 'ai',
+            command: () => {
+                onAICommand({ type: 'continue' });
+            },
+        },
+        {
+            title: 'AI Custom',
+            description: 'Generate prose with custom instructions',
+            icon: 'ai-custom',
+            category: 'ai',
+            command: () => {
+                onAICommand({ type: 'custom' });
+            },
+        },
+    ];
+}
+
 // Default slash commands
 export const defaultSlashCommands: SlashCommand[] = [
     {
         title: 'Section',
         description: 'Insert a new section block',
         icon: 'section',
+        category: 'sections',
         command: (editor: any) => {
             editor.chain().focus().insertSection({ type: 'content' }).run();
         },
@@ -54,6 +98,7 @@ export const defaultSlashCommands: SlashCommand[] = [
         title: 'Note Section',
         description: 'Insert a note section (hidden from AI)',
         icon: 'note',
+        category: 'sections',
         command: (editor: any) => {
             editor.chain().focus().insertSection({ type: 'note' }).run();
         },
@@ -62,6 +107,7 @@ export const defaultSlashCommands: SlashCommand[] = [
         title: 'Alternative Section',
         description: 'Insert an alternative version section',
         icon: 'alternative',
+        category: 'sections',
         command: (editor: any) => {
             editor.chain().focus().insertSection({ type: 'alternative' }).run();
         },
@@ -70,6 +116,7 @@ export const defaultSlashCommands: SlashCommand[] = [
         title: 'Beat Section',
         description: 'Insert a beat/outline section',
         icon: 'beat',
+        category: 'sections',
         command: (editor: any) => {
             editor.chain().focus().insertSection({ type: 'beat' }).run();
         },
@@ -78,6 +125,7 @@ export const defaultSlashCommands: SlashCommand[] = [
         title: 'Heading 1',
         description: 'Large section heading',
         icon: 'h1',
+        category: 'formatting',
         command: (editor: any) => {
             editor.chain().focus().toggleHeading({ level: 1 }).run();
         },
@@ -86,6 +134,7 @@ export const defaultSlashCommands: SlashCommand[] = [
         title: 'Heading 2',
         description: 'Medium section heading',
         icon: 'h2',
+        category: 'formatting',
         command: (editor: any) => {
             editor.chain().focus().toggleHeading({ level: 2 }).run();
         },
@@ -94,6 +143,7 @@ export const defaultSlashCommands: SlashCommand[] = [
         title: 'Heading 3',
         description: 'Small section heading',
         icon: 'h3',
+        category: 'formatting',
         command: (editor: any) => {
             editor.chain().focus().toggleHeading({ level: 3 }).run();
         },
@@ -102,6 +152,7 @@ export const defaultSlashCommands: SlashCommand[] = [
         title: 'Bullet List',
         description: 'Create a bulleted list',
         icon: 'list',
+        category: 'blocks',
         command: (editor: any) => {
             editor.chain().focus().toggleBulletList().run();
         },
@@ -110,6 +161,7 @@ export const defaultSlashCommands: SlashCommand[] = [
         title: 'Numbered List',
         description: 'Create a numbered list',
         icon: 'numbered',
+        category: 'blocks',
         command: (editor: any) => {
             editor.chain().focus().toggleOrderedList().run();
         },
@@ -118,6 +170,7 @@ export const defaultSlashCommands: SlashCommand[] = [
         title: 'Quote',
         description: 'Insert a blockquote',
         icon: 'quote',
+        category: 'blocks',
         command: (editor: any) => {
             editor.chain().focus().toggleBlockquote().run();
         },
@@ -126,11 +179,24 @@ export const defaultSlashCommands: SlashCommand[] = [
         title: 'Horizontal Rule',
         description: 'Insert a divider line',
         icon: 'divider',
+        category: 'blocks',
         command: (editor: any) => {
             editor.chain().focus().setHorizontalRule().run();
         },
     },
 ];
+
+/**
+ * Create all slash commands including AI commands.
+ * @param onAICommand Callback for AI command events
+ * @returns Combined list of all slash commands with AI commands first
+ */
+export function createAllSlashCommands(onAICommand?: AICommandCallback): SlashCommand[] {
+    if (onAICommand) {
+        return [...createAISlashCommands(onAICommand), ...defaultSlashCommands];
+    }
+    return defaultSlashCommands;
+}
 
 // Suggestion configuration with popup rendering
 export function createSlashCommandsSuggestion(commands: SlashCommand[] = defaultSlashCommands) {

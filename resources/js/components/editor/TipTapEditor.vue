@@ -7,8 +7,10 @@ import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import { CodexHighlight, type CodexEntry } from '@/extensions/CodexHighlight';
 import { SectionNode } from '@/extensions/SectionNode';
-import { SlashCommands, createSlashCommandsSuggestion, defaultSlashCommands } from '@/extensions/SlashCommands';
-import { watch, computed, onBeforeUnmount } from 'vue';
+import { SlashCommands, createSlashCommandsSuggestion, createAllSlashCommands, type AICommandEvent } from '@/extensions/SlashCommands';
+import { ref, watch, computed, onBeforeUnmount } from 'vue';
+import ProseGenerationPanel from './ProseGenerationPanel.vue';
+import TextReplacementMenu from './TextReplacementMenu.vue';
 
 interface Props {
     modelValue: object | null;
@@ -16,6 +18,8 @@ interface Props {
     editable?: boolean;
     autofocus?: boolean;
     codexEntries?: CodexEntry[];
+    sceneId?: number;
+    enableAI?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -24,6 +28,8 @@ const props = withDefaults(defineProps<Props>(), {
     editable: true,
     autofocus: true,
     codexEntries: () => [],
+    sceneId: undefined,
+    enableAI: true,
 });
 
 const emit = defineEmits<{
@@ -32,6 +38,38 @@ const emit = defineEmits<{
     (e: 'focus'): void;
     (e: 'blur'): void;
 }>();
+
+// AI Feature State
+const showProseGeneration = ref(false);
+const proseGenerationMode = ref<'scene_beat' | 'continue' | 'custom'>('scene_beat');
+const contentBeforeCursor = ref('');
+
+const showTextReplacement = ref(false);
+const selectedText = ref('');
+const selectionPosition = ref({ x: 0, y: 0 });
+
+// AI Command handler
+function handleAICommand(event: AICommandEvent) {
+    if (!props.enableAI || !props.sceneId) return;
+    
+    // Get content before cursor for context
+    if (editor.value) {
+        const { from } = editor.value.state.selection;
+        const textBefore = editor.value.state.doc.textBetween(0, from, ' ');
+        contentBeforeCursor.value = textBefore;
+    }
+    
+    proseGenerationMode.value = event.type === 'scene-beat' ? 'scene_beat' : event.type === 'continue' ? 'continue' : 'custom';
+    showProseGeneration.value = true;
+}
+
+// Create slash commands with AI callback
+const slashCommands = computed(() => {
+    if (props.enableAI && props.sceneId) {
+        return createAllSlashCommands(handleAICommand);
+    }
+    return createAllSlashCommands();
+});
 
 const editor = useEditor({
     content: props.modelValue,
@@ -57,7 +95,7 @@ const editor = useEditor({
         }),
         SectionNode,
         SlashCommands.configure({
-            suggestion: createSlashCommandsSuggestion(defaultSlashCommands),
+            suggestion: createSlashCommandsSuggestion(slashCommands.value),
         }),
     ],
     editorProps: {
@@ -74,6 +112,40 @@ const editor = useEditor({
     },
     onBlur: () => {
         emit('blur');
+    },
+    onSelectionUpdate: ({ editor }) => {
+        // Handle text selection for replacement menu
+        if (!props.enableAI || !props.sceneId) return;
+        
+        const { from, to, empty } = editor.state.selection;
+        
+        if (empty) {
+            showTextReplacement.value = false;
+            selectedText.value = '';
+            return;
+        }
+        
+        const text = editor.state.doc.textBetween(from, to, ' ');
+        const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+        
+        // Only show replacement menu for 4+ words
+        if (wordCount >= 4) {
+            selectedText.value = text;
+            
+            // Get selection position for menu placement
+            const view = editor.view;
+            const coords = view.coordsAtPos(from);
+            const editorRect = view.dom.getBoundingClientRect();
+            
+            selectionPosition.value = {
+                x: (coords.left + view.coordsAtPos(to).left) / 2 - editorRect.left,
+                y: coords.top - editorRect.top,
+            };
+            
+            showTextReplacement.value = true;
+        } else {
+            showTextReplacement.value = false;
+        }
     },
 });
 
@@ -176,6 +248,62 @@ const insertSection = (type: 'content' | 'note' | 'alternative' | 'beat' = 'cont
     editor.value?.chain().focus().insertSection({ type }).run();
 };
 
+// AI Prose Generation handlers
+function handleApplyProse(content: string) {
+    if (!editor.value) return;
+    
+    editor.value.chain().focus().insertContent(content).run();
+    showProseGeneration.value = false;
+}
+
+function handleDiscardProse() {
+    showProseGeneration.value = false;
+}
+
+function handleAddToSection(content: string, sectionType: string) {
+    if (!editor.value) return;
+    
+    // Insert as a new section with the generated content
+    editor.value.chain().focus().insertSection({ 
+        type: sectionType as 'content' | 'note' | 'alternative' | 'beat',
+        content: content 
+    }).run();
+    
+    showProseGeneration.value = false;
+}
+
+function handleCloseProseGeneration() {
+    showProseGeneration.value = false;
+}
+
+// Text Replacement handlers
+function handleReplaceText(newText: string) {
+    if (!editor.value) return;
+    
+    editor.value.chain().focus().deleteSelection().insertContent(newText).run();
+    showTextReplacement.value = false;
+    selectedText.value = '';
+}
+
+function handleCloseTextReplacement() {
+    showTextReplacement.value = false;
+    selectedText.value = '';
+}
+
+// Open prose generation programmatically
+function openProseGeneration(mode: 'scene_beat' | 'continue' | 'custom' = 'scene_beat') {
+    if (!props.enableAI || !props.sceneId) return;
+    
+    if (editor.value) {
+        const { from } = editor.value.state.selection;
+        const textBefore = editor.value.state.doc.textBetween(0, from, ' ');
+        contentBeforeCursor.value = textBefore;
+    }
+    
+    proseGenerationMode.value = mode;
+    showProseGeneration.value = true;
+}
+
 onBeforeUnmount(() => {
     editor.value?.destroy();
 });
@@ -212,12 +340,41 @@ defineExpose({
     currentTextAlign,
     // Sections
     insertSection,
+    // AI features
+    openProseGeneration,
+    showProseGeneration,
+    showTextReplacement,
 });
 </script>
 
 <template>
-    <div class="tiptap-editor">
+    <div class="tiptap-editor relative">
         <EditorContent :editor="editor" />
+        
+        <!-- Prose Generation Panel -->
+        <div v-if="enableAI && sceneId" class="prose-generation-container">
+            <ProseGenerationPanel
+                :scene-id="sceneId"
+                :mode="proseGenerationMode"
+                :content-before="contentBeforeCursor"
+                :is-visible="showProseGeneration"
+                @apply="handleApplyProse"
+                @discard="handleDiscardProse"
+                @add-to-section="handleAddToSection"
+                @close="handleCloseProseGeneration"
+            />
+        </div>
+        
+        <!-- Text Replacement Menu -->
+        <TextReplacementMenu
+            v-if="enableAI && sceneId"
+            :selected-text="selectedText"
+            :position="selectionPosition"
+            :scene-id="sceneId"
+            :is-visible="showTextReplacement"
+            @replace="handleReplaceText"
+            @close="handleCloseTextReplacement"
+        />
     </div>
 </template>
 
@@ -327,5 +484,22 @@ defineExpose({
 
 .dark .codex-mention:hover {
     background-color: rgba(139, 92, 246, 0.25);
+}
+
+/* Prose generation panel positioning */
+.prose-generation-container {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
+    max-width: 100%;
+    padding: 0 1rem;
+}
+
+@media (min-width: 768px) {
+    .prose-generation-container {
+        bottom: 4rem;
+    }
 }
 </style>
