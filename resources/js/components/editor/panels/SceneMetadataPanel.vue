@@ -10,6 +10,20 @@ interface Label {
     color: string;
 }
 
+interface Subplot {
+    id: number;
+    name: string;
+    description?: string;
+    aliases?: string[];
+}
+
+interface AssignedSubplot {
+    progression_id: number;
+    id: number;
+    name: string;
+    note?: string;
+}
+
 interface Scene {
     id: number;
     chapter_id: number;
@@ -50,6 +64,12 @@ const form = useForm({
 const selectedLabelIds = ref<number[]>([]);
 const isSaving = ref(false);
 const saveTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
+
+// Subplots state
+const availableSubplots = ref<Subplot[]>([]);
+const assignedSubplots = ref<AssignedSubplot[]>([]);
+const subplotsLoading = ref(false);
+const subplotDropdownOpen = ref(false);
 
 const statusOptions = [
     { value: 'draft', label: 'Draft', color: 'bg-zinc-400' },
@@ -143,6 +163,67 @@ const toggleLabel = (labelId: number) => {
     saveLabels();
 };
 
+// Subplots functions
+const fetchSubplots = async () => {
+    if (!props.novelId || !props.scene) return;
+    
+    subplotsLoading.value = true;
+    try {
+        // Fetch available subplots for the novel
+        const availableRes = await axios.get(`/api/novels/${props.novelId}/codex/subplots`);
+        availableSubplots.value = availableRes.data.subplots || [];
+        
+        // Fetch assigned subplots for this scene
+        const assignedRes = await axios.get(`/api/scenes/${props.scene.id}/subplots`);
+        assignedSubplots.value = assignedRes.data.subplots || [];
+    } catch (error) {
+        console.error('Failed to fetch subplots:', error);
+    } finally {
+        subplotsLoading.value = false;
+    }
+};
+
+const isSubplotAssigned = (subplotId: number) => {
+    return assignedSubplots.value.some(s => s.id === subplotId);
+};
+
+const assignSubplot = async (subplot: Subplot) => {
+    if (!props.scene || isSubplotAssigned(subplot.id)) return;
+    
+    try {
+        const response = await axios.post(`/api/scenes/${props.scene.id}/subplots`, {
+            codex_entry_id: subplot.id,
+        });
+        
+        assignedSubplots.value.push({
+            progression_id: response.data.progression.id,
+            id: subplot.id,
+            name: subplot.name,
+            note: response.data.progression.note,
+        });
+    } catch (error) {
+        console.error('Failed to assign subplot:', error);
+    }
+    
+    subplotDropdownOpen.value = false;
+};
+
+const removeSubplot = async (subplot: AssignedSubplot) => {
+    if (!props.scene) return;
+    
+    try {
+        await axios.delete(`/api/scenes/${props.scene.id}/subplots/${subplot.id}`);
+        assignedSubplots.value = assignedSubplots.value.filter(s => s.id !== subplot.id);
+    } catch (error) {
+        console.error('Failed to remove subplot:', error);
+    }
+};
+
+// Available subplots that aren't already assigned
+const unassignedSubplots = () => {
+    return availableSubplots.value.filter(s => !isSubplotAssigned(s.id));
+};
+
 // Close on escape
 let escapeHandler: ((e: KeyboardEvent) => void) | null = null;
 
@@ -152,13 +233,18 @@ watch(
         if (isOpen) {
             escapeHandler = (e: KeyboardEvent) => {
                 if (e.key === 'Escape') {
+                    subplotDropdownOpen.value = false;
                     emit('close');
                 }
             };
             document.addEventListener('keydown', escapeHandler);
+            
+            // Fetch subplots when panel opens
+            fetchSubplots();
         } else if (escapeHandler) {
             document.removeEventListener('keydown', escapeHandler);
             escapeHandler = null;
+            subplotDropdownOpen.value = false;
         }
     },
     { immediate: true }
@@ -327,6 +413,76 @@ onUnmounted(() => {
                             {{ label.name }}
                         </button>
                     </div>
+                </div>
+
+                <!-- Subplots -->
+                <div>
+                    <label class="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        Subplots
+                        <span v-if="subplotsLoading" class="ml-1 text-xs text-zinc-500">(loading...)</span>
+                    </label>
+                    
+                    <!-- Assigned Subplots -->
+                    <div v-if="assignedSubplots.length > 0" class="mb-2 flex flex-wrap gap-2">
+                        <span
+                            v-for="subplot in assignedSubplots"
+                            :key="subplot.id"
+                            class="group inline-flex items-center gap-1 rounded-full bg-cyan-100 px-3 py-1 text-xs font-medium text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300"
+                        >
+                            {{ subplot.name }}
+                            <button
+                                type="button"
+                                class="ml-0.5 rounded-full p-0.5 opacity-60 transition-opacity hover:bg-cyan-200 hover:opacity-100 dark:hover:bg-cyan-800"
+                                @click="removeSubplot(subplot)"
+                            >
+                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </span>
+                    </div>
+                    
+                    <!-- Add Subplot Dropdown -->
+                    <div class="relative">
+                        <button
+                            v-if="unassignedSubplots().length > 0"
+                            type="button"
+                            class="flex items-center gap-1.5 rounded-lg border border-dashed border-zinc-300 px-3 py-1.5 text-sm text-zinc-500 transition-colors hover:border-cyan-500 hover:text-cyan-600 dark:border-zinc-600 dark:text-zinc-400 dark:hover:border-cyan-400 dark:hover:text-cyan-400"
+                            @click="subplotDropdownOpen = !subplotDropdownOpen"
+                        >
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add subplot
+                        </button>
+                        <p v-else-if="availableSubplots.length === 0 && !subplotsLoading" class="text-xs text-zinc-500 dark:text-zinc-400">
+                            No subplots in codex. Create a subplot entry first.
+                        </p>
+                        
+                        <!-- Dropdown Menu -->
+                        <Motion
+                            v-if="subplotDropdownOpen"
+                            :initial="{ opacity: 0, scale: 0.95, y: -4 }"
+                            :animate="{ opacity: 1, scale: 1, y: 0 }"
+                            :exit="{ opacity: 0, scale: 0.95, y: -4 }"
+                            :transition="{ type: 'spring', stiffness: 500, damping: 35, duration: 0.15 }"
+                            class="absolute left-0 top-full z-10 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+                        >
+                            <button
+                                v-for="subplot in unassignedSubplots()"
+                                :key="subplot.id"
+                                type="button"
+                                class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-zinc-700 transition-colors hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                                @click="assignSubplot(subplot)"
+                            >
+                                <span class="h-2 w-2 rounded-full bg-cyan-500" />
+                                {{ subplot.name }}
+                            </button>
+                        </Motion>
+                    </div>
+                    
+                    <!-- Click outside to close -->
+                    <div v-if="subplotDropdownOpen" class="fixed inset-0 z-0" @click="subplotDropdownOpen = false" />
                 </div>
 
                 <!-- AI Settings -->

@@ -90,6 +90,27 @@ class Scene extends Model
     }
 
     /**
+     * Get codex progressions for this scene.
+     *
+     * @return HasMany<CodexProgression, $this>
+     */
+    public function progressions(): HasMany
+    {
+        return $this->hasMany(CodexProgression::class);
+    }
+
+    /**
+     * Get subplots assigned to this scene via progressions.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<CodexEntry, $this>
+     */
+    public function subplots(): BelongsToMany
+    {
+        return $this->belongsToMany(CodexEntry::class, 'codex_progressions', 'scene_id', 'codex_entry_id')
+            ->where('type', CodexEntry::TYPE_SUBPLOT);
+    }
+
+    /**
      * Get sections for this scene.
      *
      * @return HasMany<SceneSection, $this>

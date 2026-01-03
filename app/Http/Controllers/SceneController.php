@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateSceneContentRequest;
 use App\Models\Chapter;
+use App\Models\CodexEntry;
+use App\Models\CodexProgression;
 use App\Models\Scene;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -309,5 +311,113 @@ class SceneController extends Controller
                 'word_count' => $duplicate->word_count,
             ],
         ], 201);
+    }
+
+    /**
+     * Get subplots assigned to a scene via progressions.
+     */
+    public function subplots(Request $request, Scene $scene): JsonResponse
+    {
+        // Ensure user owns this scene's novel
+        if ($scene->chapter->novel->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        // Get subplot progressions for this scene
+        $subplotProgressions = CodexProgression::where('scene_id', $scene->id)
+            ->whereHas('entry', fn ($q) => $q->where('type', CodexEntry::TYPE_SUBPLOT))
+            ->with('entry')
+            ->get();
+
+        return response()->json([
+            'subplots' => $subplotProgressions->map(fn ($prog) => [
+                'progression_id' => $prog->id,
+                'id' => $prog->entry->id,
+                'name' => $prog->entry->name,
+                'note' => $prog->note,
+            ]),
+        ]);
+    }
+
+    /**
+     * Assign a subplot to a scene by creating a progression.
+     */
+    public function assignSubplot(Request $request, Scene $scene): JsonResponse
+    {
+        // Ensure user owns this scene's novel
+        if ($scene->chapter->novel->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'codex_entry_id' => 'required|integer|exists:codex_entries,id',
+            'note' => 'nullable|string|max:1000',
+        ]);
+
+        // Verify the codex entry is a subplot belonging to the same novel
+        $codexEntry = CodexEntry::where('id', $validated['codex_entry_id'])
+            ->where('novel_id', $scene->chapter->novel_id)
+            ->where('type', CodexEntry::TYPE_SUBPLOT)
+            ->firstOrFail();
+
+        // Check if progression already exists
+        $existingProgression = CodexProgression::where('codex_entry_id', $codexEntry->id)
+            ->where('scene_id', $scene->id)
+            ->first();
+
+        if ($existingProgression) {
+            // Update the existing progression
+            $existingProgression->update([
+                'note' => $validated['note'] ?? $existingProgression->note,
+            ]);
+
+            return response()->json([
+                'progression' => [
+                    'id' => $existingProgression->id,
+                    'codex_entry_id' => $codexEntry->id,
+                    'scene_id' => $scene->id,
+                    'note' => $existingProgression->note,
+                ],
+            ]);
+        }
+
+        // Create new progression
+        $progression = CodexProgression::create([
+            'codex_entry_id' => $codexEntry->id,
+            'scene_id' => $scene->id,
+            'note' => $validated['note'] ?? "Scene: {$scene->title}",
+            'mode' => CodexProgression::MODE_ADDITION,
+            'sort_order' => CodexProgression::where('codex_entry_id', $codexEntry->id)->max('sort_order') + 1,
+        ]);
+
+        return response()->json([
+            'progression' => [
+                'id' => $progression->id,
+                'codex_entry_id' => $codexEntry->id,
+                'scene_id' => $scene->id,
+                'note' => $progression->note,
+            ],
+        ], 201);
+    }
+
+    /**
+     * Remove a subplot from a scene by deleting the progression.
+     */
+    public function removeSubplot(Request $request, Scene $scene, CodexEntry $codexEntry): JsonResponse
+    {
+        // Ensure user owns this scene's novel
+        if ($scene->chapter->novel->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        // Find and delete the progression
+        $deleted = CodexProgression::where('codex_entry_id', $codexEntry->id)
+            ->where('scene_id', $scene->id)
+            ->delete();
+
+        return response()->json([
+            'success' => $deleted > 0,
+            'deleted' => $deleted,
+        ]);
     }
 }

@@ -557,6 +557,32 @@ class CodexController extends Controller
     }
 
     /**
+     * Get all subplot entries for the novel.
+     */
+    public function subplots(Request $request, Novel $novel): JsonResponse
+    {
+        if ($novel->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        $subplots = $novel->codexEntries()
+            ->active()
+            ->where('type', CodexEntry::TYPE_SUBPLOT)
+            ->with('aliases')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'subplots' => $subplots->map(fn (CodexEntry $entry) => [
+                'id' => $entry->id,
+                'name' => $entry->name,
+                'description' => $entry->description,
+                'aliases' => $entry->aliases->pluck('alias'),
+            ]),
+        ]);
+    }
+
+    /**
      * Quick create a codex entry with minimal data (for editor integration).
      */
     public function quickCreate(Request $request, Novel $novel): JsonResponse

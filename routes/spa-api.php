@@ -99,6 +99,7 @@ Route::middleware('auth')->prefix('api')->group(function () {
         Route::get('/', [CodexController::class, 'apiIndex'])->name('codex.api.index');
         Route::get('editor', [CodexController::class, 'apiEntriesForEditor'])->name('codex.api.editor');
         Route::get('alias-lookup', [CodexController::class, 'aliasLookup'])->name('codex.api.alias-lookup');
+        Route::get('subplots', [CodexController::class, 'subplots'])->name('codex.api.subplots');
         Route::get('export/json', [CodexController::class, 'exportJson'])->name('codex.export.json');
         Route::get('export/csv', [CodexController::class, 'exportCsv'])->name('codex.export.csv');
         Route::post('import/preview', [CodexController::class, 'previewImport'])->name('codex.import.preview');
@@ -261,6 +262,11 @@ Route::middleware('auth')->prefix('api')->group(function () {
         Route::get('sections', [SectionController::class, 'index'])->name('scenes.sections.index');
         Route::post('sections', [SectionController::class, 'store'])->name('scenes.sections.store');
         Route::post('sections/reorder', [SectionController::class, 'reorder'])->name('scenes.sections.reorder');
+
+        // Scene subplots
+        Route::get('subplots', [SceneController::class, 'subplots'])->name('scenes.subplots.index');
+        Route::post('subplots', [SceneController::class, 'assignSubplot'])->name('scenes.subplots.store');
+        Route::delete('subplots/{codexEntry}', [SceneController::class, 'removeSubplot'])->name('scenes.subplots.destroy');
     });
 
     // ==================== Sections API ====================

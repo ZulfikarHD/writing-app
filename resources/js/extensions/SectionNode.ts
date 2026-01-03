@@ -9,6 +9,7 @@ export interface SectionAttributes {
     color: string;
     isCollapsed: boolean;
     excludeFromAi: boolean;
+    isCompleted: boolean;
 }
 
 declare module '@tiptap/core' {
@@ -109,6 +110,13 @@ export const SectionNode = Node.create({
                     'data-exclude-ai': attributes.excludeFromAi ? 'true' : 'false',
                 }),
             },
+            isCompleted: {
+                default: false,
+                parseHTML: (element) => element.getAttribute('data-completed') === 'true',
+                renderHTML: (attributes) => ({
+                    'data-completed': attributes.isCompleted ? 'true' : 'false',
+                }),
+            },
         };
     },
 
@@ -151,6 +159,7 @@ export const SectionNode = Node.create({
                         color: SECTION_TYPE_COLORS[defaultType] || SECTION_TYPE_COLORS.content,
                         isCollapsed: false,
                         excludeFromAi: defaultType === 'note' || defaultType === 'alternative',
+                        isCompleted: false,
                     };
 
                     const finalAttributes = { ...defaultAttributes, ...attributes };

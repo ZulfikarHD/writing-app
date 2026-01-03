@@ -2,6 +2,7 @@
 import { Motion } from 'motion-v';
 import { ref, computed } from 'vue';
 import { usePerformanceMode } from '@/composables/usePerformanceMode';
+import { HIGHLIGHT_COLORS, type HighlightColor } from '@/extensions/HighlightMark';
 
 interface Props {
     canUndo: boolean;
@@ -12,6 +13,9 @@ interface Props {
     isStrike: boolean;
     isBulletList: boolean;
     isOrderedList: boolean;
+    isBlockquote: boolean;
+    isHighlight: boolean;
+    currentHighlightColor: string | null;
     currentHeadingLevel: number;
     currentTextAlign: 'left' | 'center' | 'right' | 'justify';
     wordCount: number;
@@ -21,6 +25,9 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
     isBulletList: false,
     isOrderedList: false,
+    isBlockquote: false,
+    isHighlight: false,
+    currentHighlightColor: null,
     currentHeadingLevel: 0,
     currentTextAlign: 'left',
 });
@@ -35,6 +42,9 @@ const emit = defineEmits<{
     (e: 'heading', level: 0 | 1 | 2 | 3): void;
     (e: 'bulletList'): void;
     (e: 'orderedList'): void;
+    (e: 'blockquote'): void;
+    (e: 'highlight', color: string): void;
+    (e: 'removeHighlight'): void;
     (e: 'align', alignment: 'left' | 'center' | 'right' | 'justify'): void;
     (e: 'openSettings'): void;
     (e: 'openInfo'): void;
@@ -46,6 +56,17 @@ const { backdropBlurClass } = usePerformanceMode();
 
 const headingDropdownOpen = ref(false);
 const alignDropdownOpen = ref(false);
+const highlightDropdownOpen = ref(false);
+
+// Highlight color options
+const highlightColorOptions = [
+    { name: 'yellow' as HighlightColor, label: 'Yellow', color: HIGHLIGHT_COLORS.yellow },
+    { name: 'green' as HighlightColor, label: 'Green', color: HIGHLIGHT_COLORS.green },
+    { name: 'blue' as HighlightColor, label: 'Blue', color: HIGHLIGHT_COLORS.blue },
+    { name: 'pink' as HighlightColor, label: 'Pink', color: HIGHLIGHT_COLORS.pink },
+    { name: 'orange' as HighlightColor, label: 'Orange', color: HIGHLIGHT_COLORS.orange },
+    { name: 'purple' as HighlightColor, label: 'Purple', color: HIGHLIGHT_COLORS.purple },
+];
 
 const headingOptions = [
     { level: 0 as const, label: 'Paragraph', shortcut: '' },
@@ -106,9 +127,20 @@ const saveStatusClass = computed(() => {
     }
 });
 
+const selectHighlightColor = (color: string) => {
+    emit('highlight', color);
+    highlightDropdownOpen.value = false;
+};
+
+const removeHighlight = () => {
+    emit('removeHighlight');
+    highlightDropdownOpen.value = false;
+};
+
 const closeDropdowns = () => {
     headingDropdownOpen.value = false;
     alignDropdownOpen.value = false;
+    highlightDropdownOpen.value = false;
 };
 </script>
 
@@ -251,6 +283,60 @@ const closeDropdowns = () => {
                 </svg>
             </button>
 
+            <!-- Highlight Dropdown -->
+            <div class="relative">
+                <button
+                    type="button"
+                    :class="[
+                        'flex items-center gap-0.5 rounded-md p-1.5 transition-all active:scale-95 sm:p-2',
+                        isHighlight
+                            ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300'
+                            : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800',
+                    ]"
+                    title="Highlight (Ctrl+Shift+H)"
+                    @click="highlightDropdownOpen = !highlightDropdownOpen; headingDropdownOpen = false; alignDropdownOpen = false"
+                >
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        <rect x="3" y="19" width="18" height="3" rx="1" :fill="currentHighlightColor || HIGHLIGHT_COLORS.yellow" stroke="none" />
+                    </svg>
+                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <Motion
+                    v-if="highlightDropdownOpen"
+                    :initial="{ opacity: 0, scale: 0.95, y: -8 }"
+                    :animate="{ opacity: 1, scale: 1, y: 0 }"
+                    :exit="{ opacity: 0, scale: 0.95, y: -8 }"
+                    :transition="{ type: 'spring', stiffness: 500, damping: 35, duration: 0.15 }"
+                    class="absolute left-0 top-full z-20 mt-1 rounded-lg border border-zinc-200 bg-white p-2 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+                >
+                    <div class="mb-2 grid grid-cols-3 gap-1">
+                        <button
+                            v-for="option in highlightColorOptions"
+                            :key="option.name"
+                            type="button"
+                            class="h-6 w-6 rounded-md border border-zinc-200 transition-all hover:scale-110 dark:border-zinc-600"
+                            :style="{ backgroundColor: option.color }"
+                            :title="option.label"
+                            @click="selectHighlightColor(option.color)"
+                        />
+                    </div>
+                    <button
+                        v-if="isHighlight"
+                        type="button"
+                        class="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-xs text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
+                        @click="removeHighlight"
+                    >
+                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Remove
+                    </button>
+                </Motion>
+            </div>
+
             <div class="mx-1 h-5 w-px bg-zinc-200 dark:bg-zinc-700 sm:mx-2" />
 
             <!-- Lists -->
@@ -292,6 +378,23 @@ const closeDropdowns = () => {
                     <text x="3" y="8" font-size="8" fill="currentColor" stroke="none">1</text>
                     <text x="3" y="14" font-size="8" fill="currentColor" stroke="none">2</text>
                     <text x="3" y="20" font-size="8" fill="currentColor" stroke="none">3</text>
+                </svg>
+            </button>
+
+            <!-- Blockquote -->
+            <button
+                type="button"
+                :class="[
+                    'hidden rounded-md p-1.5 transition-all active:scale-95 sm:block sm:p-2',
+                    isBlockquote
+                        ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300'
+                        : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800',
+                ]"
+                title="Block Quote (Ctrl+Shift+B)"
+                @click="emit('blockquote')"
+            >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 6h4l2 4v8H3V10l2-4zm12 0h4l2 4v8h-6V10l2-4z" />
                 </svg>
             </button>
 
@@ -435,5 +538,5 @@ const closeDropdowns = () => {
     </div>
 
     <!-- Click outside to close dropdowns -->
-    <div v-if="headingDropdownOpen || alignDropdownOpen" class="fixed inset-0 z-10" @click="closeDropdowns" />
+    <div v-if="headingDropdownOpen || alignDropdownOpen || highlightDropdownOpen" class="fixed inset-0 z-10" @click="closeDropdowns" />
 </template>

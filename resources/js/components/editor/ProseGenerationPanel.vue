@@ -6,12 +6,14 @@ interface Props {
     sceneId: number;
     mode?: 'scene_beat' | 'continue' | 'custom';
     contentBefore?: string;
+    initialBeat?: string;
     isVisible?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     mode: 'scene_beat',
     contentBefore: '',
+    initialBeat: '',
     isVisible: false,
 });
 
@@ -132,6 +134,13 @@ watch(() => props.mode, (newMode) => {
     selectedMode.value = newMode;
 });
 
+// Watch for initialBeat changes (from beat section expansion)
+watch(() => props.initialBeat, (newBeat) => {
+    if (newBeat) {
+        beat.value = newBeat;
+    }
+}, { immediate: true });
+
 // Watch for visibility
 watch(() => props.isVisible, async (visible) => {
     if (visible) {
@@ -139,6 +148,10 @@ watch(() => props.isVisible, async (visible) => {
         // Set default connection
         if (defaultConnection.value && !selectedConnectionId.value) {
             selectedConnectionId.value = defaultConnection.value.id;
+        }
+        // If initialBeat is provided, prefill the beat input
+        if (props.initialBeat) {
+            beat.value = props.initialBeat;
         }
     }
 });

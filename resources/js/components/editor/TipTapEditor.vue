@@ -8,7 +8,8 @@ import TextAlign from '@tiptap/extension-text-align';
 import { CodexHighlight, type CodexEntry } from '@/extensions/CodexHighlight';
 import { SectionNode } from '@/extensions/SectionNode';
 import { SlashCommands, createSlashCommandsSuggestion, createAllSlashCommands, type AICommandEvent } from '@/extensions/SlashCommands';
-import { ref, watch, computed, onBeforeUnmount } from 'vue';
+import { HighlightMark } from '@/extensions/HighlightMark';
+import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue';
 import ProseGenerationPanel from './ProseGenerationPanel.vue';
 import TextReplacementMenu from './TextReplacementMenu.vue';
 
@@ -43,6 +44,7 @@ const emit = defineEmits<{
 const showProseGeneration = ref(false);
 const proseGenerationMode = ref<'scene_beat' | 'continue' | 'custom'>('scene_beat');
 const contentBeforeCursor = ref('');
+const beatContentForExpansion = ref('');
 
 const showTextReplacement = ref(false);
 const selectedText = ref('');
@@ -97,6 +99,7 @@ const editor = useEditor({
         SlashCommands.configure({
             suggestion: createSlashCommandsSuggestion(slashCommands.value),
         }),
+        HighlightMark,
     ],
     editorProps: {
         attributes: {
@@ -248,6 +251,21 @@ const insertSection = (type: 'content' | 'note' | 'alternative' | 'beat' = 'cont
     editor.value?.chain().focus().insertSection({ type }).run();
 };
 
+// Blockquote
+const toggleBlockquote = () => editor.value?.chain().focus().toggleBlockquote().run();
+const isBlockquote = computed(() => editor.value?.isActive('blockquote') ?? false);
+
+// Highlight
+const setHighlight = (color: string) => editor.value?.chain().focus().setHighlight(color).run();
+const toggleHighlight = (color: string) => editor.value?.chain().focus().toggleHighlight(color).run();
+const unsetHighlight = () => editor.value?.chain().focus().unsetHighlight().run();
+const isHighlight = computed(() => editor.value?.isActive('highlight') ?? false);
+const currentHighlightColor = computed(() => {
+    if (!editor.value) return null;
+    const attrs = editor.value.getAttributes('highlight');
+    return attrs?.color || null;
+});
+
 // AI Prose Generation handlers
 function handleApplyProse(content: string) {
     if (!editor.value) return;
@@ -274,6 +292,7 @@ function handleAddToSection(content: string, sectionType: string) {
 
 function handleCloseProseGeneration() {
     showProseGeneration.value = false;
+    beatContentForExpansion.value = '';
 }
 
 // Text Replacement handlers
@@ -304,7 +323,25 @@ function openProseGeneration(mode: 'scene_beat' | 'continue' | 'custom' = 'scene
     showProseGeneration.value = true;
 }
 
+// Handle expand beat to prose event from SectionNodeView
+const editorContainerRef = ref<HTMLElement | null>(null);
+
+const handleExpandBeatToProse = (event: CustomEvent) => {
+    if (!props.enableAI || !props.sceneId) return;
+    
+    const { content } = event.detail;
+    beatContentForExpansion.value = content;
+    proseGenerationMode.value = 'scene_beat';
+    showProseGeneration.value = true;
+};
+
+onMounted(() => {
+    // Listen for expand-beat-to-prose custom events
+    editorContainerRef.value?.addEventListener('expand-beat-to-prose', handleExpandBeatToProse as EventListener);
+});
+
 onBeforeUnmount(() => {
+    editorContainerRef.value?.removeEventListener('expand-beat-to-prose', handleExpandBeatToProse as EventListener);
     editor.value?.destroy();
 });
 
@@ -335,6 +372,15 @@ defineExpose({
     toggleOrderedList,
     isBulletList,
     isOrderedList,
+    // Blockquote
+    toggleBlockquote,
+    isBlockquote,
+    // Highlight
+    setHighlight,
+    toggleHighlight,
+    unsetHighlight,
+    isHighlight,
+    currentHighlightColor,
     // Text alignment
     setTextAlign,
     currentTextAlign,
@@ -348,7 +394,7 @@ defineExpose({
 </script>
 
 <template>
-    <div class="tiptap-editor relative">
+    <div ref="editorContainerRef" class="tiptap-editor relative">
         <EditorContent :editor="editor" />
         
         <!-- Prose Generation Panel -->
@@ -357,6 +403,7 @@ defineExpose({
                 :scene-id="sceneId"
                 :mode="proseGenerationMode"
                 :content-before="contentBeforeCursor"
+                :initial-beat="beatContentForExpansion"
                 :is-visible="showProseGeneration"
                 @apply="handleApplyProse"
                 @discard="handleDiscardProse"
@@ -484,6 +531,27 @@ defineExpose({
 
 .dark .codex-mention:hover {
     background-color: rgba(139, 92, 246, 0.25);
+}
+
+/* Highlight mark */
+.tiptap mark[data-highlight] {
+    border-radius: 2px;
+    padding: 0 2px;
+}
+
+/* Blockquote */
+.tiptap blockquote {
+    border-left: 3px solid #a78bfa;
+    padding-left: 1rem;
+    margin-left: 0;
+    margin-right: 0;
+    font-style: italic;
+    color: #71717a;
+}
+
+.dark .tiptap blockquote {
+    border-left-color: #8b5cf6;
+    color: #a1a1aa;
 }
 
 /* Prose generation panel positioning */

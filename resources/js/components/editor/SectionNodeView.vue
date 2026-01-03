@@ -3,7 +3,7 @@ import { ref, computed, watch } from 'vue';
 import { NodeViewWrapper, NodeViewContent } from '@tiptap/vue-3';
 import SectionHeader from './SectionHeader.vue';
 import SectionMenu from './SectionMenu.vue';
-import { SECTION_TYPE_COLORS, SECTION_TYPES } from '@/extensions/SectionNode';
+import { SECTION_TYPE_COLORS } from '@/extensions/SectionNode';
 
 interface Props {
     node: {
@@ -14,6 +14,7 @@ interface Props {
             color: string;
             isCollapsed: boolean;
             excludeFromAi: boolean;
+            isCompleted: boolean;
         };
         textContent: string;
     };
@@ -26,6 +27,7 @@ interface Props {
         };
     };
 }
+
 
 const props = defineProps<Props>();
 
@@ -107,6 +109,25 @@ const copyContent = async () => {
     await navigator.clipboard.writeText(text);
 };
 
+// Handle beat completion toggle
+const toggleCompletion = () => {
+    props.updateAttributes({ isCompleted: !props.node.attrs.isCompleted });
+};
+
+// Handle expand beat to prose - dispatches custom event for TipTapEditor to handle
+const expandToProse = () => {
+    const content = props.node.textContent;
+    const event = new CustomEvent('expand-beat-to-prose', {
+        bubbles: true,
+        detail: {
+            content,
+            sectionType: props.node.attrs.type,
+        },
+    });
+    // Dispatch from the editor's DOM element
+    document.querySelector('.tiptap-editor')?.dispatchEvent(event);
+};
+
 // Watch for external title changes
 watch(
     () => props.node.attrs.title,
@@ -137,6 +158,7 @@ watch(
             :word-count="wordCount"
             :is-editing="isEditing"
             :edited-title="editedTitle"
+            :is-completed="node.attrs.isCompleted"
             @toggle-collapse="toggleCollapse"
             @toggle-ai-visibility="toggleAiVisibility"
             @start-title-edit="startTitleEdit"
@@ -144,6 +166,8 @@ watch(
             @cancel-title-edit="cancelTitleEdit"
             @update:edited-title="editedTitle = $event"
             @open-menu="menuOpen = true"
+            @expand-to-prose="expandToProse"
+            @toggle-completion="toggleCompletion"
         />
 
         <!-- Section Content -->

@@ -47,6 +47,7 @@ class SceneSection extends Model
         'color',
         'is_collapsed',
         'exclude_from_ai',
+        'is_completed',
         'sort_order',
     ];
 
@@ -59,6 +60,7 @@ class SceneSection extends Model
             'content' => 'array',
             'is_collapsed' => 'boolean',
             'exclude_from_ai' => 'boolean',
+            'is_completed' => 'boolean',
             'sort_order' => 'integer',
         ];
     }

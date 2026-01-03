@@ -73,6 +73,7 @@ class SectionController extends Controller
             'color' => $validated['color'],
             'sort_order' => $validated['sort_order'],
             'exclude_from_ai' => $excludeFromAi,
+            'is_completed' => false,
         ]);
 
         return response()->json([
@@ -112,6 +113,7 @@ class SectionController extends Controller
             'color' => ['sometimes', 'nullable', 'string', 'max:7', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'is_collapsed' => ['sometimes', 'boolean'],
             'exclude_from_ai' => ['sometimes', 'boolean'],
+            'is_completed' => ['sometimes', 'boolean'],
         ]);
 
         $section->update($validated);
@@ -260,6 +262,7 @@ class SectionController extends Controller
             'color' => $section->color,
             'is_collapsed' => $section->is_collapsed,
             'exclude_from_ai' => $section->exclude_from_ai,
+            'is_completed' => $section->is_completed,
             'sort_order' => $section->sort_order,
             'word_count' => $section->calculateWordCount(),
             'created_at' => $section->created_at?->toIso8601String(),

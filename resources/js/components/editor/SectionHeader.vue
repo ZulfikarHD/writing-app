@@ -11,9 +11,12 @@ interface Props {
     wordCount: number;
     isEditing: boolean;
     editedTitle: string;
+    isCompleted?: boolean; // For beat sections
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    isCompleted: false,
+});
 
 const emit = defineEmits<{
     (e: 'toggle-collapse'): void;
@@ -23,7 +26,11 @@ const emit = defineEmits<{
     (e: 'cancel-title-edit'): void;
     (e: 'update:edited-title', value: string): void;
     (e: 'open-menu'): void;
+    (e: 'expand-to-prose'): void;
+    (e: 'toggle-completion'): void;
 }>();
+
+const isBeatSection = computed(() => props.type === 'beat');
 
 const titleInputRef = ref<HTMLInputElement | null>(null);
 
@@ -69,6 +76,25 @@ const handleKeydown = (e: KeyboardEvent) => {
             </svg>
         </button>
 
+        <!-- Beat Completion Checkbox (only for beat sections) -->
+        <button
+            v-if="isBeatSection"
+            type="button"
+            class="flex-shrink-0 p-0.5 rounded transition-colors"
+            :class="isCompleted 
+                ? 'text-green-500 hover:text-green-600' 
+                : 'text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300'"
+            :title="isCompleted ? 'Mark as incomplete' : 'Mark as completed'"
+            @click="emit('toggle-completion')"
+        >
+            <svg v-if="isCompleted" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            <svg v-else class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="9" />
+            </svg>
+        </button>
+
         <!-- Type Badge -->
         <span
             class="flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded"
@@ -76,6 +102,7 @@ const handleKeydown = (e: KeyboardEvent) => {
                 backgroundColor: `${color}20`,
                 color: color,
             }"
+            :class="{ 'line-through opacity-60': isBeatSection && isCompleted }"
         >
             {{ typeLabel }}
         </span>
@@ -109,6 +136,20 @@ const handleKeydown = (e: KeyboardEvent) => {
         >
             {{ wordCount }} {{ wordCount === 1 ? 'word' : 'words' }}
         </span>
+
+        <!-- Expand to Prose Button (only for beat sections) -->
+        <button
+            v-if="isBeatSection && !isCollapsed && wordCount > 0"
+            type="button"
+            class="flex-shrink-0 flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors bg-violet-100 text-violet-700 hover:bg-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:hover:bg-violet-900/50"
+            title="Expand beats to prose using AI"
+            @click="emit('expand-to-prose')"
+        >
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span class="hidden sm:inline">Expand</span>
+        </button>
 
         <!-- AI Visibility Toggle -->
         <button
