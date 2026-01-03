@@ -2,6 +2,7 @@
 import { ref, watch, nextTick, onMounted } from 'vue';
 import { animate } from 'motion';
 import ChatMessage from './ChatMessage.vue';
+import BrainstormingPanel from './BrainstormingPanel.vue';
 
 interface CodexAliasEntry {
     id: number;
@@ -76,12 +77,15 @@ const handleEditMessage = (message: Message, newContent: string) => {
     emit('editMessage', message, newContent);
 };
 
-// Quick prompt suggestions
+// Quick prompt suggestions for initial state
 const quickPrompts = [
-    'Help me brainstorm ideas for this story',
-    'Suggest a plot twist',
-    'Describe a character in detail',
+    { icon: '💡', label: 'Brainstorm ideas', prompt: 'Help me brainstorm ideas for this story' },
+    { icon: '🔄', label: 'Plot twist', prompt: 'Suggest a plot twist for my story' },
+    { icon: '👤', label: 'Character details', prompt: 'Help me describe a character in detail' },
 ];
+
+// Brainstorming panel state
+const showBrainstorming = ref(false);
 
 const scrollContainer = ref<HTMLElement | null>(null);
 
@@ -176,7 +180,7 @@ watch(
         </div>
 
         <!-- Empty State -->
-        <div v-else-if="messages.length === 0 && !isStreaming" class="flex flex-col items-center justify-center py-12 text-center">
+        <div v-else-if="messages.length === 0 && !isStreaming" class="flex flex-col items-center justify-center py-8 text-center">
             <div class="rounded-full bg-violet-100 p-4 dark:bg-violet-900/30">
                 <svg class="h-10 w-10 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                     <path
@@ -195,13 +199,33 @@ watch(
             <div class="mt-6 flex flex-wrap justify-center gap-2">
                 <button
                     v-for="prompt in quickPrompts"
-                    :key="prompt"
+                    :key="prompt.label"
                     type="button"
-                    class="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-700 transition-all hover:border-violet-300 hover:bg-violet-50 active:scale-95 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-violet-600 dark:hover:bg-violet-900/20"
-                    @click="emit('selectPrompt', prompt)"
+                    class="flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-700 transition-all hover:border-violet-300 hover:bg-violet-50 active:scale-95 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-violet-600 dark:hover:bg-violet-900/20"
+                    @click="emit('selectPrompt', prompt.prompt)"
                 >
-                    {{ prompt }}
+                    <span>{{ prompt.icon }}</span>
+                    <span>{{ prompt.label }}</span>
                 </button>
+            </div>
+
+            <!-- Brainstorming button -->
+            <button
+                type="button"
+                class="mt-4 flex items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-medium text-violet-700 transition-all hover:bg-violet-100 active:scale-95 dark:border-violet-800 dark:bg-violet-900/30 dark:text-violet-300 dark:hover:bg-violet-900/50"
+                @click="showBrainstorming = true"
+            >
+                <span class="text-lg">💡</span>
+                <span>Open Brainstorming Panel</span>
+            </button>
+
+            <!-- Brainstorming Panel -->
+            <div v-if="showBrainstorming" class="mt-4 w-full max-w-md">
+                <BrainstormingPanel
+                    :show="showBrainstorming"
+                    @close="showBrainstorming = false"
+                    @select-prompt="(prompt) => { emit('selectPrompt', prompt); showBrainstorming = false; }"
+                />
             </div>
         </div>
 

@@ -3,10 +3,32 @@ import { animate, stagger } from 'motion';
 import { computed, nextTick, ref } from 'vue';
 import type { ContextItem, ContextSources } from '@/composables/useChatContext';
 
+// Extended ContextSources to include outline data
+interface ExtendedContextSources extends ContextSources {
+    outline?: {
+        acts?: Array<{
+            id: number;
+            title: string;
+            tokens: number;
+            chapters: Array<{
+                id: number;
+                title: string;
+                tokens: number;
+            }>;
+        }>;
+        chapters?: Array<{
+            id: number;
+            title: string;
+            tokens: number;
+            scenes_count: number;
+        }>;
+    };
+}
+
 interface Props {
     threadId: number | null;
     novelId: number;
-    sources: ContextSources | null;
+    sources: ExtendedContextSources | null;
     contextItems: ContextItem[];
     isLoadingSources: boolean;
 }
@@ -21,7 +43,7 @@ const emit = defineEmits<{
 
 const isOpen = ref(false);
 const searchQuery = ref('');
-const activeTab = ref<'scenes' | 'codex' | 'custom'>('scenes');
+const activeTab = ref<'scenes' | 'codex' | 'outline' | 'custom'>('scenes');
 const customContent = ref('');
 
 // Open dropdown and fetch sources
@@ -73,6 +95,28 @@ const isSceneAdded = (sceneId: number): boolean => {
 // Check if a codex entry is already added
 const isCodexAdded = (entryId: number): boolean => {
     return props.contextItems.some((item) => item.context_type === 'codex' && item.reference_id === entryId);
+};
+
+// Check if outline is added (full outline)
+const isOutlineAdded = (): boolean => {
+    return props.contextItems.some((item) => item.context_type === 'outline' && !item.reference_id);
+};
+
+// Check if a chapter outline is already added
+const isChapterOutlineAdded = (chapterId: number): boolean => {
+    return props.contextItems.some((item) => item.context_type === 'outline' && item.reference_id === chapterId);
+};
+
+// Add full outline context
+const addOutline = () => {
+    if (isOutlineAdded()) return;
+    emit('addContext', 'outline');
+};
+
+// Add chapter outline context
+const addChapterOutline = (chapterId: number) => {
+    if (isChapterOutlineAdded(chapterId)) return;
+    emit('addContext', 'outline', chapterId);
 };
 
 // Add scene context
@@ -180,7 +224,7 @@ const closeSelector = () => {
                     <button
                         type="button"
                         :class="[
-                            'flex-1 px-4 py-2 text-sm font-medium transition-all',
+                            'flex-1 px-3 py-2 text-xs sm:text-sm font-medium transition-all',
                             activeTab === 'scenes'
                                 ? 'border-b-2 border-violet-600 text-violet-600 dark:text-violet-400'
                                 : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300',
@@ -192,7 +236,7 @@ const closeSelector = () => {
                     <button
                         type="button"
                         :class="[
-                            'flex-1 px-4 py-2 text-sm font-medium transition-all',
+                            'flex-1 px-3 py-2 text-xs sm:text-sm font-medium transition-all',
                             activeTab === 'codex'
                                 ? 'border-b-2 border-violet-600 text-violet-600 dark:text-violet-400'
                                 : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300',
@@ -204,7 +248,19 @@ const closeSelector = () => {
                     <button
                         type="button"
                         :class="[
-                            'flex-1 px-4 py-2 text-sm font-medium transition-all',
+                            'flex-1 px-3 py-2 text-xs sm:text-sm font-medium transition-all',
+                            activeTab === 'outline'
+                                ? 'border-b-2 border-violet-600 text-violet-600 dark:text-violet-400'
+                                : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300',
+                        ]"
+                        @click="activeTab = 'outline'"
+                    >
+                        Outline
+                    </button>
+                    <button
+                        type="button"
+                        :class="[
+                            'flex-1 px-3 py-2 text-xs sm:text-sm font-medium transition-all',
                             activeTab === 'custom'
                                 ? 'border-b-2 border-violet-600 text-violet-600 dark:text-violet-400'
                                 : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300',
@@ -216,7 +272,7 @@ const closeSelector = () => {
                 </div>
 
                 <!-- Search (for scenes/codex) -->
-                <div v-if="activeTab !== 'custom'" class="border-b border-zinc-200 p-2 dark:border-zinc-700">
+                <div v-if="activeTab === 'scenes' || activeTab === 'codex'" class="border-b border-zinc-200 p-2 dark:border-zinc-700">
                     <input
                         v-model="searchQuery"
                         type="text"
@@ -297,6 +353,86 @@ const closeSelector = () => {
                                         </svg>
                                     </div>
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Outline Tab -->
+                    <div v-else-if="activeTab === 'outline'">
+                        <div v-if="!sources?.has_outline" class="py-8 text-center">
+                            <div class="mb-3 text-2xl">📋</div>
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                                No outline available yet.
+                            </p>
+                            <p class="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+                                Create scenes and chapters to build your outline.
+                            </p>
+                        </div>
+                        <div v-else class="space-y-1">
+                            <!-- Full Outline Option -->
+                            <button
+                                type="button"
+                                :disabled="isOutlineAdded()"
+                                class="context-item flex w-full items-center justify-between border-b border-zinc-100 px-3 py-3 text-left transition-all hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-violet-900/20"
+                                @click="addOutline"
+                            >
+                                <div class="flex items-center gap-2">
+                                    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-900/30">
+                                        <svg class="h-4 w-4 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <span class="text-sm font-medium text-zinc-900 dark:text-white">Full Story Outline</span>
+                                        <p class="text-xs text-zinc-500 dark:text-zinc-400">Include complete chapter/scene structure</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <svg v-if="isOutlineAdded()" class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    <svg v-else class="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                </div>
+                            </button>
+
+                            <!-- Chapter-level outline options -->
+                            <div v-if="sources?.outline?.chapters && sources.outline.chapters.length > 0">
+                                <div class="bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-500 dark:bg-zinc-800/50 dark:text-zinc-400">
+                                    Or select specific chapters
+                                </div>
+                                <button
+                                    v-for="chapter in sources.outline.chapters"
+                                    :key="chapter.id"
+                                    type="button"
+                                    :disabled="isChapterOutlineAdded(chapter.id)"
+                                    class="context-item flex w-full items-center justify-between px-3 py-2 text-left transition-all hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-zinc-700"
+                                    @click="addChapterOutline(chapter.id)"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <svg class="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7" />
+                                        </svg>
+                                        <div>
+                                            <span class="text-sm text-zinc-700 dark:text-zinc-200">{{ chapter.title }}</span>
+                                            <span class="ml-2 text-xs text-zinc-400">({{ chapter.scenes_count }} scenes)</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-zinc-400">~{{ formatTokens(chapter.tokens) }}</span>
+                                        <svg v-if="isChapterOutlineAdded(chapter.id)" class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <!-- Hint for using outline -->
+                            <div class="border-t border-zinc-100 px-3 py-2 dark:border-zinc-700">
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                                    <span class="font-medium">Tip:</span> Adding your outline helps the AI understand your story structure for better suggestions.
+                                </p>
                             </div>
                         </div>
                     </div>

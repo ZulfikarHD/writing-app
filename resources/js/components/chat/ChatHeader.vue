@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import PromptSelector from '@/components/prompts/PromptSelector.vue';
+import type { Prompt } from '@/composables/usePrompts';
 
 interface Thread {
     id: number;
@@ -13,6 +14,7 @@ const props = defineProps<{
     thread: Thread | null;
     threadListOpen: boolean;
     selectedPromptId?: number | null;
+    showBrainstorming?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -20,7 +22,18 @@ const emit = defineEmits<{
     updateThread: [thread: Thread, updates: Partial<Thread>];
     deleteThread: [thread: Thread];
     'update:selectedPromptId': [value: number | null];
+    promptSelected: [prompt: Prompt];
+    toggleBrainstorming: [];
 }>();
+
+// Handle prompt change from selector
+const handlePromptChange = (prompt: Prompt | null) => {
+    if (prompt) {
+        emit('promptSelected', prompt);
+        // Clear the selection after emitting (so user can select same prompt again)
+        emit('update:selectedPromptId', null);
+    }
+};
 
 const isEditing = ref(false);
 const editTitle = ref('');
@@ -135,6 +148,22 @@ const displayTitle = computed(() => {
 
         <!-- Prompt Selector & Actions -->
         <div class="flex items-center gap-2">
+            <!-- Brainstorming Toggle -->
+            <button
+                type="button"
+                class="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-all"
+                :class="[
+                    showBrainstorming
+                        ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300'
+                        : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300',
+                ]"
+                title="Brainstorming Tools"
+                @click="emit('toggleBrainstorming')"
+            >
+                <span class="text-base">💡</span>
+                <span class="hidden sm:inline">Brainstorm</span>
+            </button>
+
             <!-- Prompt Selector -->
             <div class="w-48">
                 <PromptSelector
@@ -142,6 +171,7 @@ const displayTitle = computed(() => {
                     type="chat"
                     placeholder="Select prompt..."
                     @update:model-value="emit('update:selectedPromptId', $event)"
+                    @change="handlePromptChange"
                 />
             </div>
 

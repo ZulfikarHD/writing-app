@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import PromptCard from '@/components/prompts/PromptCard.vue';
 import PromptEditor from '@/components/prompts/PromptEditor.vue';
+import PromptImportModal from '@/components/prompts/PromptImportModal.vue';
 import Button from '@/components/ui/buttons/Button.vue';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import type { Prompt, PromptFormData } from '@/composables/usePrompts';
 import { usePrompts } from '@/composables/usePrompts';
+import { usePromptSharing } from '@/composables/usePromptSharing';
 import { useToast } from '@/composables/useToast';
 import { Head, Link } from '@inertiajs/vue3';
+import { onClickOutside } from '@vueuse/core';
 import { Motion } from 'motion-v';
 import { ref, computed } from 'vue';
 
@@ -29,6 +32,7 @@ interface Props {
 const props = defineProps<Props>();
 
 const { createPrompt, updatePrompt, deletePrompt, clonePrompt } = usePrompts();
+const { exportToClipboard } = usePromptSharing();
 const { showToast } = useToast();
 
 // Local state
@@ -38,6 +42,15 @@ const isCreating = ref(false);
 const searchQuery = ref(props.filters.search || '');
 const selectedType = ref<string | null>(props.filters.type || null);
 const isLoading = ref(false);
+
+// New dropdown and import modal state
+const showNewDropdown = ref(false);
+const newDropdownRef = ref<HTMLElement | null>(null);
+const showImportModal = ref(false);
+
+onClickOutside(newDropdownRef, () => {
+    showNewDropdown.value = false;
+});
 
 // Type options for filter
 const typeOptions = computed(() => {
@@ -154,6 +167,29 @@ async function handlePromptCloned(id: number) {
     }
 }
 
+// Handle prompt exported
+async function handlePromptExported(id: number) {
+    const success = await exportToClipboard(id);
+    if (success) {
+        showToast({ message: 'Prompt copied to clipboard', type: 'success' });
+    } else {
+        showToast({ message: 'Failed to export prompt', type: 'error' });
+    }
+}
+
+// Handle prompt imported
+function handlePromptImported(prompt: Prompt) {
+    localPrompts.value.push(prompt);
+    selectedPrompt.value = prompt;
+    showToast({ message: 'Prompt imported successfully', type: 'success' });
+}
+
+// Open import modal
+function openImportModal() {
+    showNewDropdown.value = false;
+    showImportModal.value = true;
+}
+
 // Cancel creating/editing
 function handleCancel() {
     isCreating.value = false;
@@ -202,12 +238,44 @@ function getTypeIcon(type: string) {
                     </Link>
                     <div class="flex items-center justify-between">
                         <h1 class="text-lg font-semibold text-zinc-900 dark:text-white">Prompt Library</h1>
-                        <Button size="sm" @click="startCreating()">
-                            <svg class="mr-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                            </svg>
-                            New
-                        </Button>
+                        <div ref="newDropdownRef" class="relative">
+                            <Button size="sm" @click="showNewDropdown = !showNewDropdown">
+                                <svg class="mr-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                                New
+                                <svg class="ml-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </Button>
+                            
+                            <!-- New Dropdown -->
+                            <div
+                                v-if="showNewDropdown"
+                                class="absolute right-0 top-full z-20 mt-1 w-48 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+                            >
+                                <button
+                                    type="button"
+                                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                                    @click="showNewDropdown = false; startCreating()"
+                                >
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Create New Prompt
+                                </button>
+                                <button
+                                    type="button"
+                                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                                    @click="openImportModal"
+                                >
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                    </svg>
+                                    Import from Clipboard
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -269,6 +337,7 @@ function getTypeIcon(type: string) {
                                     :selected="selectedPrompt?.id === prompt.id"
                                     @select="selectPrompt(prompt)"
                                     @clone="handlePromptCloned(prompt.id)"
+                                    @export="handlePromptExported(prompt.id)"
                                 />
                             </div>
 
@@ -282,6 +351,7 @@ function getTypeIcon(type: string) {
                                     @select="selectPrompt(prompt)"
                                     @clone="handlePromptCloned(prompt.id)"
                                     @delete="handlePromptDeleted(prompt.id)"
+                                    @export="handlePromptExported(prompt.id)"
                                 />
                             </div>
                         </template>
@@ -374,5 +444,12 @@ function getTypeIcon(type: string) {
                 </div>
             </Motion>
         </div>
+
+        <!-- Import Modal -->
+        <PromptImportModal
+            :is-open="showImportModal"
+            @close="showImportModal = false"
+            @imported="handlePromptImported"
+        />
     </AuthenticatedLayout>
 </template>

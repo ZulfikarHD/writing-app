@@ -21,6 +21,7 @@ use App\Http\Controllers\PromptController;
 use App\Http\Controllers\PromptInputController;
 use App\Http\Controllers\PromptPersonaController;
 use App\Http\Controllers\PromptPresetController;
+use App\Http\Controllers\PromptSharingController;
 use App\Http\Controllers\SceneController;
 use App\Http\Controllers\SceneLabelController;
 use App\Http\Controllers\SeriesCodexController;
@@ -349,6 +350,7 @@ Route::middleware('auth')->prefix('api')->group(function () {
         Route::delete('/', [PromptController::class, 'destroy'])->name('prompts.destroy');
         Route::post('clone', [PromptController::class, 'clone'])->name('prompts.clone');
         Route::post('usage', [PromptController::class, 'recordUsage'])->name('prompts.usage');
+        Route::get('export', [PromptSharingController::class, 'export'])->name('prompts.export');
 
         // Prompt Inputs
         Route::get('inputs', [PromptInputController::class, 'index'])->name('prompts.inputs.index');
@@ -357,6 +359,10 @@ Route::middleware('auth')->prefix('api')->group(function () {
         Route::patch('inputs/{input}', [PromptInputController::class, 'update'])->name('prompts.inputs.update');
         Route::delete('inputs/{input}', [PromptInputController::class, 'destroy'])->name('prompts.inputs.destroy');
     });
+
+    // Prompt Sharing/Import
+    Route::post('prompts/import/preview', [PromptSharingController::class, 'preview'])->name('prompts.import.preview');
+    Route::post('prompts/import', [PromptSharingController::class, 'import'])->name('prompts.import');
 
     // ==================== Prompt Components API ====================
     Route::prefix('prompt-components')->group(function () {

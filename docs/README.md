@@ -41,7 +41,9 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Sprint 24 - Prompt Library Core (FG-05.1)](./10-sprints/sprint-24-prompts-library-core.md) ✅ Complete
 - [Sprint 25 - Prompt Editor Enhancement (FG-05.2)](./10-sprints/sprint-25-prompt-editor-enhancement.md) ✅ Complete
 - [Sprint 26 - Personas & Presets (FG-05.3)](./10-sprints/sprint-26-personas-presets.md) ✅ Complete
-- [Sprint 27 - Prompt Advanced Features (FG-05.4)](./10-sprints/sprint-27-prompt-advanced-features.md) ✅ Complete ✨ NEW
+- [Sprint 27 - Prompt Advanced Features (FG-05.4)](./10-sprints/sprint-27-prompt-advanced-features.md) ✅ Complete
+- [Sprint 28 - Prompt Model & Sharing (FG-05.5)](./10-sprints/sprint-28-prompt-model-sharing.md) ✅ Complete ✨ NEW
+- [Sprint 29 - Chat Uses & Workflows (FG-04.4)](./10-sprints/sprint-29-chat-uses-workflows.md) ✅ Complete ✨ NEW
 
 ### API Reference
 - [Authentication API](./04-api-reference/authentication.md)
@@ -70,7 +72,9 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Chat Enhancement Testing Guide](./06-testing/chat-enhancement-testing.md)
 - [Prompts Testing Guide](./06-testing/prompts-testing.md)
 - [Personas & Presets Testing Guide](./06-testing/personas-presets-testing.md)
-- [Prompt Advanced Features Testing Guide](./06-testing/prompt-advanced-features-testing.md) ✨ NEW
+- [Prompt Advanced Features Testing Guide](./06-testing/prompt-advanced-features-testing.md)
+- [Prompt Model & Sharing Testing Guide](./06-testing/prompt-model-sharing-testing.md) ✨ NEW
+- [Chat Uses & Workflows Testing Guide](./06-testing/chat-uses-workflows-testing.md) ✨ NEW
 
 ### Developer Guides
 - [Performance Mode Guide](./performance-mode.md) ✨ NEW
@@ -440,6 +444,15 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 ## 🎨 Recent Updates
 
 ### January 4, 2026
+- ✅ **Sprint 29 Completed**: Chat Uses & Workflows (FG-04.4) - Brainstorming tools, outline context, quick prompts
+- ✅ **Brainstorming Panel**: 4 kategori (Character, Plot, Setting, World) dengan 16 system prompts
+- ✅ **Outline Context**: Add story outline atau specific chapters sebagai chat context
+- ✅ **Quick Prompts Access**: Drawer untuk quick access ke saved prompts dari chat input
+- ✅ **Sprint 28 Completed**: Prompt Model & Sharing (FG-05.5) - Model tuning dan prompt sharing
+- ✅ **Stop Sequences**: Tag-style input untuk multiple stop sequences di model settings
+- ✅ **Prompt Export/Import**: Share prompts via clipboard dengan compressed base64 format
+- ✅ **Folder Organization**: Virtual folder structure via naming convention " / "
+- ✅ **Enhanced Tooltips**: Detailed help untuk semua model parameters
 - ✅ **Sprint 27 Completed**: Prompt Advanced Features (FG-05.4) - Components & Inputs system
 - ✅ **Prompt Components**: Reusable instruction blocks dengan `{include("name")}` syntax
 - ✅ **Prompt Inputs**: Dynamic input forms sebelum prompt execution
@@ -647,4 +660,4 @@ Sprint ini mengimplementasikan filosofi bahwa **semua operasi Codex harus bekerj
 ---
 
 *Last Updated: 2026-01-04*  
-*Latest Features: Sprint 27 (Prompt Advanced Features) + Sprint 26 (Personas & Presets) + Sprint 25 (Prompt Editor)*
+*Latest Features: Sprint 29 (Chat Uses & Workflows) + Sprint 28 (Prompt Model & Sharing) + Sprint 27 (Prompt Advanced Features)*

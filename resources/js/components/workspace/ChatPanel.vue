@@ -8,10 +8,14 @@ import ChatHeader from '@/components/chat/ChatHeader.vue';
 import ContextPreview from '@/components/chat/ContextPreview.vue';
 import TransferMenu from '@/components/chat/TransferMenu.vue';
 import ExtractToCodexModal from '@/components/chat/ExtractToCodexModal.vue';
+import BrainstormingPanel from '@/components/chat/BrainstormingPanel.vue';
+import PromptExecutionWrapper from '@/components/prompts/PromptExecutionWrapper.vue';
+import type { PromptExecutionResult } from '@/components/prompts/PromptExecutionWrapper.vue';
 import { useChatContext } from '@/composables/useChatContext';
 import { useCodexAliasDetection } from '@/composables/useCodexAliasDetection';
 import { useChatRealtime, type RealtimeMessage, type RealtimeThreadUpdate } from '@/composables/useChatRealtime';
 import { router } from '@inertiajs/vue3';
+import type { Prompt } from '@/composables/usePrompts';
 
 interface Novel {
     id: number;
@@ -73,6 +77,12 @@ const selectedMessage = ref<Message | null>(null);
 
 // Prompt selection for chat
 const selectedPromptId = ref<number | null>(null);
+
+// Brainstorming panel state
+const showBrainstorming = ref(false);
+
+// Prompt execution wrapper ref
+const promptExecutorRef = ref<InstanceType<typeof PromptExecutionWrapper> | null>(null);
 
 // Context management
 const {
@@ -585,9 +595,43 @@ watch(
 // Chat input ref for setting message from prompts
 const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null);
 
-// Handle prompt selection from ChatWindow
+// Handle prompt selection from ChatWindow (quick prompts - string)
 const handlePromptSelect = (prompt: string) => {
     chatInputRef.value?.setMessage(prompt);
+};
+
+// Handle prompt selection from ChatHeader (saved prompts - Prompt object)
+const handlePromptSelected = async (prompt: Prompt) => {
+    // Execute the prompt (shows input form if prompt has inputs)
+    const result = await promptExecutorRef.value?.execute(prompt);
+    
+    if (result) {
+        // Build the message to send to chat
+        let messageToSend = '';
+        
+        // If prompt has a user message, use it
+        if (result.resolvedUserMessage) {
+            messageToSend = result.resolvedUserMessage;
+        }
+        
+        // If we have a message, send it
+        if (messageToSend) {
+            // If there's a system message, we could potentially set it as context
+            // For now, just send the user message
+            await sendMessage(messageToSend);
+        }
+    }
+};
+
+// Handle prompt execution result
+const handlePromptExecuted = (result: PromptExecutionResult) => {
+    // The prompt was executed through the wrapper
+    console.log('Prompt executed:', result.promptName);
+};
+
+// Handle brainstorming toggle
+const toggleBrainstorming = () => {
+    showBrainstorming.value = !showBrainstorming.value;
 };
 
 // Transfer & Extract handlers
@@ -643,10 +687,22 @@ onMounted(() => {
                 v-model:selected-prompt-id="selectedPromptId"
                 :thread="activeThread"
                 :thread-list-open="threadListOpen"
+                :show-brainstorming="showBrainstorming"
                 @toggle-thread-list="toggleThreadList"
                 @update-thread="updateThread"
                 @delete-thread="deleteThread"
+                @prompt-selected="handlePromptSelected"
+                @toggle-brainstorming="toggleBrainstorming"
             />
+
+            <!-- Brainstorming Panel (slides in below header) -->
+            <div v-if="showBrainstorming" class="border-b border-zinc-200 p-3 dark:border-zinc-700">
+                <BrainstormingPanel
+                    :show="showBrainstorming"
+                    @close="showBrainstorming = false"
+                    @select-prompt="(prompt) => { handlePromptSelect(prompt); showBrainstorming = false; }"
+                />
+            </div>
 
             <!-- Messages Area -->
             <ChatWindow
@@ -682,6 +738,7 @@ onMounted(() => {
                 @add-context="handleAddContext"
                 @fetch-sources="fetchSources"
                 @open-context-preview="contextPreviewOpen = true"
+                @prompt-selected="handlePromptSelected"
             />
         </div>
 
@@ -714,6 +771,12 @@ onMounted(() => {
             :novel-id="novel.id"
             @close="extractModalOpen = false"
             @extracted="handleExtracted"
+        />
+
+        <!-- Prompt Execution Wrapper (handles input forms for prompts) -->
+        <PromptExecutionWrapper
+            ref="promptExecutorRef"
+            @executed="handlePromptExecuted"
         />
     </div>
 </template>

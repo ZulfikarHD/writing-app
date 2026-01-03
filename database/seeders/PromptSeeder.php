@@ -13,6 +13,7 @@ class PromptSeeder extends Seeder
     public function run(): void
     {
         $this->seedChatPrompts();
+        $this->seedBrainstormingPrompts();
         $this->seedProsePrompts();
         $this->seedReplacementPrompts();
         $this->seedSummaryPrompts();
@@ -75,6 +76,141 @@ Ask probing questions to help the author discover deeper aspects of their charac
 Help identify plot holes, pacing issues, and opportunities for stronger dramatic moments. Reference common story structures when helpful but adapt to the author's unique vision.",
                 'user_message' => null,
                 'sort_order' => 3,
+            ],
+        ];
+
+        foreach ($prompts as $data) {
+            Prompt::updateOrCreate(
+                ['name' => $data['name'], 'is_system' => true],
+                array_merge($data, ['type' => Prompt::TYPE_CHAT, 'is_system' => true])
+            );
+        }
+    }
+
+    /**
+     * Seed Brainstorming prompts for quick creative sessions.
+     */
+    protected function seedBrainstormingPrompts(): void
+    {
+        $prompts = [
+            // Character Brainstorming
+            [
+                'name' => 'Brainstorm / Character / Backstory',
+                'description' => 'Generate compelling character backstory ideas.',
+                'system_message' => 'You are a creative writing assistant specializing in character development. Help the author brainstorm rich, compelling backstory ideas for their character. Consider formative experiences, key relationships, pivotal moments, and how the past shapes the present.',
+                'user_message' => 'Help me create a compelling backstory for a character. Consider their childhood, formative experiences, and key relationships that shaped who they are today.',
+                'sort_order' => 10,
+            ],
+            [
+                'name' => 'Brainstorm / Character / Motivation',
+                'description' => 'Explore deep character motivations and desires.',
+                'system_message' => 'You are a creative writing assistant specializing in character psychology. Help the author explore deep motivations, desires, and fears that drive their character. Focus on what makes them tick at their core.',
+                'user_message' => 'What are the deep motivations driving this character? Explore their desires, fears, and what they would sacrifice everything for.',
+                'sort_order' => 11,
+            ],
+            [
+                'name' => 'Brainstorm / Character / Conflict',
+                'description' => 'Develop internal conflicts and moral dilemmas.',
+                'system_message' => 'You are a creative writing assistant specializing in character complexity. Help the author develop internal conflicts, contradictions, and moral dilemmas that make characters feel real and compelling.',
+                'user_message' => 'What internal conflicts does this character struggle with? Explore their contradictions, moral dilemmas, and emotional battles.',
+                'sort_order' => 12,
+            ],
+            [
+                'name' => 'Brainstorm / Character / Voice',
+                'description' => 'Develop unique character voice and speech patterns.',
+                'system_message' => 'You are a creative writing assistant specializing in dialogue and voice. Help the author develop a distinctive voice for their character, including speech patterns, vocabulary, catchphrases, and what makes their dialogue unique.',
+                'user_message' => 'Help me develop a unique voice for this character. How do they speak? What phrases do they use? What makes their dialogue distinctive?',
+                'sort_order' => 13,
+            ],
+
+            // Plot Brainstorming
+            [
+                'name' => 'Brainstorm / Plot / Twist',
+                'description' => 'Generate unexpected plot twist ideas.',
+                'system_message' => 'You are a creative writing assistant specializing in plot development. Help the author brainstorm unexpected yet logical plot twists that will surprise readers while feeling earned within the story.',
+                'user_message' => 'Suggest some unexpected plot twists that would surprise readers while still feeling earned and logical within the story.',
+                'sort_order' => 20,
+            ],
+            [
+                'name' => 'Brainstorm / Plot / Escalation',
+                'description' => 'Ideas for escalating conflict and raising stakes.',
+                'system_message' => 'You are a creative writing assistant specializing in dramatic tension. Help the author brainstorm ways to escalate conflict, raise stakes, and create compelling obstacles for their characters.',
+                'user_message' => 'How can I escalate the conflict in my story? What obstacles, complications, or setbacks would raise the stakes?',
+                'sort_order' => 21,
+            ],
+            [
+                'name' => 'Brainstorm / Plot / Subplot',
+                'description' => 'Generate meaningful subplot ideas.',
+                'system_message' => 'You are a creative writing assistant specializing in story structure. Help the author brainstorm subplots that enrich the main narrative, develop characters, and add thematic depth.',
+                'user_message' => 'Suggest meaningful subplots that could enrich the main narrative and add depth to the characters.',
+                'sort_order' => 22,
+            ],
+            [
+                'name' => 'Brainstorm / Plot / Resolution',
+                'description' => 'Explore satisfying resolution options.',
+                'system_message' => 'You are a creative writing assistant specializing in story endings. Help the author explore different resolution options, considering emotional impact, thematic resonance, and reader satisfaction.',
+                'user_message' => 'What are some satisfying ways to resolve the main conflict? Consider different endings and their emotional impact.',
+                'sort_order' => 23,
+            ],
+
+            // Setting Brainstorming
+            [
+                'name' => 'Brainstorm / Setting / Description',
+                'description' => 'Create vivid, sensory setting descriptions.',
+                'system_message' => 'You are a creative writing assistant specializing in setting and atmosphere. Help the author create vivid, immersive descriptions that engage all senses and establish mood.',
+                'user_message' => 'Help me write a vivid, sensory description of this location. Include sights, sounds, smells, and the overall atmosphere.',
+                'sort_order' => 30,
+            ],
+            [
+                'name' => 'Brainstorm / Setting / History',
+                'description' => 'Develop location history and secrets.',
+                'system_message' => 'You are a creative writing assistant specializing in worldbuilding. Help the author develop the history, secrets, and significance of locations in their story.',
+                'user_message' => 'What is the history of this place? What events shaped it? What secrets might it hold?',
+                'sort_order' => 31,
+            ],
+            [
+                'name' => 'Brainstorm / Setting / Atmosphere',
+                'description' => 'Use setting to enhance mood and emotion.',
+                'system_message' => 'You are a creative writing assistant specializing in atmosphere and mood. Help the author use setting elements to reinforce emotional tone and create immersive experiences.',
+                'user_message' => 'How can I use this setting to enhance the mood of the scene? What environmental details would reinforce the emotional tone?',
+                'sort_order' => 32,
+            ],
+            [
+                'name' => 'Brainstorm / Setting / Details',
+                'description' => 'Generate unique, memorable setting details.',
+                'system_message' => 'You are a creative writing assistant specializing in distinctive details. Help the author find unique, memorable details that make locations come alive and stick in readers\' minds.',
+                'user_message' => 'What unique, memorable details could make this setting distinctive? What would a character notice first?',
+                'sort_order' => 33,
+            ],
+
+            // World Brainstorming
+            [
+                'name' => 'Brainstorm / World / Rules',
+                'description' => 'Establish world rules and logic.',
+                'system_message' => 'You are a creative writing assistant specializing in worldbuilding. Help the author establish consistent rules, logic, and constraints that make their fictional world feel real and believable.',
+                'user_message' => 'Help me establish the fundamental rules of this world. What makes it different from our reality? What are its limitations?',
+                'sort_order' => 40,
+            ],
+            [
+                'name' => 'Brainstorm / World / Magic System',
+                'description' => 'Design magic or technology systems.',
+                'system_message' => 'You are a creative writing assistant specializing in speculative fiction systems. Help the author design compelling magic systems or technologies with clear rules, costs, and societal impacts.',
+                'user_message' => 'Design or refine the magic system or technology in this world. What are its costs, limitations, and societal impacts?',
+                'sort_order' => 41,
+            ],
+            [
+                'name' => 'Brainstorm / World / Politics',
+                'description' => 'Develop political systems and power dynamics.',
+                'system_message' => 'You are a creative writing assistant specializing in political worldbuilding. Help the author develop power structures, factions, tensions, and political dynamics that create story opportunities.',
+                'user_message' => 'What are the political forces at play in this world? Who holds power? What tensions exist between factions?',
+                'sort_order' => 42,
+            ],
+            [
+                'name' => 'Brainstorm / World / Culture',
+                'description' => 'Create cultural elements and traditions.',
+                'system_message' => 'You are a creative writing assistant specializing in cultural worldbuilding. Help the author create rich cultural elements including customs, traditions, beliefs, and daily life details.',
+                'user_message' => 'What do people believe in this world? What religions, philosophies, customs, or traditions shape their worldview?',
+                'sort_order' => 43,
             ],
         ];
 

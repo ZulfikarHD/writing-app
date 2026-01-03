@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Prompt } from '@/composables/usePrompts';
-import { usePrompts } from '@/composables/usePrompts';
+import { usePrompts, buildPromptFolderTree, getPromptDisplayName, type PromptFolderNode } from '@/composables/usePrompts';
 import { ref, computed, onMounted, watch } from 'vue';
 import { onClickOutside } from '@vueuse/core';
 
@@ -29,6 +29,7 @@ const isLoading = ref(false);
 const prompts = ref<Prompt[]>([]);
 const searchQuery = ref('');
 const dropdownRef = ref<HTMLElement | null>(null);
+const expandedFolders = ref<Set<string>>(new Set());
 
 // Selected prompt
 const selectedPrompt = computed(() => {
@@ -51,6 +52,40 @@ const groupedPrompts = computed(() => {
     const system = filteredPrompts.value.filter((p) => p.is_system);
     const user = filteredPrompts.value.filter((p) => !p.is_system);
     return { system, user };
+});
+
+// Folder tree for user prompts
+const userFolderTree = computed(() => {
+    return buildPromptFolderTree(groupedPrompts.value.user);
+});
+
+// Toggle folder expansion
+function toggleFolder(path: string) {
+    if (expandedFolders.value.has(path)) {
+        expandedFolders.value.delete(path);
+    } else {
+        expandedFolders.value.add(path);
+    }
+    expandedFolders.value = new Set(expandedFolders.value);
+}
+
+function isExpanded(path: string): boolean {
+    return expandedFolders.value.has(path);
+}
+
+// Auto-expand when searching
+watch(searchQuery, (query) => {
+    if (query) {
+        const allPaths = new Set<string>();
+        const collectPaths = (nodes: PromptFolderNode[]) => {
+            for (const node of nodes) {
+                if (node.path) allPaths.add(node.path);
+                collectPaths(node.children);
+            }
+        };
+        collectPaths(userFolderTree.value);
+        expandedFolders.value = allPaths;
+    }
 });
 
 // Load prompts
@@ -227,39 +262,161 @@ onMounted(() => {
                         </button>
                     </div>
 
-                    <!-- User prompts -->
+                    <!-- User prompts with folder structure -->
                     <div v-if="groupedPrompts.user.length > 0">
                         <div class="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                             Custom
                         </div>
-                        <button
-                            v-for="prompt in groupedPrompts.user"
-                            :key="prompt.id"
-                            type="button"
-                            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                            :class="[
-                                prompt.id === modelValue
-                                    ? 'bg-violet-50 text-violet-700 dark:bg-violet-950/30 dark:text-violet-300'
-                                    : 'text-zinc-900 dark:text-white',
-                            ]"
-                            @click="selectPrompt(prompt)"
-                        >
-                            <div class="flex-1 truncate">
-                                <div class="font-medium">{{ prompt.name }}</div>
-                                <div v-if="prompt.description" class="truncate text-xs text-zinc-500 dark:text-zinc-400">
-                                    {{ prompt.description }}
+                        
+                        <!-- Folder tree -->
+                        <template v-for="node in userFolderTree" :key="node.path || '_user_root'">
+                            <!-- Root-level prompts (no folder) -->
+                            <template v-if="node.name === ''">
+                                <button
+                                    v-for="prompt in node.prompts"
+                                    :key="prompt.id"
+                                    type="button"
+                                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                                    :class="[
+                                        prompt.id === modelValue
+                                            ? 'bg-violet-50 text-violet-700 dark:bg-violet-950/30 dark:text-violet-300'
+                                            : 'text-zinc-900 dark:text-white',
+                                    ]"
+                                    @click="selectPrompt(prompt)"
+                                >
+                                    <div class="flex-1 truncate">
+                                        <div class="font-medium">{{ getPromptDisplayName(prompt) }}</div>
+                                        <div v-if="prompt.description" class="truncate text-xs text-zinc-500 dark:text-zinc-400">
+                                            {{ prompt.description }}
+                                        </div>
+                                    </div>
+                                    <svg
+                                        v-if="prompt.id === modelValue"
+                                        class="h-4 w-4 shrink-0 text-violet-500"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </button>
+                            </template>
+
+                            <!-- Folders -->
+                            <div v-else class="folder-group">
+                                <!-- Folder header -->
+                                <button
+                                    type="button"
+                                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                                    @click.stop="toggleFolder(node.path)"
+                                >
+                                    <svg
+                                        class="h-3 w-3 shrink-0 text-zinc-400 transition-transform"
+                                        :class="{ 'rotate-90': isExpanded(node.path) }"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                    <svg
+                                        class="h-4 w-4 shrink-0"
+                                        :class="isExpanded(node.path) ? 'text-violet-500' : 'text-zinc-400'"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                    </svg>
+                                    <span class="flex-1 truncate font-medium">{{ node.name }}</span>
+                                    <span class="text-xs text-zinc-400">{{ node.prompts.length + node.children.length }}</span>
+                                </button>
+
+                                <!-- Folder contents (expanded) -->
+                                <div v-if="isExpanded(node.path)" class="ml-4 border-l border-zinc-200 pl-2 dark:border-zinc-700">
+                                    <!-- Prompts in this folder -->
+                                    <button
+                                        v-for="prompt in node.prompts"
+                                        :key="prompt.id"
+                                        type="button"
+                                        class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                                        :class="[
+                                            prompt.id === modelValue
+                                                ? 'bg-violet-50 text-violet-700 dark:bg-violet-950/30 dark:text-violet-300'
+                                                : 'text-zinc-900 dark:text-white',
+                                        ]"
+                                        @click="selectPrompt(prompt)"
+                                    >
+                                        <div class="flex-1 truncate">
+                                            <div class="font-medium">{{ getPromptDisplayName(prompt) }}</div>
+                                            <div v-if="prompt.description" class="truncate text-xs text-zinc-500 dark:text-zinc-400">
+                                                {{ prompt.description }}
+                                            </div>
+                                        </div>
+                                        <svg
+                                            v-if="prompt.id === modelValue"
+                                            class="h-4 w-4 shrink-0 text-violet-500"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </button>
+
+                                    <!-- Nested subfolders -->
+                                    <template v-for="child in node.children" :key="child.path">
+                                        <button
+                                            type="button"
+                                            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                                            @click.stop="toggleFolder(child.path)"
+                                        >
+                                            <svg
+                                                class="h-3 w-3 shrink-0 text-zinc-400 transition-transform"
+                                                :class="{ 'rotate-90': isExpanded(child.path) }"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                            </svg>
+                                            <svg class="h-4 w-4 shrink-0 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                            </svg>
+                                            <span class="flex-1 truncate font-medium">{{ child.name }}</span>
+                                            <span class="text-xs text-zinc-400">{{ child.prompts.length }}</span>
+                                        </button>
+                                        <div v-if="isExpanded(child.path)" class="ml-4 border-l border-zinc-200 pl-2 dark:border-zinc-700">
+                                            <button
+                                                v-for="prompt in child.prompts"
+                                                :key="prompt.id"
+                                                type="button"
+                                                class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                                                :class="[
+                                                    prompt.id === modelValue
+                                                        ? 'bg-violet-50 text-violet-700 dark:bg-violet-950/30 dark:text-violet-300'
+                                                        : 'text-zinc-900 dark:text-white',
+                                                ]"
+                                                @click="selectPrompt(prompt)"
+                                            >
+                                                <div class="flex-1 truncate">
+                                                    <div class="font-medium">{{ getPromptDisplayName(prompt) }}</div>
+                                                </div>
+                                                <svg
+                                                    v-if="prompt.id === modelValue"
+                                                    class="h-4 w-4 shrink-0 text-violet-500"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </template>
                                 </div>
                             </div>
-                            <svg
-                                v-if="prompt.id === modelValue"
-                                class="h-4 w-4 shrink-0 text-violet-500"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                        </button>
+                        </template>
                     </div>
 
                     <!-- Empty state -->

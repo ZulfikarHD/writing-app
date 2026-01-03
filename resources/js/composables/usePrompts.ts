@@ -59,6 +59,8 @@ export interface ModelSettings {
     top_p?: number;
     frequency_penalty?: number;
     presence_penalty?: number;
+    repetition_penalty?: number;
+    stop_sequences?: string[];
 }
 
 export interface PromptFormData {
@@ -407,4 +409,173 @@ export function usePrompts() {
         recordUsage,
         getTypeLabel,
     };
+}
+
+// ==================== Folder Tree Utilities ====================
+
+export interface ParsedPromptName {
+    folders: string[];
+    displayName: string;
+    fullPath: string;
+}
+
+export interface PromptFolderNode {
+    name: string;
+    path: string;
+    prompts: Prompt[];
+    children: PromptFolderNode[];
+}
+
+/**
+ * Parse a prompt name to extract folder path.
+ * Format: "Folder / Subfolder / Prompt Name"
+ * The separator is " / " (space-slash-space).
+ */
+export function parsePromptName(name: string): ParsedPromptName {
+    const parts = name.split(' / ').map(p => p.trim()).filter(Boolean);
+    
+    if (parts.length <= 1) {
+        return {
+            folders: [],
+            displayName: name,
+            fullPath: '',
+        };
+    }
+    
+    const displayName = parts.pop()!;
+    return {
+        folders: parts,
+        displayName,
+        fullPath: parts.join(' / '),
+    };
+}
+
+/**
+ * Get the display name of a prompt (last part after folder separators).
+ */
+export function getPromptDisplayName(prompt: Prompt): string {
+    return parsePromptName(prompt.name).displayName;
+}
+
+/**
+ * Get the folder path of a prompt (everything before the display name).
+ */
+export function getPromptFolderPath(prompt: Prompt): string {
+    return parsePromptName(prompt.name).fullPath;
+}
+
+/**
+ * Build a folder tree from a list of prompts.
+ */
+export function buildPromptFolderTree(prompts: Prompt[]): PromptFolderNode[] {
+    const root: PromptFolderNode[] = [];
+    const folderMap = new Map<string, PromptFolderNode>();
+
+    // Sort prompts by name for consistent tree building
+    const sortedPrompts = [...prompts].sort((a, b) => a.name.localeCompare(b.name));
+
+    for (const prompt of sortedPrompts) {
+        const parsed = parsePromptName(prompt.name);
+
+        if (parsed.folders.length === 0) {
+            // Prompt at root level - find or create root-level node for ungrouped prompts
+            let rootNode = root.find(n => n.name === '' && n.path === '');
+            if (!rootNode) {
+                rootNode = { name: '', path: '', prompts: [], children: [] };
+                root.unshift(rootNode); // Add at beginning
+            }
+            rootNode.prompts.push(prompt);
+            continue;
+        }
+
+        // Navigate/create folder structure
+        let currentLevel = root;
+        let currentPath = '';
+
+        for (let i = 0; i < parsed.folders.length; i++) {
+            const folderName = parsed.folders[i];
+            currentPath = currentPath ? `${currentPath} / ${folderName}` : folderName;
+
+            let existingFolder = currentLevel.find(n => n.name === folderName);
+            
+            if (!existingFolder) {
+                existingFolder = {
+                    name: folderName,
+                    path: currentPath,
+                    prompts: [],
+                    children: [],
+                };
+                currentLevel.push(existingFolder);
+                folderMap.set(currentPath, existingFolder);
+            }
+
+            // If this is the last folder, add the prompt here
+            if (i === parsed.folders.length - 1) {
+                existingFolder.prompts.push(prompt);
+            } else {
+                // Move to next level
+                currentLevel = existingFolder.children;
+            }
+        }
+    }
+
+    // Sort folders alphabetically (but keep root-level ungrouped at top)
+    const sortFolders = (nodes: PromptFolderNode[]) => {
+        nodes.sort((a, b) => {
+            // Empty name (ungrouped) stays at top
+            if (a.name === '' && b.name !== '') return -1;
+            if (a.name !== '' && b.name === '') return 1;
+            return a.name.localeCompare(b.name);
+        });
+        for (const node of nodes) {
+            if (node.children.length > 0) {
+                sortFolders(node.children);
+            }
+        }
+    };
+    sortFolders(root);
+
+    return root;
+}
+
+/**
+ * Get all unique folder paths from a list of prompts.
+ */
+export function getUniqueFolderPaths(prompts: Prompt[]): string[] {
+    const paths = new Set<string>();
+    
+    for (const prompt of prompts) {
+        const parsed = parsePromptName(prompt.name);
+        let currentPath = '';
+        
+        for (const folder of parsed.folders) {
+            currentPath = currentPath ? `${currentPath} / ${folder}` : folder;
+            paths.add(currentPath);
+        }
+    }
+    
+    return Array.from(paths).sort();
+}
+
+/**
+ * Filter prompts by folder path.
+ */
+export function filterPromptsByFolder(prompts: Prompt[], folderPath: string): Prompt[] {
+    if (!folderPath) {
+        // Return prompts without folder structure
+        return prompts.filter(p => parsePromptName(p.name).folders.length === 0);
+    }
+    
+    return prompts.filter(p => {
+        const parsed = parsePromptName(p.name);
+        return parsed.fullPath === folderPath || parsed.fullPath.startsWith(folderPath + ' / ');
+    });
+}
+
+/**
+ * Check if a prompt is in a specific folder (exact match, not nested).
+ */
+export function isPromptInFolder(prompt: Prompt, folderPath: string): boolean {
+    const parsed = parsePromptName(prompt.name);
+    return parsed.fullPath === folderPath;
 }

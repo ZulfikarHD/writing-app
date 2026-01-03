@@ -2,8 +2,10 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import ModelSelector from '@/components/ai/ModelSelector.vue';
 import ContextSelector from '@/components/chat/ContextSelector.vue';
+import QuickPromptsDrawer from '@/components/chat/QuickPromptsDrawer.vue';
 import type { ContextItem, ContextSources, ContextLimitInfo } from '@/composables/useChatContext';
 import { useCodexAliasDetection, type CodexAliasEntry } from '@/composables/useCodexAliasDetection';
+import type { Prompt } from '@/composables/usePrompts';
 
 const props = defineProps<{
     isStreaming: boolean;
@@ -22,7 +24,11 @@ const emit = defineEmits<{
     addContext: [type: ContextItem['context_type'], referenceId?: number, customContent?: string];
     fetchSources: [];
     openContextPreview: [];
+    promptSelected: [prompt: Prompt];
 }>();
+
+// Quick prompts drawer state
+const showQuickPrompts = ref(false);
 
 const message = ref('');
 const selectedModel = ref<string>('');
@@ -186,6 +192,17 @@ const setMessage = (text: string) => {
     });
 };
 
+// Handle quick prompt selection
+const handleQuickPromptSelect = (prompt: Prompt) => {
+    // If the prompt has a user_message, set it in the input
+    if (prompt.user_message) {
+        setMessage(prompt.user_message);
+    }
+    // Emit event so parent can handle prompts with inputs
+    emit('promptSelected', prompt);
+    showQuickPrompts.value = false;
+};
+
 defineExpose({
     setMessage,
 });
@@ -314,23 +331,56 @@ defineExpose({
                     <!-- Model Selector -->
                     <ModelSelector v-model="selectedModel" v-model:connection-id="selectedConnectionId" size="sm" placeholder="Auto" />
 
-                    <!-- Send Button -->
-                    <button
-                        type="button"
-                        :disabled="!canSend"
-                        class="flex h-9 items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 text-sm font-medium text-white transition-all hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50 active:scale-95"
-                        :title="isStreaming ? 'Generating...' : 'Send message'"
-                        @click="handleSend"
-                    >
-                        <svg v-if="isStreaming" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                        </svg>
-                        <span>{{ isStreaming ? 'Generating...' : 'Send' }}</span>
-                    </button>
+                    <!-- Right side actions -->
+                    <div class="flex items-center gap-2">
+                        <!-- Quick Prompts Button -->
+                        <div class="relative">
+                            <button
+                                type="button"
+                                class="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-600 transition-all hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700 active:scale-95 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-violet-600 dark:hover:bg-violet-900/20 dark:hover:text-violet-300"
+                                :class="{ 'border-violet-500 bg-violet-50 text-violet-700 dark:border-violet-500 dark:bg-violet-900/30 dark:text-violet-300': showQuickPrompts }"
+                                title="Quick Prompts"
+                                @click="showQuickPrompts = !showQuickPrompts"
+                            >
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span class="hidden sm:inline">Prompts</span>
+                            </button>
+
+                            <!-- Quick Prompts Drawer -->
+                            <QuickPromptsDrawer
+                                :show="showQuickPrompts"
+                                @close="showQuickPrompts = false"
+                                @select-prompt="handleQuickPromptSelect"
+                            />
+
+                            <!-- Backdrop for drawer -->
+                            <div
+                                v-if="showQuickPrompts"
+                                class="fixed inset-0 z-40"
+                                @click="showQuickPrompts = false"
+                            ></div>
+                        </div>
+
+                        <!-- Send Button -->
+                        <button
+                            type="button"
+                            :disabled="!canSend"
+                            class="flex h-9 items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 text-sm font-medium text-white transition-all hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50 active:scale-95"
+                            :title="isStreaming ? 'Generating...' : 'Send message'"
+                            @click="handleSend"
+                        >
+                            <svg v-if="isStreaming" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                            <span>{{ isStreaming ? 'Generating...' : 'Send' }}</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
