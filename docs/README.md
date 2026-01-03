@@ -42,8 +42,9 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Sprint 25 - Prompt Editor Enhancement (FG-05.2)](./10-sprints/sprint-25-prompt-editor-enhancement.md) ✅ Complete
 - [Sprint 26 - Personas & Presets (FG-05.3)](./10-sprints/sprint-26-personas-presets.md) ✅ Complete
 - [Sprint 27 - Prompt Advanced Features (FG-05.4)](./10-sprints/sprint-27-prompt-advanced-features.md) ✅ Complete
-- [Sprint 28 - Prompt Model & Sharing (FG-05.5)](./10-sprints/sprint-28-prompt-model-sharing.md) ✅ Complete ✨ NEW
-- [Sprint 29 - Chat Uses & Workflows (FG-04.4)](./10-sprints/sprint-29-chat-uses-workflows.md) ✅ Complete ✨ NEW
+- [Sprint 28 - Prompt Model & Sharing (FG-05.5)](./10-sprints/sprint-28-prompt-model-sharing.md) ✅ Complete
+- [Sprint 29 - Chat Uses & Workflows (FG-04.4)](./10-sprints/sprint-29-chat-uses-workflows.md) ✅ Complete
+- [Sprint 30 - Sections System (FG-06.1)](./10-sprints/sprint-30-sections-system.md) ✅ Complete ✨ NEW
 
 ### API Reference
 - [Authentication API](./04-api-reference/authentication.md)
@@ -56,7 +57,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Story Planning API](./04-api-reference/story-planning.md)
 - [Chat API](./04-api-reference/chat.md)
 - [Prompts API](./04-api-reference/prompts.md)
-- [Personas & Presets API](./04-api-reference/personas-presets.md) ✨ NEW
+- [Personas & Presets API](./04-api-reference/personas-presets.md)
+- [Scene Sections API](./04-api-reference/scene-sections.md) ✨ NEW
 
 ### Testing
 - [Foundation Testing Guide](./06-testing/foundation-testing.md)
@@ -73,8 +75,9 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Prompts Testing Guide](./06-testing/prompts-testing.md)
 - [Personas & Presets Testing Guide](./06-testing/personas-presets-testing.md)
 - [Prompt Advanced Features Testing Guide](./06-testing/prompt-advanced-features-testing.md)
-- [Prompt Model & Sharing Testing Guide](./06-testing/prompt-model-sharing-testing.md) ✨ NEW
-- [Chat Uses & Workflows Testing Guide](./06-testing/chat-uses-workflows-testing.md) ✨ NEW
+- [Prompt Model & Sharing Testing Guide](./06-testing/prompt-model-sharing-testing.md)
+- [Chat Uses & Workflows Testing Guide](./06-testing/chat-uses-workflows-testing.md)
+- [Sections System Testing Guide](./06-testing/sections-testing.md) ✨ NEW
 
 ### Developer Guides
 - [Performance Mode Guide](./performance-mode.md) ✨ NEW
@@ -97,7 +100,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Chat Context Integration Flow](./07-user-journeys/chat-context/context-integration-flow.md)
 - [Prompts Library Flow](./07-user-journeys/prompts/prompt-library-flow.md)
 - [Prompt Editor Flow](./07-user-journeys/prompts/prompt-editor-flow.md)
-- [Personas & Presets Flow](./07-user-journeys/personas-presets/personas-presets-flow.md) ✨ NEW
+- [Personas & Presets Flow](./07-user-journeys/personas-presets/personas-presets-flow.md)
+- [Sections System Flow](./07-user-journeys/sections/sections-flow.md) ✨ NEW
 
 ---
 
@@ -131,6 +135,7 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 | **Prompt Editor Enhancement** | ✅ Complete | [Sprint 25](./10-sprints/sprint-25-prompt-editor-enhancement.md) | [Link](./04-api-reference/prompts.md) | [Link](./06-testing/prompts-testing.md) |
 | **Personas & Presets** | ✅ Complete | [Sprint 26](./10-sprints/sprint-26-personas-presets.md) | [Link](./04-api-reference/personas-presets.md) | [Link](./06-testing/personas-presets-testing.md) |
 | **Prompt Advanced Features** | ✅ Complete | [Sprint 27](./10-sprints/sprint-27-prompt-advanced-features.md) | [Link](./04-api-reference/prompts.md#prompt-components-api) | [Link](./06-testing/prompt-advanced-features-testing.md) |
+| **Sections System** | ✅ Complete | [Sprint 30](./10-sprints/sprint-30-sections-system.md) | [Link](./04-api-reference/scene-sections.md) | [Link](./06-testing/sections-testing.md) |
 
 ---
 

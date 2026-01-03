@@ -71,6 +71,7 @@ class ChatContextItem extends Model
 
     /**
      * Get the content for this context item.
+     * For scenes, this respects section exclude_from_ai settings.
      */
     public function getContentAttribute(): ?string
     {
@@ -79,7 +80,7 @@ class ChatContextItem extends Model
         }
 
         return match ($this->context_type) {
-            'scene' => $this->scene?->content ? strip_tags(json_encode($this->scene->content)) : null,
+            'scene' => $this->scene?->getAiVisibleContent(),
             'codex' => $this->codexEntry ? "{$this->codexEntry->name}: {$this->codexEntry->description}" : null,
             default => null,
         };

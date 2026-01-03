@@ -6,6 +6,8 @@ import CharacterCount from '@tiptap/extension-character-count';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import { CodexHighlight, type CodexEntry } from '@/extensions/CodexHighlight';
+import { SectionNode } from '@/extensions/SectionNode';
+import { SlashCommands, createSlashCommandsSuggestion, defaultSlashCommands } from '@/extensions/SlashCommands';
 import { watch, computed, onBeforeUnmount } from 'vue';
 
 interface Props {
@@ -52,6 +54,10 @@ const editor = useEditor({
         CharacterCount,
         CodexHighlight.configure({
             entries: props.codexEntries,
+        }),
+        SectionNode,
+        SlashCommands.configure({
+            suggestion: createSlashCommandsSuggestion(defaultSlashCommands),
         }),
     ],
     editorProps: {
@@ -165,6 +171,11 @@ const currentTextAlign = computed(() => {
     return 'left';
 });
 
+// Sections
+const insertSection = (type: 'content' | 'note' | 'alternative' | 'beat' = 'content') => {
+    editor.value?.chain().focus().insertSection({ type }).run();
+};
+
 onBeforeUnmount(() => {
     editor.value?.destroy();
 });
@@ -199,6 +210,8 @@ defineExpose({
     // Text alignment
     setTextAlign,
     currentTextAlign,
+    // Sections
+    insertSection,
 });
 </script>
 

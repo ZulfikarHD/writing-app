@@ -90,6 +90,40 @@ class Scene extends Model
     }
 
     /**
+     * Get sections for this scene.
+     *
+     * @return HasMany<SceneSection, $this>
+     */
+    public function sections(): HasMany
+    {
+        return $this->hasMany(SceneSection::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Get sections visible to AI for context building.
+     *
+     * @return HasMany<SceneSection, $this>
+     */
+    public function aiVisibleSections(): HasMany
+    {
+        return $this->hasMany(SceneSection::class)
+            ->where('exclude_from_ai', false)
+            ->orderBy('sort_order');
+    }
+
+    /**
+     * Get exportable sections (content type only).
+     *
+     * @return HasMany<SceneSection, $this>
+     */
+    public function exportableSections(): HasMany
+    {
+        return $this->hasMany(SceneSection::class)
+            ->where('type', SceneSection::TYPE_CONTENT)
+            ->orderBy('sort_order');
+    }
+
+    /**
      * Calculate word count from content JSON.
      */
     public function calculateWordCount(): int
@@ -156,5 +190,35 @@ class Scene extends Model
     public function scopeArchived($query)
     {
         return $query->whereNotNull('archived_at');
+    }
+
+    /**
+     * Get content visible to AI for context building.
+     * This respects section exclude_from_ai settings.
+     */
+    public function getAiVisibleContent(): string
+    {
+        // Check if scene has sections
+        $hasSections = $this->sections()->exists();
+
+        if ($hasSections) {
+            // Build content from AI-visible sections only
+            $text = '';
+
+            foreach ($this->aiVisibleSections as $section) {
+                if ($section->content) {
+                    $text .= $this->extractTextFromContent($section->content);
+                }
+            }
+
+            return trim($text);
+        }
+
+        // No sections - use main scene content (backward compatibility)
+        if (! $this->exclude_from_ai && $this->content) {
+            return trim($this->extractTextFromContent($this->content));
+        }
+
+        return '';
     }
 }

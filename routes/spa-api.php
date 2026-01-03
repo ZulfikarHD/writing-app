@@ -24,6 +24,7 @@ use App\Http\Controllers\PromptPresetController;
 use App\Http\Controllers\PromptSharingController;
 use App\Http\Controllers\SceneController;
 use App\Http\Controllers\SceneLabelController;
+use App\Http\Controllers\SectionController;
 use App\Http\Controllers\SeriesCodexController;
 use App\Http\Controllers\SeriesController;
 use Illuminate\Support\Facades\Route;
@@ -253,6 +254,22 @@ Route::middleware('auth')->prefix('api')->group(function () {
 
         // Scene labels
         Route::post('labels', [SceneLabelController::class, 'assignToScene'])->name('scenes.labels');
+
+        // Scene sections
+        Route::get('sections', [SectionController::class, 'index'])->name('scenes.sections.index');
+        Route::post('sections', [SectionController::class, 'store'])->name('scenes.sections.store');
+        Route::post('sections/reorder', [SectionController::class, 'reorder'])->name('scenes.sections.reorder');
+    });
+
+    // ==================== Sections API ====================
+    Route::prefix('sections/{section}')->group(function () {
+        Route::get('/', [SectionController::class, 'show'])->name('sections.show');
+        Route::patch('/', [SectionController::class, 'update'])->name('sections.update');
+        Route::delete('/', [SectionController::class, 'destroy'])->name('sections.destroy');
+        Route::post('toggle-collapse', [SectionController::class, 'toggleCollapse'])->name('sections.toggle-collapse');
+        Route::post('toggle-ai-visibility', [SectionController::class, 'toggleAiVisibility'])->name('sections.toggle-ai');
+        Route::post('dissolve', [SectionController::class, 'dissolve'])->name('sections.dissolve');
+        Route::post('duplicate', [SectionController::class, 'duplicate'])->name('sections.duplicate');
     });
 
     // ==================== Acts API ====================

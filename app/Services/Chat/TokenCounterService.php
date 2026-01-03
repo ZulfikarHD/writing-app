@@ -48,8 +48,19 @@ class TokenCounterService
 
     /**
      * Get token count for a scene.
+     * Only includes content from sections that are visible to AI.
      */
     public function countSceneTokens(Scene $scene): int
+    {
+        $content = $this->buildSceneContextText($scene);
+
+        return $this->estimateTokens($content);
+    }
+
+    /**
+     * Build the full context text for a scene, respecting AI visibility settings.
+     */
+    public function buildSceneContextText(Scene $scene): string
     {
         $content = '';
 
@@ -61,11 +72,30 @@ class TokenCounterService
             $content .= "Summary: {$scene->summary}\n";
         }
 
-        if ($scene->content) {
-            $content .= $this->extractTextFromContent($scene->content);
+        // Check if scene has sections
+        $hasSections = $scene->sections()->exists();
+
+        if ($hasSections) {
+            // Use AI-visible sections only
+            $aiVisibleSections = $scene->aiVisibleSections;
+
+            foreach ($aiVisibleSections as $section) {
+                if ($section->title) {
+                    $content .= "\n[{$section->type}: {$section->title}]\n";
+                }
+
+                if ($section->content) {
+                    $content .= $this->extractTextFromContent($section->content);
+                }
+            }
+        } else {
+            // No sections, use main scene content (backward compatibility)
+            if ($scene->content && ! $scene->exclude_from_ai) {
+                $content .= $this->extractTextFromContent($scene->content);
+            }
         }
 
-        return $this->estimateTokens($content);
+        return $content;
     }
 
     /**
