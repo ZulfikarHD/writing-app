@@ -45,7 +45,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Sprint 28 - Prompt Model & Sharing (FG-05.5)](./10-sprints/sprint-28-prompt-model-sharing.md) ✅ Complete
 - [Sprint 29 - Chat Uses & Workflows (FG-04.4)](./10-sprints/sprint-29-chat-uses-workflows.md) ✅ Complete
 - [Sprint 30 - Sections System (FG-06.1)](./10-sprints/sprint-30-sections-system.md) ✅ Complete
-- [Sprint 31 - AI Writing Features (FG-06.2)](./10-sprints/sprint-31-ai-writing-features.md) ✅ Complete ✨ NEW
+- [Sprint 31 - AI Writing Features (FG-06.2)](./10-sprints/sprint-31-ai-writing-features.md) ✅ Complete
+- [Sprint 32 - Scene Beat & Writing Panel Enhancements](./10-sprints/sprint-32-scene-beat-enhancements.md) ✅ Complete ✨ NEW
 
 ### API Reference
 - [Authentication API](./04-api-reference/authentication.md)
@@ -80,7 +81,8 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Prompt Model & Sharing Testing Guide](./06-testing/prompt-model-sharing-testing.md)
 - [Chat Uses & Workflows Testing Guide](./06-testing/chat-uses-workflows-testing.md)
 - [Sections System Testing Guide](./06-testing/sections-testing.md)
-- [AI Writing Features Testing Guide](./06-testing/ai-writing-features-testing.md) ✨ NEW
+- [AI Writing Features Testing Guide](./06-testing/ai-writing-features-testing.md)
+- [Sprint 32 Testing Guide](./06-testing/sprint-32-testing.md) ✨ NEW
 
 ### Developer Guides
 - [Performance Mode Guide](./performance-mode.md) ✨ NEW
@@ -91,8 +93,9 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Design System Refinement (2026-01-02)](./bug-fixes/2026-01-02-design-system-refinement.md)
 
 ### Bug Fixes
-- [Chat UX Improvements (2026-01-03)](./bug-fixes/2026-01-03-chat-ux-improvements.md) ✨ NEW - Fixed disabled input & full-width chat
-- [Reverb Connection Fix (2026-01-03)](./bug-fixes/2026-01-03-reverb-connection-fix.md) ✨ NEW - WebSocket real-time chat fixed
+- [Sprint 32 Bug Fixes & Enhancements (2026-01-04)](./bug-fixes/2026-01-04-sprint32-enhancements.md) ✨ NEW - Dark mode, content persistence, model selector
+- [Chat UX Improvements (2026-01-03)](./bug-fixes/2026-01-03-chat-ux-improvements.md) - Fixed disabled input & full-width chat
+- [Reverb Connection Fix (2026-01-03)](./bug-fixes/2026-01-03-reverb-connection-fix.md) - WebSocket real-time chat fixed
 - [Theme Toggle Fix (2026-01-02)](./bug-fixes/2026-01-02-theme-toggle-fix.md)
 - [Scene Navigation Fix (2026-01-02)](./bug-fixes/2026-01-02-scene-navigation-fix.md)
 - [Workspace Scenes Sidebar Enhancement (2026-01-02)](./bug-fixes/2026-01-02-workspace-scenes-sidebar-enhancement.md)
@@ -105,8 +108,9 @@ NovelWrite adalah aplikasi AI-Assisted Novel Writing, yaitu: platform modern unt
 - [Prompt Editor Flow](./07-user-journeys/prompts/prompt-editor-flow.md)
 - [Personas & Presets Flow](./07-user-journeys/personas-presets/personas-presets-flow.md)
 - [Sections System Flow](./07-user-journeys/sections/sections-flow.md)
-- [Prose Generation Flow](./07-user-journeys/ai-writing-features/prose-generation-flow.md) ✨ NEW
-- [Text Replacement Flow](./07-user-journeys/ai-writing-features/text-replacement-flow.md) ✨ NEW
+- [Scene Beat Flow](./07-user-journeys/ai-writing-features/scene-beat-flow.md) ✨ NEW - Inline beat to prose workflow
+- [Prose Generation Flow](./07-user-journeys/ai-writing-features/prose-generation-flow.md)
+- [Text Replacement Flow](./07-user-journeys/ai-writing-features/text-replacement-flow.md)
 
 ---
 
