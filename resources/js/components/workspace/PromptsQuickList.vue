@@ -353,7 +353,7 @@ defineExpose({ refresh: () => { fetchAllPrompts(); fetchAllPersonas(); fetchAllC
                         v-for="prompt in typePrompts"
                         :key="prompt.id"
                         type="button"
-                        class="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                        class="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-sm transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-700"
                         @click="emit('select', prompt)"
                     >
                         <span class="truncate font-medium text-zinc-700 dark:text-zinc-300">
@@ -421,7 +421,7 @@ defineExpose({ refresh: () => { fetchAllPrompts(); fetchAllPersonas(); fetchAllC
                     </div>
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-1">
-                            <span class="truncate text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                            <span class="truncate text-sm font-medium text-zinc-700 dark:text-zinc-300">
                                 {{ persona.name }}
                             </span>
                             <Badge v-if="persona.is_default" variant="info" size="sm">Default</Badge>

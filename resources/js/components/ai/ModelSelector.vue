@@ -104,6 +104,11 @@ const fetchConnections = async () => {
         if (!selectedConnectionId.value && connections.value.length > 0) {
             const defaultConn = connections.value.find((c) => c.is_default) || connections.value[0];
             selectedConnectionId.value = defaultConn.id;
+            // Explicitly fetch models after setting default (watch may not trigger on initial set)
+            await fetchModels();
+        } else if (selectedConnectionId.value) {
+            // If connection already set, fetch models immediately
+            await fetchModels();
         }
     } catch {
         connections.value = [];

@@ -63,7 +63,7 @@ const iconColors: Record<string, string> = {
             </svg>
 
             <!-- Title with better contrast -->
-            <span class="flex-1 text-sm font-semibold tracking-tight text-zinc-800 dark:text-zinc-200">
+            <span class="flex-1 text-base font-semibold tracking-tight text-zinc-800 dark:text-zinc-200">
                 {{ title }}
             </span>
 

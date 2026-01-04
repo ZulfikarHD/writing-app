@@ -18,8 +18,15 @@ export type AICommandEvent =
     | { type: 'continue' }
     | { type: 'custom'; instructions?: string };
 
+// Event types for Codex commands
+export type CodexCommandEvent = 
+    | { type: 'codex-progression' };
+
 // AI command callback type
 export type AICommandCallback = (event: AICommandEvent) => void;
+
+// Codex command callback type
+export type CodexCommandCallback = (event: CodexCommandEvent) => void;
 
 export interface SlashCommandsOptions {
     suggestion: Partial<SuggestionOptions>;
@@ -55,7 +62,7 @@ export function createAISlashCommands(onAICommand: AICommandCallback): SlashComm
     return [
         {
             title: 'Scene Beat',
-            description: 'Generate prose from a scene beat',
+            description: 'A pivotal moment where something important changes, driving the narrative forward.',
             icon: 'ai-beat',
             category: 'ai',
             command: () => {
@@ -64,20 +71,26 @@ export function createAISlashCommands(onAICommand: AICommandCallback): SlashComm
         },
         {
             title: 'Continue Writing',
-            description: 'Continue the story from here',
+            description: 'Creates a new scene beat to continue writing.',
             icon: 'ai-continue',
             category: 'ai',
             command: () => {
                 onAICommand({ type: 'continue' });
             },
         },
+    ];
+}
+
+// Codex slash commands (require callback)
+export function createCodexSlashCommands(onCodexCommand: CodexCommandCallback): SlashCommand[] {
+    return [
         {
-            title: 'AI Custom',
-            description: 'Generate prose with custom instructions',
-            icon: 'ai-custom',
-            category: 'ai',
+            title: 'Codex Progression',
+            description: 'Add additional information about the world, characters, or events to track your story arcs.',
+            icon: 'codex-progression',
+            category: 'codex',
             command: () => {
-                onAICommand({ type: 'custom' });
+                onCodexCommand({ type: 'codex-progression' });
             },
         },
     ];
@@ -187,15 +200,28 @@ export const defaultSlashCommands: SlashCommand[] = [
 ];
 
 /**
- * Create all slash commands including AI commands.
+ * Create all slash commands including AI and Codex commands.
  * @param onAICommand Callback for AI command events
+ * @param onCodexCommand Callback for Codex command events
  * @returns Combined list of all slash commands with AI commands first
  */
-export function createAllSlashCommands(onAICommand?: AICommandCallback): SlashCommand[] {
+export function createAllSlashCommands(
+    onAICommand?: AICommandCallback,
+    onCodexCommand?: CodexCommandCallback
+): SlashCommand[] {
+    const commands: SlashCommand[] = [];
+    
     if (onAICommand) {
-        return [...createAISlashCommands(onAICommand), ...defaultSlashCommands];
+        commands.push(...createAISlashCommands(onAICommand));
     }
-    return defaultSlashCommands;
+    
+    if (onCodexCommand) {
+        commands.push(...createCodexSlashCommands(onCodexCommand));
+    }
+    
+    commands.push(...defaultSlashCommands);
+    
+    return commands;
 }
 
 // Suggestion configuration with popup rendering

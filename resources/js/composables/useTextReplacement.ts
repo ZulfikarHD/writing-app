@@ -8,22 +8,22 @@ export interface TextReplacementOptions {
     prompt_id?: number;
     connection_id?: number;
     model?: string;
-    
+
     // Expand options
     expand_amount?: 'slightly' | 'double' | 'triple';
     expand_method?: 'sensory_details' | 'inner_thoughts' | 'description' | 'dialogue';
-    
+
     // Rephrase options
     rephrase_options?: string[];
     target_pov?: string;
     target_tense?: string;
-    
+
     // Shorten options
     shorten_amount?: 'half' | 'quarter' | 'single_paragraph';
-    
+
     // Custom options
     instructions?: string;
-    
+
     // Model settings
     temperature?: number;
     max_tokens?: number;
@@ -50,7 +50,7 @@ export function useTextReplacement() {
     const transformedText = ref('');
     const error = ref<string | null>(null);
     const tokensUsed = reactive({ input: 0, output: 0 });
-    
+
     // Options from server
     const availableTypes = ref<Record<string, string>>({});
     const expandAmounts = ref<Record<string, string>>({});
@@ -58,7 +58,7 @@ export function useTextReplacement() {
     const rephraseOptions = ref<Record<string, string>>({});
     const availablePrompts = ref<ReplacementPrompt[]>([]);
     const availableConnections = ref<AIConnection[]>([]);
-    
+
     // SSE controller for aborting
     let abortController: AbortController | null = null;
 
@@ -67,8 +67,10 @@ export function useTextReplacement() {
      */
     async function fetchOptions() {
         try {
-            const response = await axios.get(TextReplacementActions.options.url());
-            
+            // Use definition.url directly to avoid wayfinder generated code bug
+            // where the parameter name shadows the function name
+            const response = await axios.get(TextReplacementActions.options.definition.url);
+
             availableTypes.value = response.data.types || {};
             expandAmounts.value = response.data.expand_amounts || {};
             shortenAmounts.value = response.data.shorten_amounts || {};
@@ -103,8 +105,9 @@ export function useTextReplacement() {
         abortController = new AbortController();
 
         try {
-            const url = TextReplacementActions.replace.url();
-            
+            // Use definition.url directly to avoid wayfinder generated code issues
+            const url = TextReplacementActions.replace.definition.url;
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -134,11 +137,11 @@ export function useTextReplacement() {
 
             while (true) {
                 const { done, value } = await reader.read();
-                
+
                 if (done) break;
 
                 buffer += decoder.decode(value, { stream: true });
-                
+
                 // Process SSE events from buffer
                 const lines = buffer.split('\n');
                 buffer = lines.pop() || ''; // Keep incomplete line in buffer
@@ -146,10 +149,10 @@ export function useTextReplacement() {
                 for (const line of lines) {
                     if (line.startsWith('data: ')) {
                         const eventData = line.slice(6);
-                        
+
                         try {
                             const data = JSON.parse(eventData);
-                            
+
                             if (data.type === 'content') {
                                 transformedText.value += data.content;
                             } else if (data.type === 'error') {
@@ -172,7 +175,7 @@ export function useTextReplacement() {
                 // Transformation was aborted by user
                 return;
             }
-            
+
             error.value = err instanceof Error ? err.message : 'Failed to transform text';
             console.error('Text replacement error:', err);
         } finally {
@@ -185,7 +188,7 @@ export function useTextReplacement() {
      * Quick expand transformation.
      */
     async function expand(
-        selectedText: string, 
+        selectedText: string,
         amount: 'slightly' | 'double' | 'triple' = 'double',
         method?: 'sensory_details' | 'inner_thoughts' | 'description' | 'dialogue',
         sceneId?: number
@@ -202,7 +205,7 @@ export function useTextReplacement() {
      * Quick rephrase transformation.
      */
     async function rephrase(
-        selectedText: string, 
+        selectedText: string,
         options: string[] = [],
         sceneId?: number
     ) {
@@ -217,7 +220,7 @@ export function useTextReplacement() {
      * Quick shorten transformation.
      */
     async function shorten(
-        selectedText: string, 
+        selectedText: string,
         amount: 'half' | 'quarter' | 'single_paragraph' = 'half',
         sceneId?: number
     ) {
@@ -266,7 +269,7 @@ export function useTextReplacement() {
         transformedText,
         error,
         tokensUsed,
-        
+
         // Options
         availableTypes,
         expandAmounts,
@@ -274,7 +277,7 @@ export function useTextReplacement() {
         rephraseOptions,
         availablePrompts,
         availableConnections,
-        
+
         // Methods
         transform,
         expand,

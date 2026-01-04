@@ -146,7 +146,7 @@ class ProseGenerationService
         }
 
         // Add novel context
-        $novel = $scene->chapter?->act?->novel;
+        $novel = $scene->chapter?->act?->novel ?? $scene->chapter?->novel;
         if ($novel) {
             $parts[] = $this->buildNovelContext($novel);
         }
@@ -263,7 +263,7 @@ class ProseGenerationService
      */
     protected function buildCodexContext(Scene $scene): string
     {
-        $novel = $scene->chapter?->act?->novel;
+        $novel = $scene->chapter?->act?->novel ?? $scene->chapter?->novel;
         if (! $novel) {
             return '';
         }

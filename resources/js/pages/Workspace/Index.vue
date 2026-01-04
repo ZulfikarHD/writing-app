@@ -166,6 +166,17 @@ const totalWordCount = computed(() => {
 const handleModeChange = (newMode: WorkspaceMode) => {
     setMode(newMode);
     updateUrl();
+
+    // Refetch scene data when switching to write mode to ensure latest content
+    if (newMode === 'write' && currentScene.value) {
+        router.reload({
+            only: ['activeScene'],
+            preserveScroll: true,
+            onSuccess: (page) => {
+                currentScene.value = (page.props as { activeScene: Scene | null }).activeScene;
+            },
+        });
+    }
 };
 
 // Update URL to reflect current state

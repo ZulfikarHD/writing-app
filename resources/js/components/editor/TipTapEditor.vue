@@ -7,11 +7,12 @@ import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import { CodexHighlight, type CodexEntry } from '@/extensions/CodexHighlight';
 import { SectionNode } from '@/extensions/SectionNode';
-import { SlashCommands, createSlashCommandsSuggestion, createAllSlashCommands, type AICommandEvent } from '@/extensions/SlashCommands';
+import { SceneBeatNode } from '@/extensions/SceneBeatNode';
+import { SlashCommands, createSlashCommandsSuggestion, createAllSlashCommands, type AICommandEvent, type CodexCommandEvent } from '@/extensions/SlashCommands';
 import { HighlightMark } from '@/extensions/HighlightMark';
 import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue';
 import ProseGenerationPanel from './ProseGenerationPanel.vue';
-import TextReplacementMenu from './TextReplacementMenu.vue';
+import SelectionBubbleMenu from './SelectionBubbleMenu.vue';
 
 interface Props {
     modelValue: object | null;
@@ -46,32 +47,43 @@ const proseGenerationMode = ref<'scene_beat' | 'continue' | 'custom'>('scene_bea
 const contentBeforeCursor = ref('');
 const beatContentForExpansion = ref('');
 
-const showTextReplacement = ref(false);
-const selectedText = ref('');
-const selectionPosition = ref({ x: 0, y: 0 });
-
 // AI Command handler
 function handleAICommand(event: AICommandEvent) {
+    if (event.type === 'scene-beat') {
+        // Insert inline Scene Beat block - Novelcrafter style
+        // User describes what happens, then generates prose inline
+        if (editor.value) {
+            editor.value.chain().focus().insertSceneBeat().run();
+        }
+        return;
+    }
+    
+    // For continue/custom, require AI to be enabled and scene to be set
     if (!props.enableAI || !props.sceneId) return;
     
-    // Get content before cursor for context
+    // Use the prose generation panel
     if (editor.value) {
         const { from } = editor.value.state.selection;
         const textBefore = editor.value.state.doc.textBetween(0, from, ' ');
         contentBeforeCursor.value = textBefore;
     }
     
-    proseGenerationMode.value = event.type === 'scene-beat' ? 'scene_beat' : event.type === 'continue' ? 'continue' : 'custom';
+    proseGenerationMode.value = event.type === 'continue' ? 'continue' : 'custom';
     showProseGeneration.value = true;
 }
 
-// Create slash commands with AI callback
-const slashCommands = computed(() => {
-    if (props.enableAI && props.sceneId) {
-        return createAllSlashCommands(handleAICommand);
+// Codex Command handler
+function handleCodexCommand(event: CodexCommandEvent) {
+    if (event.type === 'codex-progression') {
+        // Emit event for parent to handle codex progression creation
+        console.log('Open Codex Progression modal');
+        // TODO: Implement codex progression modal/flow - emit to parent
     }
-    return createAllSlashCommands();
-});
+}
+
+// Create slash commands with AI and Codex callbacks
+// Always include AI commands if sceneId is available - we need them in the list
+const slashCommands = createAllSlashCommands(handleAICommand, handleCodexCommand);
 
 const editor = useEditor({
     content: props.modelValue,
@@ -95,15 +107,20 @@ const editor = useEditor({
         CodexHighlight.configure({
             entries: props.codexEntries,
         }),
-        SectionNode,
+        SectionNode.configure({
+            sceneId: props.sceneId || 0,
+        }),
+        SceneBeatNode.configure({
+            sceneId: props.sceneId || 0,
+        }),
         SlashCommands.configure({
-            suggestion: createSlashCommandsSuggestion(slashCommands.value),
+            suggestion: createSlashCommandsSuggestion(slashCommands),
         }),
         HighlightMark,
     ],
     editorProps: {
         attributes: {
-            class: 'prose prose-zinc dark:prose-invert max-w-none focus:outline-none min-h-[calc(100vh-16rem)] px-4 py-8 md:px-8 lg:px-16',
+            class: 'prose prose-zinc dark:prose-invert max-w-none focus:outline-none min-h-[calc(100vh-16rem)] px-4 py-8 md:px-8 lg:px-16 text-zinc-900 dark:text-zinc-100',
         },
     },
     onUpdate: ({ editor }) => {
@@ -115,40 +132,6 @@ const editor = useEditor({
     },
     onBlur: () => {
         emit('blur');
-    },
-    onSelectionUpdate: ({ editor }) => {
-        // Handle text selection for replacement menu
-        if (!props.enableAI || !props.sceneId) return;
-        
-        const { from, to, empty } = editor.state.selection;
-        
-        if (empty) {
-            showTextReplacement.value = false;
-            selectedText.value = '';
-            return;
-        }
-        
-        const text = editor.state.doc.textBetween(from, to, ' ');
-        const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
-        
-        // Only show replacement menu for 4+ words
-        if (wordCount >= 4) {
-            selectedText.value = text;
-            
-            // Get selection position for menu placement
-            const view = editor.view;
-            const coords = view.coordsAtPos(from);
-            const editorRect = view.dom.getBoundingClientRect();
-            
-            selectionPosition.value = {
-                x: (coords.left + view.coordsAtPos(to).left) / 2 - editorRect.left,
-                y: coords.top - editorRect.top,
-            };
-            
-            showTextReplacement.value = true;
-        } else {
-            showTextReplacement.value = false;
-        }
     },
 });
 
@@ -192,6 +175,30 @@ watch(
         }
     },
     { deep: true }
+);
+
+// Watch for sceneId changes and update extensions
+watch(
+    () => props.sceneId,
+    (newSceneId) => {
+        if (editor.value && newSceneId) {
+            // Update SceneBeatNode extension options
+            const sceneBeatExt = editor.value.extensionManager.extensions.find(
+                (ext) => ext.name === 'sceneBeat'
+            );
+            if (sceneBeatExt) {
+                sceneBeatExt.options.sceneId = newSceneId;
+            }
+            // Update SectionNode extension options
+            const sectionExt = editor.value.extensionManager.extensions.find(
+                (ext) => ext.name === 'section'
+            );
+            if (sectionExt) {
+                sectionExt.options.sceneId = newSceneId;
+            }
+        }
+    },
+    { immediate: true }
 );
 
 const wordCount = computed(() => {
@@ -295,18 +302,17 @@ function handleCloseProseGeneration() {
     beatContentForExpansion.value = '';
 }
 
-// Text Replacement handlers
-function handleReplaceText(newText: string) {
-    if (!editor.value) return;
-    
-    editor.value.chain().focus().deleteSelection().insertContent(newText).run();
-    showTextReplacement.value = false;
-    selectedText.value = '';
+// SelectionBubbleMenu handlers
+function handleCreateSnippet(text: string) {
+    // Emit event for parent to handle snippet creation
+    console.log('Create snippet from:', text);
+    // TODO: Implement snippet creation modal/flow
 }
 
-function handleCloseTextReplacement() {
-    showTextReplacement.value = false;
-    selectedText.value = '';
+function handleCreateCodexEntry(text: string) {
+    // Emit event for parent to handle codex entry creation
+    console.log('Create codex entry from:', text);
+    // TODO: Implement codex entry creation modal/flow
 }
 
 // Open prose generation programmatically
@@ -389,7 +395,6 @@ defineExpose({
     // AI features
     openProseGeneration,
     showProseGeneration,
-    showTextReplacement,
 });
 </script>
 
@@ -412,15 +417,14 @@ defineExpose({
             />
         </div>
         
-        <!-- Text Replacement Menu -->
-        <TextReplacementMenu
-            v-if="enableAI && sceneId"
-            :selected-text="selectedText"
-            :position="selectionPosition"
+        <!-- Selection Bubble Menu -->
+        <SelectionBubbleMenu
+            v-if="editor"
+            :editor="editor"
             :scene-id="sceneId"
-            :is-visible="showTextReplacement"
-            @replace="handleReplaceText"
-            @close="handleCloseTextReplacement"
+            :enable-a-i="enableAI"
+            @create-snippet="handleCreateSnippet"
+            @create-codex-entry="handleCreateCodexEntry"
         />
     </div>
 </template>

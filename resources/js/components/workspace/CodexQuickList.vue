@@ -162,7 +162,7 @@ defineExpose({ refresh: fetchEntries });
                         v-for="entry in typeEntries"
                         :key="entry.id"
                         type="button"
-                        class="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                        class="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-sm transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-700"
                         @click="emit('select', entry.id)"
                     >
                         <span class="truncate font-medium text-zinc-700 dark:text-zinc-300">

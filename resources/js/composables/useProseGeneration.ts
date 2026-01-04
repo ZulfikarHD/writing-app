@@ -1,6 +1,4 @@
-import { ref, reactive } from 'vue';
-import axios from 'axios';
-import * as ProseGenerationActions from '@/actions/App/Http/Controllers/ProseGenerationController';
+import { ref, reactive, computed } from 'vue';
 
 export interface ProseGenerationOptions {
     mode?: 'scene_beat' | 'continue' | 'custom';
@@ -39,25 +37,34 @@ export function useProseGeneration() {
     const generatedContent = ref('');
     const error = ref<string | null>(null);
     const tokensUsed = reactive({ input: 0, output: 0 });
-    
+
     // Options from server
     const availablePrompts = ref<ProsePrompt[]>([]);
     const availableConnections = ref<AIConnection[]>([]);
     const availableModes = ref<Record<string, ProseMode>>({});
-    
+
     // SSE controller for aborting
     let abortController: AbortController | null = null;
+
+    // CSRF token helper (same pattern as useChat)
+    const csrfToken = computed(() => {
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    });
 
     /**
      * Fetch available generation options from server.
      */
     async function fetchOptions() {
         try {
-            const response = await axios.get(ProseGenerationActions.options.url());
-            
-            availablePrompts.value = response.data.prompts || [];
-            availableConnections.value = response.data.connections || [];
-            availableModes.value = response.data.modes || {};
+            const response = await fetch('/api/prose-generation/options');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+
+            availablePrompts.value = data.prompts || [];
+            availableConnections.value = data.connections || [];
+            availableModes.value = data.modes || {};
         } catch (err) {
             console.error('Failed to fetch prose generation options:', err);
         }
@@ -78,16 +85,15 @@ export function useProseGeneration() {
         abortController = new AbortController();
 
         try {
-            const url = ProseGenerationActions.generate.url({ scene: sceneId });
-            
+            const url = `/api/scenes/${sceneId}/generate-prose`;
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'text/event-stream',
-                    'X-XSRF-TOKEN': getCsrfToken(),
+                    Accept: 'text/event-stream',
+                    'X-CSRF-TOKEN': csrfToken.value,
                 },
-                credentials: 'same-origin',
                 body: JSON.stringify(options),
                 signal: abortController.signal,
             });
@@ -106,11 +112,11 @@ export function useProseGeneration() {
 
             while (true) {
                 const { done, value } = await reader.read();
-                
+
                 if (done) break;
 
                 buffer += decoder.decode(value, { stream: true });
-                
+
                 // Process SSE events from buffer
                 const lines = buffer.split('\n');
                 buffer = lines.pop() || ''; // Keep incomplete line in buffer
@@ -118,10 +124,10 @@ export function useProseGeneration() {
                 for (const line of lines) {
                     if (line.startsWith('data: ')) {
                         const eventData = line.slice(6);
-                        
+
                         try {
                             const data = JSON.parse(eventData);
-                            
+
                             if (data.type === 'content') {
                                 generatedContent.value += data.content;
                             } else if (data.type === 'error') {
@@ -142,7 +148,7 @@ export function useProseGeneration() {
                 // Generation was aborted by user
                 return;
             }
-            
+
             error.value = err instanceof Error ? err.message : 'Failed to generate prose';
             console.error('Prose generation error:', err);
         } finally {
@@ -173,26 +179,18 @@ export function useProseGeneration() {
         tokensUsed.output = 0;
     }
 
-    /**
-     * Get CSRF token from cookie.
-     */
-    function getCsrfToken(): string {
-        const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
-        return match ? decodeURIComponent(match[1]) : '';
-    }
-
     return {
         // State
         isGenerating,
         generatedContent,
         error,
         tokensUsed,
-        
+
         // Options
         availablePrompts,
         availableConnections,
         availableModes,
-        
+
         // Methods
         generate,
         abort,

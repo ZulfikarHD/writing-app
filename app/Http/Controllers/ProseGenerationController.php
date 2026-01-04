@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Scene;
 use App\Services\Editor\ProseGenerationService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProseGenerationController extends Controller
@@ -20,8 +19,12 @@ class ProseGenerationController extends Controller
     public function generate(Request $request, Scene $scene): StreamedResponse
     {
         // Authorize access to the scene's novel
-        $novel = $scene->chapter?->act?->novel;
-        Gate::authorize('update', $novel);
+        // Support both: chapter->act->novel and chapter->novel (direct link)
+        $novel = $scene->chapter?->act?->novel ?? $scene->chapter?->novel;
+        
+        if (! $novel || $novel->user_id !== $request->user()->id) {
+            abort(403, 'You do not have access to this novel.');
+        }
 
         $validated = $request->validate([
             'mode' => ['sometimes', 'string', 'in:scene_beat,continue,custom'],

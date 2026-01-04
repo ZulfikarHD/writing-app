@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, computed, onBeforeUnmount, watch, nextTick } from 'vue';
 import { SECTION_TYPES, SECTION_TYPE_COLORS } from '@/extensions/SectionNode';
 
 interface Props {
@@ -7,9 +7,12 @@ interface Props {
     type: 'content' | 'note' | 'alternative' | 'beat';
     color: string;
     wordCount: number;
+    triggerRect?: DOMRect | null;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    triggerRect: null,
+});
 
 const emit = defineEmits<{
     (e: 'close'): void;
@@ -22,6 +25,47 @@ const emit = defineEmits<{
 
 const menuRef = ref<HTMLElement | null>(null);
 const showColorPicker = ref(false);
+
+// Compute menu position based on trigger element
+const menuStyle = computed(() => {
+    if (props.triggerRect) {
+        const menuWidth = 224; // w-56 = 14rem = 224px
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        
+        // Position below the trigger, aligned to the right edge
+        let left = props.triggerRect.right - menuWidth;
+        let top = props.triggerRect.bottom + 4;
+        
+        // Keep menu within viewport
+        if (left < 8) left = 8;
+        if (left + menuWidth > windowWidth - 8) {
+            left = windowWidth - menuWidth - 8;
+        }
+        
+        // If menu would go below viewport, position above trigger
+        const estimatedHeight = 400; // Approximate menu height
+        if (top + estimatedHeight > windowHeight - 8) {
+            top = props.triggerRect.top - estimatedHeight - 4;
+            if (top < 8) top = 8;
+        }
+        
+        return {
+            position: 'fixed' as const,
+            left: `${left}px`,
+            top: `${top}px`,
+            zIndex: 50,
+        };
+    }
+    // Fallback to center of screen
+    return {
+        position: 'fixed' as const,
+        left: '50%',
+        top: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 50,
+    };
+});
 
 const predefinedColors = [
     '#6366f1', // Indigo
@@ -77,10 +121,16 @@ const handleDelete = () => {
 
 watch(
     () => props.open,
-    (isOpen) => {
+    async (isOpen) => {
         if (isOpen) {
-            document.addEventListener('click', handleClickOutside);
-            document.addEventListener('keydown', handleKeydown);
+            // Wait for the current click event to finish before adding listener
+            // This prevents the menu from closing immediately
+            await nextTick();
+            // Use setTimeout to ensure the click event has fully propagated
+            setTimeout(() => {
+                document.addEventListener('click', handleClickOutside);
+                document.addEventListener('keydown', handleKeydown);
+            }, 10);
         } else {
             document.removeEventListener('click', handleClickOutside);
             document.removeEventListener('keydown', handleKeydown);
@@ -108,8 +158,9 @@ onBeforeUnmount(() => {
             <div
                 v-if="open"
                 ref="menuRef"
-                class="fixed z-50 mt-1 w-56 rounded-lg bg-white dark:bg-zinc-800 shadow-lg ring-1 ring-black ring-opacity-5 divide-y divide-zinc-100 dark:divide-zinc-700"
-                style="top: var(--menu-top, 100px); right: 20px;"
+                class="w-56 rounded-lg bg-white dark:bg-zinc-800 shadow-lg ring-1 ring-black ring-opacity-5 divide-y divide-zinc-100 dark:divide-zinc-700"
+                :style="menuStyle"
+                @click.stop
             >
                 <!-- Word Count -->
                 <div class="px-4 py-2">

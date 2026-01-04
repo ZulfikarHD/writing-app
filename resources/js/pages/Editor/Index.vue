@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, provide } from 'vue';
 import TipTapEditor from '@/components/editor/TipTapEditor.vue';
 import EditorToolbar from '@/components/editor/EditorToolbar.vue';
 import EditorSidebar from '@/components/editor/EditorSidebar.vue';
 import EditorSettingsPanel from '@/components/editor/panels/EditorSettingsPanel.vue';
 import SceneMetadataPanel from '@/components/editor/panels/SceneMetadataPanel.vue';
 import MentionTooltip from '@/components/editor/MentionTooltip.vue';
-import SelectionActionMenu from '@/components/editor/SelectionActionMenu.vue';
+// SelectionActionMenu removed - now integrated into SelectionBubbleMenu
 import CodexSidebarPanel from '@/components/editor/panels/CodexSidebarPanel.vue';
 import { ProgressionEditorModal, QuickCreateModal } from '@/components/codex';
 import { useAutoSave } from '@/composables/useAutoSave';
@@ -77,6 +77,11 @@ const progressionModalOpen = ref(false);
 const content = ref(props.activeScene?.content || null);
 const wordCount = ref(props.activeScene?.word_count || 0);
 const currentScene = ref<Scene | null>(props.activeScene);
+
+// Provide sceneId for nested components (SceneBeatEditor in SectionNodeView)
+// Use computed to make it reactive when activeScene changes
+const editorSceneId = computed(() => props.activeScene?.id || 0);
+provide('editorSceneId', editorSceneId);
 
 const { settings, editorStyles } = useEditorSettings();
 
@@ -372,7 +377,7 @@ const editorWidthClass = computed(() => {
 
             <main ref="editorContainerRef" class="flex-1 overflow-y-auto">
                 <div :class="['mx-auto transition-all duration-300', editorWidthClass]">
-                    <TipTapEditor ref="editorRef" v-model="content" placeholder="Start writing your story..." :codex-entries="codexEntries" @update="handleEditorUpdate" />
+                    <TipTapEditor ref="editorRef" v-model="content" placeholder="Start writing your story..." :codex-entries="codexEntries" :scene-id="activeScene?.id" :enable-a-i="true" @update="handleEditorUpdate" />
                 </div>
             </main>
         </div>
@@ -403,11 +408,7 @@ const editorWidthClass = computed(() => {
             @close="closeTooltip"
         />
 
-        <!-- Sprint 15: Selection Action Menu (for mobile-friendly quick create) -->
-        <SelectionActionMenu
-            :container-ref="editorContainerRef"
-            @create-entry="handleSelectionCreateEntry"
-        />
+        <!-- Selection Action Menu removed - now integrated into SelectionBubbleMenu -->
 
         <!-- Settings Panel -->
         <EditorSettingsPanel :open="settingsPanelOpen" @close="closeSettings" />

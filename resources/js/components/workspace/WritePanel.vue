@@ -305,6 +305,8 @@ const editorWidthClass = computed(() => {
                     v-model="content"
                     placeholder="Start writing your story..."
                     :codex-entries="codexEntries"
+                    :scene-id="currentScene?.id"
+                    :enable-a-i="true"
                     @update="handleEditorUpdate"
                 />
             </div>

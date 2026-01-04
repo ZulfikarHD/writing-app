@@ -3,7 +3,7 @@ import { ref, computed, nextTick } from 'vue';
 import { SECTION_TYPES } from '@/extensions/SectionNode';
 
 interface Props {
-    type: 'content' | 'note' | 'alternative' | 'beat';
+    type: 'content' | 'note' | 'alternative' | 'beat' | 'generated';
     title: string | null;
     isCollapsed: boolean;
     excludeFromAi: boolean;
@@ -25,7 +25,7 @@ const emit = defineEmits<{
     (e: 'save-title-edit'): void;
     (e: 'cancel-title-edit'): void;
     (e: 'update:edited-title', value: string): void;
-    (e: 'open-menu'): void;
+    (e: 'open-menu', event: Event): void;
     (e: 'expand-to-prose'): void;
     (e: 'toggle-completion'): void;
 }>();
@@ -200,7 +200,7 @@ const handleKeydown = (e: KeyboardEvent) => {
             type="button"
             class="flex-shrink-0 p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors opacity-0 group-hover:opacity-100"
             title="Section options"
-            @click="emit('open-menu')"
+            @click.stop="emit('open-menu', $event)"
         >
             <svg class="w-4 h-4 text-zinc-500 dark:text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
