@@ -25,6 +25,14 @@ declare module '@tiptap/core' {
              */
             replaceSceneBeatWithContent: (pos: number, content: string, metadata?: GenerationMetadata) => ReturnType;
             /**
+             * Create a section for streaming content
+             */
+            createStreamingSection: (pos: number, metadata?: GenerationMetadata) => ReturnType;
+            /**
+             * Append content to the last paragraph in a section
+             */
+            appendToSection: (sectionPos: number, content: string) => ReturnType;
+            /**
              * Remove a scene beat block
              */
             removeSceneBeat: (pos: number) => ReturnType;
@@ -130,6 +138,75 @@ export const SceneBeatNode = Node.create<SceneBeatNodeOptions>({
                                 pos + node.nodeSize,
                                 tr.doc.type.schema.nodeFromJSON(sectionNode)
                             );
+                        }
+                    }
+                    return true;
+                },
+
+            createStreamingSection:
+                (pos: number, metadata?: GenerationMetadata) =>
+                ({ tr, dispatch, state }) => {
+                    if (dispatch) {
+                        const node = tr.doc.nodeAt(pos);
+                        if (node && node.type.name === this.name) {
+                            // Create an empty section with generation metadata
+                            const sectionNode = {
+                                type: 'section',
+                                attrs: {
+                                    type: 'generated',
+                                    color: '#f59e0b', // Amber for generated
+                                    isCollapsed: false,
+                                    excludeFromAi: false,
+                                    isCompleted: false,
+                                    isGenerated: true,
+                                    sourceBeat: metadata?.beatText || null,
+                                    sourceConnectionId: metadata?.connectionId || null,
+                                    sourceModelId: metadata?.modelId || null,
+                                    sourceWordTarget: metadata?.wordTarget || null,
+                                },
+                                content: [{ type: 'paragraph' }],
+                            };
+
+                            // Insert section AFTER the scene beat (not replace)
+                            const afterBeatPos = pos + node.nodeSize;
+                            tr.insert(afterBeatPos, state.schema.nodeFromJSON(sectionNode));
+                        }
+                    }
+                    return true;
+                },
+
+            appendToSection:
+                (sectionPos: number, content: string) =>
+                ({ tr, dispatch, state }) => {
+                    if (dispatch) {
+                        const node = tr.doc.nodeAt(sectionPos);
+                        if (node && node.type.name === 'section') {
+                            // Find the last paragraph in the section
+                            const lastChildPos = sectionPos + node.nodeSize - 2; // -2 for closing tags
+                            let lastParagraphPos = sectionPos + 1; // Start of section content
+                            
+                            // Find the actual last paragraph position
+                            node.forEach((child, offset) => {
+                                if (child.type.name === 'paragraph') {
+                                    lastParagraphPos = sectionPos + offset + 1;
+                                }
+                            });
+
+                            const lastParagraph = tr.doc.nodeAt(lastParagraphPos);
+                            if (lastParagraph && lastParagraph.type.name === 'paragraph') {
+                                // Get current text
+                                const currentText = lastParagraph.textContent;
+                                // Create new text node
+                                const newText = currentText + content;
+                                const newTextNode = state.schema.text(newText);
+                                
+                                // Replace the paragraph content
+                                tr.replaceWith(
+                                    lastParagraphPos,
+                                    lastParagraphPos + lastParagraph.nodeSize,
+                                    state.schema.nodes.paragraph.create(null, newTextNode)
+                                );
+                            }
                         }
                     }
                     return true;

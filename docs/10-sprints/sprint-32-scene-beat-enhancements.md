@@ -12,10 +12,12 @@
 
 Sprint ini berfokus pada implementasi Scene Beat feature yang terintegrasi langsung di editor sebagai TipTap node, serta berbagai bug fixes dan UX improvements pada writing panel, yaitu:
 1. Implementasi Scene Beat sebagai custom TipTap node dengan inline AI generation
-2. Selection bubble menu untuk text replacement actions
-3. Dark mode compatibility untuk writing panel
-4. State management improvements untuk content persistence
-5. UX enhancements pada sidebar dan UI components
+2. Direct section streaming untuk intuitive generation experience
+3. View Prompt transparency feature untuk generated sections
+4. Selection bubble menu untuk text replacement actions
+5. Dark mode compatibility untuk writing panel
+6. State management improvements untuk content persistence
+7. UX enhancements pada sidebar dan UI components
 
 ---
 
@@ -148,6 +150,55 @@ Refactored `useProseGeneration.ts` untuk avoid dependency dengan Wayfinder yang 
 - Pattern matching dengan `useChat.ts` yang sudah proven working
 - Proper CSRF token handling
 
+### F-32.9: Direct Section Streaming (Enhanced UX) ✅
+
+Major UX improvement: Content kini streams langsung ke section (bukan preview area), matching familiar chat streaming pattern.
+
+**Key Changes:**
+- **Section created immediately**: Saat Generate clicked, empty section muncul di bawah beat
+- **Real-time streaming INTO section**: Content written word-by-word langsung di section
+- **Beat stays alive**: Scene beat tidak destroyed, bisa regenerate multiple times
+- **Dynamic position tracking**: Section position calculated on-the-fly untuk handle document changes
+- **Progress indicators**: Live word count dan status messages during generation
+
+**User Experience Flow:**
+```
+1. Click Generate → Section created below beat (empty)
+2. Content streams → INTO that section (not preview)
+3. Generation completes → Success message shown
+4. Beat remains → Ready untuk new generation
+```
+
+**Benefits:**
+- ✅ Matches chat streaming UX (familiar pattern)
+- ✅ More intuitive - content written where it will live
+- ✅ No intermediate preview step
+- ✅ Support multiple generations from same beat
+
+### F-32.10: View Prompt Button for Generated Sections ✅
+
+Added transparency feature: "View Prompt" button pada generated sections untuk display full prompt yang dikirim ke AI.
+
+**Key Features:**
+- **View Prompt Button**: Positioned di section header next to Regenerate
+- **Expandable Preview Panel**: Shows system message, user message, dan metadata
+- **Full Transparency**: Display complete prompt structure including writing rules
+- **Copy to Clipboard**: One-click copy entire prompt
+- **Word Counts**: Individual dan total word counts for each section
+- **Violet Theme**: Distinct dari regenerate panel (amber) untuk visual clarity
+
+**Information Displayed:**
+- System Message (100+ words): Full writing rules dan guidelines
+- User Message (25+ words): Scene beat + word target
+- Metadata: Connection ID, Model ID, Word Target
+- Word counts untuk each section
+
+**Use Cases:**
+- 🎯 **Learning**: Writers see how to structure prompts
+- 🐛 **Debugging**: Developers verify prompt construction
+- 🔍 **Transparency**: Users understand AI output quality
+- 🔄 **Regeneration Reference**: Know what to adjust untuk better results
+
 ---
 
 ## 📁 File Structure
@@ -172,14 +223,27 @@ routes/
 resources/js/
 ├── extensions/
 │   ├── SceneBeatNode.ts                   ✨ NEW - TipTap custom node untuk beat blocks
+│   │                                      ✏️ UPDATED - Enhanced dengan streaming commands
+│   │                                              • createStreamingSection (insert after, not replace)
+│   │                                              • appendToSection (real-time content appending)
 │   ├── SlashCommands.ts                   ✏️ UPDATED - Added Scene Beat command
 │   └── SectionNode.ts                     ✏️ UPDATED - Enhanced untuk support generated sections
 │
 ├── components/editor/
 │   ├── SceneBeatEditor.vue                ✨ NEW - Main UI untuk beat editing & generation
 │   ├── SceneBeatNodeView.vue              ✨ NEW - Vue renderer untuk SceneBeatNode
+│   │                                      ✏️ UPDATED - Streaming logic enhancements
+│   │                                              • Removed preview display
+│   │                                              • Added dynamic position tracking
+│   │                                              • Real-time content watcher
+│   │                                              • Enhanced status indicators
 │   ├── SelectionBubbleMenu.vue            ✨ NEW - Floating menu on text selection
 │   ├── GeneratedSectionHeader.vue         ✨ NEW - Header untuk AI-generated sections
+│   │                                      ✏️ UPDATED - View Prompt feature
+│   │                                              • Added showPromptPreview state
+│   │                                              • Prompt preview panel UI
+│   │                                              • System/user message display
+│   │                                              • Copy to clipboard function
 │   ├── TipTapEditor.vue                   ✏️ UPDATED - Dark mode text fix
 │   ├── SectionHeader.vue                  ✏️ UPDATED - Integration dengan generated sections
 │   ├── SectionMenu.vue                    ✏️ UPDATED - Enhanced menu actions
@@ -233,15 +297,41 @@ Menggunakan existing endpoints dari Sprint 31, tanpa perubahan API contract:
 
 ### Manual Testing Checklist
 
+#### Scene Beat Core Features
 - [x] Scene Beat insertion via `/` slash command
 - [x] Beat text input dan editing
 - [x] Word target selection (200, 400, 600, custom)
 - [x] AI model selection via dropdown
 - [x] Generate button enabled only saat beat text filled
-- [x] Streaming prose generation dengan visual feedback
-- [x] Prose replacement inline di editor
 - [x] Beat collapse/expand functionality
 - [x] Beat delete dan clear actions
+
+#### Direct Section Streaming (F-32.9)
+- [x] Section created immediately below beat saat Generate clicked
+- [x] Content streams INTO section (not preview area)
+- [x] Real-time word count updates during streaming
+- [x] "Writing into section below..." indicator during generation
+- [x] Success message shown after generation completes
+- [x] Beat remains alive after generation
+- [x] "Clear & New" button resets beat for next generation
+- [x] Multiple generations from same beat work correctly
+- [x] Dynamic position tracking handles document changes
+- [x] No stale position references
+
+#### View Prompt Feature (F-32.10)
+- [x] "View Prompt" button visible di generated section header
+- [x] Button toggles prompt preview panel (violet theme)
+- [x] System message displays correctly (writing rules)
+- [x] User message shows beat + word target
+- [x] Metadata displays (Connection ID, Model, Word Target)
+- [x] Individual word counts accurate
+- [x] Total word count accurate
+- [x] Copy button copies entire prompt to clipboard
+- [x] Panel scrollable untuk long prompts
+- [x] Closes regenerate panel saat prompt preview opened
+- [x] Distinct violet theme from regenerate panel (amber)
+
+#### General Features
 - [x] Dark mode text visibility di writing panel
 - [x] Sidebar text size improvement visible
 - [x] Content persistence saat switch panel write → chat → write
@@ -268,6 +358,8 @@ Menggunakan existing endpoints dari Sprint 31, tanpa perubahan API contract:
 - **API Reference:** [AI Writing Features API](../04-api-reference/ai-writing-features.md)
 - **Testing Guide:** [AI Writing Features Testing](../06-testing/ai-writing-features-testing.md)
 - **User Journeys:** [Prose Generation Flow](../07-user-journeys/ai-writing-features/prose-generation-flow.md)
+- **Bug Fixes (Part 1):** [Sprint 32 Bug Fixes](../bug-fixes/2026-01-04-sprint32-enhancements.md)
+- **Bug Fixes (Part 2):** [Scene Beat Streaming Enhancements](../bug-fixes/2026-01-04-scene-beat-streaming-enhancements.md)
 - **Previous Sprint:** [Sprint 31 - AI Writing Features](./sprint-31-ai-writing-features.md)
 
 ---
@@ -285,12 +377,15 @@ Menggunakan existing endpoints dari Sprint 31, tanpa perubahan API contract:
 
 ### After Sprint 32
 - ✅ Scene beats native di editor sebagai TipTap node
+- ✅ **Direct section streaming** - content written directly where it will live
+- ✅ **View Prompt transparency** - full visibility into AI prompts
 - ✅ Inline AI generation dengan streaming real-time
 - ✅ Perfect dark mode compatibility
 - ✅ Better sidebar readability
 - ✅ Reliable content persistence across panel switches
 - ✅ Smart defaults untuk AI model selection
 - ✅ Quick actions via selection bubble menu
+- ✅ Reusable beats - generate multiple times from same beat
 
 ---
 
@@ -391,11 +486,14 @@ Untuk ensure dark mode compatibility:
 ## 🎯 Success Metrics
 
 - ✅ Scene Beat adoption: Writers dapat insert dan generate beats inline di editor
+- ✅ **Intuitive UX**: Direct section streaming matches familiar chat pattern
+- ✅ **Transparency**: View Prompt button provides full visibility into AI prompts
 - ✅ Zero content loss: No reported issues dengan content persistence after fix
 - ✅ Dark mode usability: 100% text visibility di dark mode
 - ✅ Mobile UX: Better readability dengan increased sidebar text size
 - ✅ Generation reliability: SSE streaming working consistently
 - ✅ Developer experience: Reduced debugging time dengan direct URL usage
+- ✅ **Reusability**: Beat stays alive for multiple generations
 
 ---
 

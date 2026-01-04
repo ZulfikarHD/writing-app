@@ -60,6 +60,7 @@ const isHidden = ref(false);
 const showPromptPreview = ref(false);
 const generatedContentContainer = ref<HTMLElement | null>(null);
 const expandedContentContainer = ref<HTMLElement | null>(null);
+const streamingSectionPos = ref<number | null>(null);
 
 // Form State
 const beatText = ref(props.node.attrs.beatText || '');
@@ -150,18 +151,34 @@ watch(instructions, (value) => props.updateAttributes({ instructions: value }));
 watch(selectedWordTarget, (value) => props.updateAttributes({ wordTarget: value }));
 watch(selectedConnectionId, (value) => props.updateAttributes({ connectionId: value }));
 
-// Auto-scroll generated content as it streams in
-watch(generatedContent, async () => {
-    if (isGenerating.value) {
-        await nextTick();
-        // Auto-scroll compact view
-        if (generatedContentContainer.value) {
-            generatedContentContainer.value.scrollTop = generatedContentContainer.value.scrollHeight;
+// Stream content into section as it generates
+let lastContentLength = 0;
+watch(generatedContent, async (newContent) => {
+    if (isGenerating.value && streamingSectionPos.value !== null) {
+        // Get only the new content since last update
+        const newChunk = newContent.substring(lastContentLength);
+        lastContentLength = newContent.length;
+        
+        if (newChunk) {
+            // Find the current position of the beat (it may have shifted)
+            const currentBeatPos = props.getPos();
+            const beatNode = props.editor.state.doc.nodeAt(currentBeatPos);
+            
+            if (beatNode) {
+                // The section should be right after the beat
+                const sectionPos = currentBeatPos + beatNode.nodeSize;
+                const sectionNode = props.editor.state.doc.nodeAt(sectionPos);
+                
+                // Verify it's the section we created
+                if (sectionNode && sectionNode.type.name === 'section' && sectionNode.attrs.isGenerated) {
+                    props.editor.commands.appendToSection(sectionPos, newChunk);
+                    await nextTick();
+                }
+            }
         }
-        // Auto-scroll expanded view
-        if (expandedContentContainer.value) {
-            expandedContentContainer.value.scrollTop = expandedContentContainer.value.scrollHeight;
-        }
+    } else if (!isGenerating.value) {
+        // Reset for next generation
+        lastContentLength = 0;
     }
 });
 
@@ -182,6 +199,26 @@ function handleCustomTargetInput(e: Event) {
 async function handleGenerate() {
     if (!canGenerate.value) return;
 
+    // Create section immediately before generating
+    const beatPos = props.getPos();
+    const beatNode = props.editor.state.doc.nodeAt(beatPos);
+    
+    if (!beatNode) return;
+    
+    const metadata: GenerationMetadata = {
+        beatText: beatText.value,
+        connectionId: selectedConnectionId.value || null,
+        modelId: selectedModel.value || null,
+        wordTarget: effectiveWordTarget.value,
+    };
+    
+    // Create the streaming section AFTER the beat
+    props.editor.commands.createStreamingSection(beatPos, metadata);
+    
+    // The section is now at beatPos + beatNode.nodeSize
+    streamingSectionPos.value = beatPos + beatNode.nodeSize;
+
+    // Start generation
     await generate(sceneId.value, {
         mode: 'scene_beat',
         beat: beatText.value,
@@ -190,17 +227,14 @@ async function handleGenerate() {
         connection_id: selectedConnectionId.value,
     });
 
-    // If generation successful, replace beat with content wrapped in a Section
-    if (generatedContent.value && !error.value) {
-        const pos = props.getPos();
-        const metadata: GenerationMetadata = {
-            beatText: beatText.value,
-            connectionId: selectedConnectionId.value || null,
-            modelId: selectedModel.value || null,
-            wordTarget: effectiveWordTarget.value,
-        };
-        props.editor.commands.replaceSceneBeatWithContent(pos, generatedContent.value, metadata);
-    }
+    // When done, delete the beat node (optional - uncomment if you want to remove beat after generation)
+    // if (!error.value) {
+    //     await nextTick();
+    //     props.deleteNode();
+    // }
+
+    // Clear streaming position when done
+    streamingSectionPos.value = null;
 }
 
 function handleKeydown(event: KeyboardEvent) {
@@ -227,6 +261,7 @@ function handleClearBeat() {
     instructions.value = '';
     userMessage.value = '';
     reset();
+    streamingSectionPos.value = null;
 }
 
 function copyToClipboard(text: string) {
@@ -319,48 +354,36 @@ function togglePromptPreview() {
                 ></textarea>
             </div>
 
-            <!-- Generated Content Preview (Streaming) -->
-            <div v-if="generatedContent && !showPromptPreview" class="px-3 pb-2">
-                <div class="bg-zinc-800/50 border border-zinc-700 rounded-lg overflow-hidden">
-                    <!-- Preview Header -->
-                    <div class="flex items-center justify-between px-2 py-1.5 border-b border-zinc-700 bg-zinc-800/80">
-                        <div class="flex items-center gap-1.5">
-                            <svg v-if="isGenerating" class="w-3 h-3 text-violet-400 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                            <svg v-else class="w-3 h-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span class="text-xs font-medium text-zinc-400">
-                                {{ isGenerating ? 'Generating...' : 'Generated Content' }}
-                            </span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-[10px] text-zinc-500">{{ generatedContent.split(/\s+/).filter(Boolean).length }} words</span>
-                            <button
-                                v-if="!isGenerating"
-                                type="button"
-                                class="text-xs text-zinc-500 hover:text-zinc-300"
-                                @click="copyToClipboard(generatedContent)"
-                                title="Copy to clipboard"
-                            >
-                                📋
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Preview Content -->
-                    <div ref="generatedContentContainer" class="p-2 max-h-48 overflow-y-auto">
-                        <div class="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">
-                            {{ generatedContent }}
-                            <span v-if="isGenerating" class="inline-block w-0.5 h-4 bg-violet-400 animate-pulse ml-0.5 align-middle"></span>
-                        </div>
-                    </div>
+            <!-- Generating Indicator -->
+            <div v-if="isGenerating" class="px-3 pb-2">
+                <div class="flex items-center gap-2 px-2 py-1.5 bg-violet-900/20 border border-violet-700/50 rounded-lg">
+                    <svg class="w-3.5 h-3.5 text-violet-400 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <span class="text-xs text-violet-300">Writing into section below...</span>
+                    <span v-if="generatedContent" class="text-[10px] text-violet-400/60 ml-auto">{{ generatedContent.split(/\s+/).filter(Boolean).length }} words</span>
+                </div>
+            </div>
+            
+            <!-- Success Message -->
+            <div v-if="!isGenerating && generatedContent && !error" class="px-3 pb-2">
+                <div class="flex items-center gap-2 px-2 py-1.5 bg-green-900/20 border border-green-700/50 rounded-lg">
+                    <svg class="w-3.5 h-3.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span class="text-xs text-green-300">Generated {{ generatedContent.split(/\s+/).filter(Boolean).length }} words</span>
+                    <button
+                        type="button"
+                        class="ml-auto text-[10px] text-green-400/70 hover:text-green-300 underline"
+                        @click="handleClearBeat"
+                    >
+                        Clear & New
+                    </button>
                 </div>
             </div>
 
             <!-- Prompt Preview (Collapsible) -->
-            <div v-if="showPromptPreview && !generatedContent" class="px-3 pb-3 pt-0">
+            <div v-if="showPromptPreview && !isGenerating" class="px-3 pb-3 pt-0">
                 <div class="bg-zinc-800/50 border border-zinc-700 rounded-lg overflow-hidden">
                     <!-- Preview Header -->
                     <div class="flex items-center justify-between px-2 py-1.5 border-b border-zinc-700 bg-zinc-800/80">
@@ -705,20 +728,25 @@ function togglePromptPreview() {
                         </button>
                     </div>
 
-                    <!-- Generated Content Preview (while generating) -->
-                    <div v-if="generatedContent" class="pt-3 border-t border-zinc-700">
-                        <div class="flex items-center justify-between mb-2">
-                            <div class="flex items-center gap-1.5">
-                                <span class="text-xs text-zinc-500">{{ isGenerating ? 'Generating...' : 'Generated Content' }}</span>
-                                <svg v-if="isGenerating" class="w-3 h-3 text-violet-400 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                </svg>
-                            </div>
-                            <span class="text-xs text-zinc-500">{{ generatedContent.split(/\s+/).filter(Boolean).length }} words</span>
+                    <!-- Generating Indicator -->
+                    <div v-if="isGenerating" class="pt-3">
+                        <div class="flex items-center gap-2 px-3 py-2 bg-violet-900/20 border border-violet-700/50 rounded-lg">
+                            <svg class="w-4 h-4 text-violet-400 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            <span class="text-sm text-violet-300">Writing content into section below...</span>
+                            <span class="text-xs text-violet-400/60 ml-auto">{{ generatedContent.split(/\s+/).filter(Boolean).length }} words</span>
                         </div>
-                        <div ref="expandedContentContainer" class="text-sm text-zinc-300 whitespace-pre-wrap max-h-48 overflow-y-auto bg-zinc-800 rounded-md p-3">
-                            {{ generatedContent }}
-                            <span v-if="isGenerating" class="inline-block w-0.5 h-4 bg-violet-400 animate-pulse ml-0.5 align-middle"></span>
+                    </div>
+                    
+                    <!-- Success Message -->
+                    <div v-if="!isGenerating && generatedContent && !error" class="pt-3">
+                        <div class="flex items-center gap-2 px-3 py-2 bg-green-900/20 border border-green-700/50 rounded-lg">
+                            <svg class="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-sm text-green-300">Content generated successfully!</span>
+                            <span class="text-xs text-green-400/60 ml-auto">{{ generatedContent.split(/\s+/).filter(Boolean).length }} words</span>
                         </div>
                     </div>
 

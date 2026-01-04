@@ -40,6 +40,7 @@ const {
 
 // Local state
 const showRegeneratePanel = ref(false);
+const showPromptPreview = ref(false);
 const selectedModel = ref(props.sourceModelId || '');
 const selectedConnectionId = ref<number | undefined>(props.sourceConnectionId || undefined);
 const editedBeat = ref(props.sourceBeat || '');
@@ -47,6 +48,48 @@ const selectedWordTarget = ref(props.sourceWordTarget || 400);
 
 // Word target options
 const wordTargets = [200, 400, 600];
+
+// Default system message template
+const defaultSystemMessage = `You are an expert fiction writer.
+
+Always keep the following rules in mind:
+- Write in past tense and use General English spelling, grammar, and colloquialisms/slang.
+- Write in active voice
+- Always follow the "show, don't tell" principle.
+- Avoid adverbs and cliches and overused/commonly used phrases. Aim for fresh and original descriptions.
+- Convey events and story through dialogue.
+- Mix short, punchy sentences with long, descriptive ones. Drop fill words to add variety.
+- Skip "he/she said" dialogue tags and convey people's actions or face expressions through their speech
+- Avoid mushy dialog and descriptions, have dialogue always continue the action, never stall or add unnecessary fluff.
+- Put dialogue on its own paragraph to separate scene and action.
+- Reduce indicators of uncertainty like "trying" or "maybe"
+
+When writing text:
+- NEVER conclude the scene on your own, follow the beat instructions very closely`;
+
+// Construct user message from beat
+const constructedUserMessage = computed(() => {
+    if (!props.sourceBeat) return '';
+    return `Write approximately ${props.sourceWordTarget || 400} words.\n\nScene beat to write:\n${props.sourceBeat}`;
+});
+
+// Full preview prompt
+const previewPrompt = computed(() => {
+    const parts: string[] = [];
+
+    parts.push('=== SYSTEM MESSAGE ===');
+    parts.push(defaultSystemMessage);
+    parts.push('');
+    parts.push('=== USER MESSAGE ===');
+    parts.push(constructedUserMessage.value);
+
+    return parts.join('\n');
+});
+
+// Word count of preview
+const previewWordCount = computed(() => {
+    return previewPrompt.value.split(/\s+/).filter(Boolean).length;
+});
 
 // Initialize
 onMounted(async () => {
@@ -60,14 +103,28 @@ function toggleRegeneratePanel() {
         // Reset to original values when opening
         editedBeat.value = props.sourceBeat || '';
         selectedWordTarget.value = props.sourceWordTarget || 400;
+        // Close prompt preview if open
+        showPromptPreview.value = false;
     }
+}
+
+function togglePromptPreview() {
+    showPromptPreview.value = !showPromptPreview.value;
+    if (showPromptPreview.value) {
+        // Close regenerate panel if open
+        showRegeneratePanel.value = false;
+    }
+}
+
+function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text);
 }
 
 async function handleRegenerate() {
     if (!editedBeat.value.trim() || !props.sceneId) return;
 
     reset();
-    
+
     await generate(props.sceneId, {
         mode: 'scene_beat',
         beat: editedBeat.value,
@@ -141,12 +198,30 @@ function selectWordTarget(target: number) {
                 {{ wordCount }} words
             </span>
 
+            <!-- View Prompt Button -->
+            <button
+                v-if="sourceBeat"
+                type="button"
+                class="flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded transition-colors"
+                :class="showPromptPreview
+                    ? 'bg-violet-500 text-white hover:bg-violet-600'
+                    : 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/60'"
+                @click="togglePromptPreview"
+                title="View the original prompt used for generation"
+            >
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                <span>{{ showPromptPreview ? 'Hide' : 'View Prompt' }}</span>
+            </button>
+
             <!-- Regenerate Button -->
             <button
                 type="button"
                 class="flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded transition-colors"
-                :class="showRegeneratePanel 
-                    ? 'bg-amber-500 text-white hover:bg-amber-600' 
+                :class="showRegeneratePanel
+                    ? 'bg-amber-500 text-white hover:bg-amber-600'
                     : 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/60'"
                 @click="toggleRegeneratePanel"
             >
@@ -269,6 +344,69 @@ function selectWordTarget(target: number) {
                 {{ error }}
             </div>
         </div>
+
+        <!-- Prompt Preview Panel (expandable) -->
+        <div
+            v-if="showPromptPreview"
+            class="px-3 py-3 border-b border-violet-200 dark:border-violet-900/50 bg-violet-50/50 dark:bg-violet-950/30 space-y-3"
+        >
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    <h4 class="text-sm font-semibold text-violet-700 dark:text-violet-300">Original Prompt</h4>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-violet-600/70 dark:text-violet-400/60">{{ previewWordCount }} words</span>
+                    <button
+                        type="button"
+                        class="text-xs text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300"
+                        @click="copyToClipboard(previewPrompt)"
+                        title="Copy to clipboard"
+                    >
+                        📋 Copy
+                    </button>
+                </div>
+            </div>
+
+            <!-- System Message -->
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-medium text-violet-700 dark:text-violet-300">System Message</span>
+                    <span class="text-xs text-violet-600/60 dark:text-violet-400/50">{{ defaultSystemMessage.split(/\s+/).filter(Boolean).length }} words</span>
+                </div>
+                <div class="bg-white dark:bg-zinc-800 border border-violet-200 dark:border-violet-800 rounded-lg p-3 max-h-40 overflow-y-auto">
+                    <pre class="text-xs text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap font-mono leading-relaxed">{{ defaultSystemMessage }}</pre>
+                </div>
+            </div>
+
+            <!-- User Message -->
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-medium text-violet-700 dark:text-violet-300">User Message</span>
+                    <span class="text-xs text-violet-600/60 dark:text-violet-400/50">{{ constructedUserMessage.split(/\s+/).filter(Boolean).length }} words</span>
+                </div>
+                <div class="bg-white dark:bg-zinc-800 border border-violet-200 dark:border-violet-800 rounded-lg p-3 max-h-32 overflow-y-auto">
+                    <pre class="text-xs text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap font-mono leading-relaxed">{{ constructedUserMessage }}</pre>
+                </div>
+            </div>
+
+            <!-- Metadata Info -->
+            <div class="flex flex-wrap gap-3 text-xs text-violet-600/70 dark:text-violet-400/60">
+                <div v-if="sourceWordTarget">
+                    <span class="font-medium">Target Words:</span> {{ sourceWordTarget }}
+                </div>
+                <div v-if="sourceConnectionId">
+                    <span class="font-medium">Connection ID:</span> {{ sourceConnectionId }}
+                </div>
+                <div v-if="sourceModelId">
+                    <span class="font-medium">Model:</span> {{ sourceModelId }}
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -278,16 +416,23 @@ function selectWordTarget(target: number) {
 }
 
 /* Custom scrollbar for preview */
-.max-h-32::-webkit-scrollbar {
+.max-h-32::-webkit-scrollbar,
+.max-h-40::-webkit-scrollbar {
     width: 4px;
 }
 
-.max-h-32::-webkit-scrollbar-track {
+.max-h-32::-webkit-scrollbar-track,
+.max-h-40::-webkit-scrollbar-track {
     background: transparent;
 }
 
 .max-h-32::-webkit-scrollbar-thumb {
     background: #d97706;
+    border-radius: 2px;
+}
+
+.max-h-40::-webkit-scrollbar-thumb {
+    background: #8b5cf6;
     border-radius: 2px;
 }
 

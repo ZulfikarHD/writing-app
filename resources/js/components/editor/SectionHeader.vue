@@ -12,10 +12,21 @@ interface Props {
     isEditing: boolean;
     editedTitle: string;
     isCompleted?: boolean; // For beat sections
+    // Generation metadata (for generated sections)
+    isGenerated?: boolean;
+    sourceBeat?: string | null;
+    sourceConnectionId?: number | null;
+    sourceModelId?: string | null;
+    sourceWordTarget?: number | null;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     isCompleted: false,
+    isGenerated: false,
+    sourceBeat: null,
+    sourceConnectionId: null,
+    sourceModelId: null,
+    sourceWordTarget: null,
 });
 
 const emit = defineEmits<{
@@ -28,6 +39,7 @@ const emit = defineEmits<{
     (e: 'open-menu', event: Event): void;
     (e: 'expand-to-prose'): void;
     (e: 'toggle-completion'): void;
+    (e: 'view-prompt'): void;
 }>();
 
 const isBeatSection = computed(() => props.type === 'beat');
@@ -149,6 +161,21 @@ const handleKeydown = (e: KeyboardEvent) => {
                 <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
             <span class="hidden sm:inline">Expand</span>
+        </button>
+
+        <!-- View Prompt Button (only for generated sections) -->
+        <button
+            v-if="isGenerated && sourceBeat"
+            type="button"
+            class="flex-shrink-0 flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:hover:bg-amber-900/50"
+            title="View original prompt"
+            @click="emit('view-prompt')"
+        >
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <span class="hidden sm:inline">View Prompt</span>
         </button>
 
         <!-- AI Visibility Toggle -->
